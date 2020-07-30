@@ -5,6 +5,8 @@
 #include <queue>
 using namespace std;
 
+// 이진 탐색 트리 삭제, 삽입, 순회, 출력 구현
+
 class BSearchTree;
 
 class BinaryNode {

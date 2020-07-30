@@ -3,6 +3,8 @@
 #include <cstdlib>
 using namespace std;
 
+// B-tree 삽입 구현
+
 #define DEGREE 8 // 트리의 차수
 #define SIZE 100 // 키 몇개 삽입할건지
 

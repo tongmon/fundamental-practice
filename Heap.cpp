@@ -3,6 +3,10 @@
 #include <cstdlib>
 using namespace std;
 
+// 힙 자료 구조와 힙 검사 함수 재귀와 반복으로 구현
+// 힙은 우선 순위 큐를 위한 하나의 방법 중 하나이다.
+// 우선 순위 큐는 배열, 연결 리스트 등으로도 구현이 가능하다.
+
 #define SIZE 23
 
 bool Hrecur(int a[], int size, int index, int option)
