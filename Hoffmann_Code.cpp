@@ -198,7 +198,7 @@ int main()
     
     sort(data.begin(), data.end());
 
-    Hoffmann_Code* ary = new Hoffmann_Code[data.size()];
+    Hoffmann_Code* ary = new Hoffmann_Code[data.size() + 1];
 
     for (int i = 0; i < data.size(); i++)
     {
@@ -207,6 +207,13 @@ int main()
         ary[i].spel = data[i].spel;
         cout << "글자: " << ary[i].spel << " 빈도수: " << ary[i].Freq << " 호프만 코드: " << ary[i].H_code << endl;
     }
+
+    // 쓰레기 처리
+    for (int i = 0; i < data.size(); i++)
+    {
+        delete[]ary[i].H_code;
+    }
+    delete[]ary;
 }
 
 BinaryNode* BinaryTree::SetLeft(BinaryNode* p, int k, char a)
