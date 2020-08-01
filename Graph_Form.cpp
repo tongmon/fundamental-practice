@@ -3,6 +3,7 @@ using namespace std;
 
 // 그래프는 배열, 연결 리스트들을 이용해 짤 수 있다.
 // 각기 다른 장단점이 존재 하니 상황에 맞게 사용할 것.
+// DFS 추가
 
 #define MAX_LEN 256
 
@@ -10,6 +11,7 @@ class AdjMatGraph // 그래프 구조 배열로 구현
 {
 protected:
 	int size;
+	bool visited[MAX_LEN];
 	char vertices[MAX_LEN]; // 정점 이름 한 글자
 	unsigned short adj[MAX_LEN][MAX_LEN];
 public:
@@ -28,6 +30,7 @@ public:
 			{
 				setEdge(i, j, 0);
 			}
+			visited[i] = false;
 		}
 	}
 	void insertVertex(char name)
@@ -62,7 +65,7 @@ public:
 			return;
 		}
 		int num = MAX_LEN;
-		for (int i = 0;i < size;i++)
+		for (int i = 0; i < size; i++)
 		{
 			if (vertices[i] == name)
 			{
@@ -114,6 +117,26 @@ public:
 			cout << endl;
 		}
 	}
+	bool is_Linked(int u, int v)
+	{
+		if (adj[u][v] != 0)
+		{
+			return true;
+		}
+		return false;
+	}
+	void DFS(int ver = 0)
+	{
+		visited[ver] = true;
+		cout << vertices[ver] << "  ";
+		for (int i = 0; i < size; i++)
+		{
+			if (is_Linked(ver, i) == true && visited[i] == false)
+			{
+				DFS(i);
+			}
+		}
+	}
 };
 
 class gNode
@@ -136,10 +159,18 @@ class AdjListGraph
 {
 protected:
 	int size;
+	bool visited[MAX_LEN];
 	char vertices[MAX_LEN];
 	gNode* adj[MAX_LEN];
 public:
-	AdjListGraph() { size = 0; *vertices = NULL; *adj = NULL; }
+	AdjListGraph()
+	{
+		size = 0; *vertices = NULL; *adj = NULL;
+		for (int i = 0; i < MAX_LEN; i++)
+		{
+			visited[i] = false;
+		}
+	}
 	~AdjListGraph() { reset(); }
 	void reset()
 	{
@@ -149,6 +180,7 @@ public:
 			{
 				delete adj[i];
 			}
+			visited[i] = false;
 		}
 		size = 0;
 	}
@@ -165,7 +197,7 @@ public:
 		adj[size++] = NULL;
 	}
 	void insertEdge(int u, int v)
-	{	
+	{
 		gNode* p = new gNode(v, adj[u]);
 		adj[u] = p;
 		p = new gNode(u, adj[v]);
@@ -187,13 +219,38 @@ public:
 		}
 	}
 	gNode* adjacent(int v) { return adj[v]; }
+	bool is_Linked(int u, int v)
+	{
+		gNode* p = adj[u];
+		while (p != NULL)
+		{
+			if (v == p->getId())
+			{
+				return true;
+			}
+			p = p->getNext();
+		}
+		return false;
+	}
+	void DFS(int ver = 0)
+	{
+		visited[ver] = true;
+		cout << vertices[ver] << "  ";
+		for (int i = 0; i < size; i++)
+		{
+			if (is_Linked(ver, i) == true && visited[i] == false)
+			{
+				DFS(i);
+			}
+		}
+	}
 };
 
-void main()
+int main()
 {
 	cout << "행렬 배열로 작성된 그래프\n";
 	AdjMatGraph g;
-	for (int i = 0;i<4;i++)
+	for (int i = 0; i < 4; i++)
 	{
 		g.insertVertex('A' + i);
 	}
@@ -204,8 +261,9 @@ void main()
 	g.insertEdge(2, 3);
 	g.display();
 	cout << endl;
+	cout << "DFS 결과: "; g.DFS();
 
-	cout << "연결 리스트로 작성된 그래프\n";
+	cout << "\n\n연결 리스트로 작성된 그래프\n";
 	AdjListGraph G;
 	for (int i = 0; i < 4; i++)
 	{
@@ -217,4 +275,6 @@ void main()
 	G.insertEdge(1, 3);
 	G.insertEdge(2, 3);
 	G.display();
+	cout << endl;
+	cout << "DFS 결과: "; G.DFS();
 }
