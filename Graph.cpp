@@ -1,9 +1,15 @@
 #include <iostream>
+#include <queue>
+#include <vector>
 using namespace std;
 
 // 그래프는 배열, 연결 리스트들을 이용해 짤 수 있다.
 // 각기 다른 장단점이 존재 하니 상황에 맞게 사용할 것.
-// DFS 추가
+// DFS, BFS, 연결성분, 위상정렬 구현
+// 신장 트리는 DFS, BFS 돌리고 이어지는 간선들을 새로 만들어 모으면 형성되는 구조이기에 생략
+// 연결 리스트 그래프에서 예를 들면 A  B -> C -> D 이거는 A 정점에서 B,C,D로 가는 선이 있는 것을 의미한다.
+// 연결 성분의 색깔 개수는 그래프 간선의 Bridge 유무를 파악할 수 있기에 유용하다. 
+// 잘 기억하도록
 
 #define MAX_LEN 256
 
@@ -30,6 +36,12 @@ public:
 			{
 				setEdge(i, j, 0);
 			}
+			visited[i] = false;
+		}
+	}
+	void resetV() {
+		for (int i = 0; i < size; i++)
+		{
 			visited[i] = false;
 		}
 	}
@@ -137,6 +149,26 @@ public:
 			}
 		}
 	}
+	void BFS(int ver = 0)
+	{
+		queue<int> gBFS;
+		visited[ver] = true;
+		cout << vertices[ver] << "  ";
+		gBFS.push(ver);
+		while (gBFS.empty() == false)
+		{
+			int buffer = gBFS.front(); gBFS.pop();
+			for (int i = 0; i < size; i++)
+			{
+				if (is_Linked(buffer, i) == true && visited[i] == false)
+				{
+					visited[i] = true;
+					gBFS.push(i);
+					cout << vertices[i] << "  ";
+				}
+			}
+		}
+	}
 };
 
 class gNode
@@ -184,6 +216,12 @@ public:
 		}
 		size = 0;
 	}
+	void resetV() {
+		for (int i = 0; i < size; i++)
+		{
+			visited[i] = false;
+		}
+	}
 	bool is_Empty() { return size == 0; }
 	bool is_Full() { return size >= MAX_LEN; }
 	char getVertex(int i) { return vertices[i]; }
@@ -202,6 +240,11 @@ public:
 		adj[u] = p;
 		p = new gNode(u, adj[v]);
 		adj[v] = p;
+	}
+	void insertDirEdge(int u, int v) // 방향 그래프에서 u가 v를 가리키면
+	{
+		gNode* p = new gNode(v, adj[u]);
+		adj[u] = p;
 	}
 	void display()
 	{
@@ -244,6 +287,157 @@ public:
 			}
 		}
 	}
+	void BFS(int ver = 0)
+	{
+		queue<int> gBFS;
+		visited[ver] = true;
+		cout << vertices[ver] << "  ";
+		gBFS.push(ver);
+		while (gBFS.empty() == false)
+		{
+			int buffer = gBFS.front(); gBFS.pop();
+			for (int i = 0; i < size; i++)
+			{
+				if (is_Linked(buffer, i) == true && visited[i] == false)
+				{
+					visited[i] = true;
+					gBFS.push(i);
+					cout << vertices[i] << "  ";
+				}
+			}
+		}
+	}
+};
+
+class ConnectedComponetG : public AdjMatGraph // 따로 떨어져 있는 그래프들은 다른 색을 칠한다.
+{
+	short color[MAX_LEN];
+public:
+	ConnectedComponetG() : AdjMatGraph()
+	{
+		for (int i = 0; i < MAX_LEN; i++)
+		{
+			color[i] = 0;
+		}
+	}
+	void colorDFS(int ver = 0, int col = 0)
+	{
+		color[ver] = col;
+		visited[ver] = true;
+		cout << vertices[ver] << "  ";
+		for (int i = 0; i < size; i++)
+		{
+			if (is_Linked(ver, i) == true && visited[i] == false)
+			{
+				colorDFS(i, col);
+			}
+		}
+	}
+	void DisplayColored()
+	{
+		int colornum = 0;
+		for (int i = 0; i < size; i++) // 색칠하기
+		{
+			if (visited[i] == false)
+			{
+				colorDFS(i, colornum++);
+			}
+		}
+		for (int i = 0; i < colornum; i++)
+		{
+			cout << "ColorNumber: " << i << " -> ";
+			for (int j = 0; j < size; j++)
+			{
+				if (color[j] == i)
+				{
+					cout << vertices[j] << "  ";
+				}
+			}
+			cout << endl;
+		}
+	}
+};
+
+class TopoSortG : public AdjListGraph
+{
+	short deg[MAX_LEN]; // 인접 차수, 나오는 선 개수가 아니다.
+public:
+	TopoSortG() :AdjListGraph()
+	{
+		for (int i = 0; i < MAX_LEN; i++)
+		{
+			deg[i] = 0;
+		}
+	}
+	void countDeg()
+	{
+		for (int i = 0; i < size; i++)
+		{
+			gNode* p = adj[i];
+			while (p != NULL)
+			{
+				int num = p->getId();
+				deg[num]++;
+				p = p->getNext();
+			}
+		}
+	}
+	void vTopoSort() // 원래는 스택과 큐를 이용하지만 vector를 사용해서 짜보았다.
+	{
+		vector<int> container;
+		countDeg();
+		for (int i = 0; i < size; i++)
+		{
+			container.push_back(i);
+		}
+		while (container.empty() == false)
+		{
+			for (int i = 0; i < container.size(); i++)
+			{
+				if (deg[container[i]] == 0)
+				{
+					gNode* p = adj[container[i]];
+					while (p != NULL)
+					{
+						int num = p->getId();
+						deg[num]--;
+						p = p->getNext();
+					}
+					cout << vertices[container[i]] << "  ";
+					container.erase(container.begin() + i);
+					break;
+				}
+			}
+		}
+	}
+	void TopoSort() // 큐를 이용
+	{
+		queue<int> container;
+		countDeg();
+		for (int i = 0; i < size; i++)
+		{
+			if (deg[i] == 0)
+			{
+				container.push(i);
+			}
+		}
+		while (container.empty() == false)
+		{
+			int buffer = container.front(); container.pop();
+			cout << vertices[buffer] << "  ";
+			gNode* p = adj[buffer];
+			while (p != NULL)
+			{
+				int k = p->getId();
+				deg[k]--;
+				if (deg[k] == 0)
+				{
+					container.push(k);
+				}
+				p = p->getNext();
+			}
+		}
+	}
 };
 
 int main()
@@ -261,7 +455,8 @@ int main()
 	g.insertEdge(2, 3);
 	g.display();
 	cout << endl;
-	cout << "DFS 결과: "; g.DFS();
+	cout << "DFS 결과: "; g.DFS(); g.resetV();
+	cout << "\nBFS 결과: "; g.BFS();
 
 	cout << "\n\n연결 리스트로 작성된 그래프\n";
 	AdjListGraph G;
@@ -276,5 +471,19 @@ int main()
 	G.insertEdge(2, 3);
 	G.display();
 	cout << endl;
-	cout << "DFS 결과: "; G.DFS();
+	cout << "DFS 결과: "; G.DFS(); G.resetV();
+	cout << "\nBFS 결과: "; G.BFS();
+
+	TopoSortG topo;
+	for (int i = 0; i < 6; i++)
+	{
+		topo.insertVertex('A' + i);
+	}
+	topo.insertDirEdge(0, 2); topo.insertDirEdge(0, 3);
+	topo.insertDirEdge(1, 3); topo.insertDirEdge(1, 4);
+	topo.insertDirEdge(2, 3); topo.insertDirEdge(2, 5);
+	topo.insertDirEdge(3, 5);
+	topo.insertDirEdge(4, 5);
+	cout << "\nTopoSort\n";
+	topo.vTopoSort();
 }
