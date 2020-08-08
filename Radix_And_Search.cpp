@@ -13,6 +13,7 @@ using namespace std;
 // 십진수 자리수는 어떻게 구하냐면 예를 들어 121의 십의 자리수 구하려면 121을 10으로 나눈후에 %10을 또 써주면 된다.
 // 100의 자리는 100으로 나눈 후에 %10... 이런식이다.
 // 순환 기법 연습으로 Pow함수 짰으니 기억 잘 안날 때마다 되새길 것
+// 각종 탐색 기법 추가
 
 void randnum(int* num, int size)
 {
@@ -96,7 +97,7 @@ void Bsearch_Re(int* ary, int num, int start, int end)
     }
     else if (ary[mid] == num)
     {
-        cout << "Found element: " << ary[mid] << endl; return;
+        cout << "Found element: " << mid << endl; return;
     }
     else if (num < ary[mid])
     {
@@ -113,7 +114,7 @@ void Bsearch(int* ary, int size, int num)
         mid = (start + end) / 2;
         if (ary[mid] == num)
         {
-            cout << "Found element: " << ary[mid] << endl; return;
+            cout << "Found element: " << mid << endl; return;
         }
         else if (ary[mid] < num)
         {
@@ -122,6 +123,65 @@ void Bsearch(int* ary, int size, int num)
         else
         {
             end = mid - 1;
+        }
+    }
+    cout << "Can't find the element!" << endl; return;
+}
+
+typedef struct _Index
+{
+    int key;
+    int index;
+}Index;
+
+void Indexsearch(int* ary, int asize, Index* Iary, int isize, int key)
+{
+    if (ary[0] > key || key > ary[asize - 1])
+    {
+        cout << "Can't find the element!" << endl; return;
+    }
+    for (int i = 0; i < isize - 1; i++)
+    {
+        if (key >= Iary[i].key && key < Iary[i + 1].key)
+        {
+            int index = Iary[i].index, endex = Iary[i + 1].index;
+            for (int j = index; j < endex; j++)
+            {
+                if (key == ary[j])
+                {
+                    cout << "Found element: " << j << endl; return;
+                }
+            }
+        }
+    }
+    // 인덱스로 못찾겠으니까 순차탐색해버림
+    for (int j = 0; j < asize; j++)
+    {
+        if (key == ary[j])
+        {
+            cout << "Found element: " << j << endl; return;
+        }
+    }
+    cout << "Can't find the element!" << endl; return;
+}
+
+void Interpolsearch(int* ary, int size, int key)
+{
+    int low = 0, high = size - 1;
+    while (key >= ary[low] && key <= ary[high])
+    {
+        float interpol = (key - ary[low]) * (high - low) / (ary[high] - ary[low]) + low;
+        if (ary[(int)interpol] < key)
+        {
+            low++;
+        }
+        else if (ary[(int)interpol] > key)
+        {
+            high--;
+        }
+        else
+        {
+            cout << "Found element: " << interpol << endl; return;
         }
     }
     cout << "Can't find the element!" << endl; return;
@@ -139,4 +199,9 @@ int main()
     cout << endl;
     Bsearch_Re(rand, 30, 0, MAX_SIZE - 1);
     Bsearch(rand, MAX_SIZE, 112);
+    Interpolsearch(rand, MAX_SIZE, 11);
+
+    int Insearch[10] = { 4, 15, 34, 41, 45, 67, 74, 76, 79, 102 };
+    Index Ind[4] = { {4, 0}, {45, 4}, {76, 7}, {79, 8} };
+    Indexsearch(Insearch, 10, Ind, 4, 74);
 }
