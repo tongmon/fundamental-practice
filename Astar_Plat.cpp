@@ -45,7 +45,8 @@ public:
 	int getF() { return F; }
 	int getG() { return G; }
 	int getH() { return H; }
-	void modInfo(int parent, int g) { Parent = parent; G = g; F = G + H; }
+	short getState() { return State; }
+	void modInfo(int parent, int g, short s) { Parent = parent; G = g; F = G + H; State = s; }
 };
 
 bool operator<(BrickInfo a, BrickInfo b)
@@ -196,6 +197,7 @@ public:
 	}
 	void AstarAlgorithm()
 	{
+		vector<BrickInfo> Result; // 최종 경로 명령 저장
 		vector<BrickInfo> Closed;
 		vector<BrickInfo> Opened;
 		if (setStart() == false)
@@ -230,7 +232,11 @@ public:
 			{
 				if (Closed[i].getCur() == track)
 				{
-					setMatrix(getGnode(track)->getCord().x, getGnode(track)->getCord().y, ShortestWay);
+					Result.push_back(Closed[i]);
+					if (track != Eindex)
+					{
+						setMatrix(getGnode(track)->getCord().x, getGnode(track)->getCord().y, ShortestWay);
+					}
 					track = Closed[i].getParent();
 					Closed.erase(Closed.begin() + i); break;
 				}
@@ -238,6 +244,25 @@ public:
 		}
 		cout << "\nFinished Travel" << endl;
 		Display();
+		cout << endl;
+		cout << "노드" << Sindex << "에서 출발하여 노드" << Eindex << "로 도착하기 까지의 경로" << endl;
+		for (int i = Result.size() - 1; i >= 0; i--)
+		{
+			int Curin = Result[i].getCur(), Parent = Result[i].getParent();
+			cout << "노드" << Parent << "에서 노드" << Curin << "로 ";
+			if (Result[i].getState() == Walk)
+			{
+				cout << "걷기" << endl;
+			}
+			else if (Result[i].getState() == Jump)
+			{
+				cout << "뛰기" << endl;
+			}
+			else
+			{
+				cout << "떨어지기" << endl;
+			}
+		}
 	}
 	bool is_Closed(int index, vector<BrickInfo> Closed)
 	{
@@ -264,24 +289,29 @@ public:
 	void Pushway(int index, int CurG, vector<BrickInfo>* Opened, vector<BrickInfo>* Closed)
 	{
 		vector<int> buffer; // 인덱스 저장소
+		vector<short> status; // 상태 저장소
 		int Gvalue;
 		for (int i = 0; i < getGnode(index)->getJumplist()->size(); i++)
 		{
 			buffer.push_back(getGnode(index)->getJumplist()->at(i));
+			status.push_back(Jump);
 		}
 		for (int i = 0; i < getGnode(index)->getDroplist()->size(); i++)
 		{
 			buffer.push_back(getGnode(index)->getDroplist()->at(i));
+			status.push_back(Drop);
 		}
 		for (int i = 0; i < getGnode(index)->getWalklist()->size(); i++)
 		{
 			buffer.push_back(getGnode(index)->getWalklist()->at(i));
+			status.push_back(Walk);
 		}
 		for (int i = 0; i < buffer.size(); i++)
 		{
 			if (is_Closed(buffer[i], *Closed) == true)
 			{
-				buffer.erase(buffer.begin() + i--);
+				buffer.erase(buffer.begin() + i);
+				status.erase(status.begin() + i--);
 			}
 		}
 		for (int i = 0; i < buffer.size(); i++)
@@ -292,12 +322,12 @@ public:
 			{
 				if (Opened->at(Oindex).getG() > Gvalue + CurG)
 				{
-					Opened->at(Oindex).modInfo(index, Gvalue + CurG);
+					Opened->at(Oindex).modInfo(index, Gvalue + CurG, status[i]);
 				}
 			}
 			else
 			{
-				Opened->push_back(BrickInfo(buffer[i], index, Gvalue + CurG, getH(getGnode(buffer[i])->getCord()), -1));
+				Opened->push_back(BrickInfo(buffer[i], index, Gvalue + CurG, getH(getGnode(buffer[i])->getCord()), status[i]));
 			}
 		}
 	}
@@ -331,15 +361,15 @@ int main()
 	short Map_2[MID_LEN][MID_LEN] =
 	{
 		{0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,0,0,0,0,0,0,0},
+		{0,0,3,0,0,0,0,0,0,0},
 		{0,1,1,1,0,0,0,0,0,0},
-		{0,0,0,0,0,0,3,0,0,0},
+		{0,0,0,0,0,0,0,0,0,0},
 		{0,0,0,0,1,1,1,1,1,0},
 		{0,0,0,0,0,0,0,0,0,0},
 		{0,0,0,0,0,0,0,0,0,0},
 		{0,1,1,1,1,1,0,0,0,0},
 		{0,0,0,0,0,0,0,0,0,0},
-		{0,0,0,2,0,0,0,0,0,0}
+		{0,0,0,0,0,0,0,0,2,0}
 	};
 	Astar_plat tester(Map_2, 10, 10, 23);
 	tester.Linknode(0, 1, Walk);
@@ -371,6 +401,7 @@ int main()
 	tester.Linknode(12, 15, Jump);
 	tester.Linknode(13, 12, Walk);
 	tester.Linknode(13, 14, Walk);
+	tester.Linknode(14, 13, Walk);
 	tester.Linknode(14, 6, Drop);
 	tester.Linknode(15, 12, Drop);
 	tester.Linknode(15, 16, Walk);
