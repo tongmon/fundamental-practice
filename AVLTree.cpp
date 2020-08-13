@@ -11,6 +11,7 @@ using namespace std;
 // 회전을 통해 깨진 균형을 맞추어 주는게 핵심
 // 삽입과 삭제 모두 지나왔던 노드들의 균형을 맞추어주기 위해 재귀가 사용된다.
 // 스택으로도 구현가능하다.
+// 노드에 밸런스라는 값을 넣을 수도 있지만 그때 그때 계산하는 방식을 차용했다.
 
 void randnum(int* num, int size)
 {
@@ -44,7 +45,8 @@ private:
 public:
     BinaryNode(BinaryNode* lp = NULL, char d = '\0', BinaryNode* rp = NULL) :
         Left(lp), data(d), Right(rp) { }
-    char getData() { return data; }
+    int getData() { return data; }
+    void setData(int k) { data = k; }
     BinaryNode* getLeft() { return Left; }
     BinaryNode* getRight() { return Right; }
     void setLeft(BinaryNode* p) { Left = p; }
@@ -59,30 +61,12 @@ public:
     BinaryNode* GetRoot() { return root; }
     void setRoot(BinaryNode* p) { root = p; }
     int CreatTree(int, int*);
-    BinaryNode* NodeSearch(int x, BinaryNode** parent, bool option);
-    BinaryNode* NodeSearch(int x, bool option = false)
-    {
-        BinaryNode* buffer;
-        return NodeSearch(x, &buffer, option);
-    }
     void Inorder();
     void Preorder();
     void Postorder();
     void Lvlorder();
     void DeleteNode(BinaryNode*);
-    void SelDeletion(int x);
-    int LeafCount(BinaryNode* p)
-    {
-        if (p == NULL)
-        {
-            return 0;
-        }
-        if (p->Left == NULL && p->Right == NULL)
-        {
-            return 1;
-        }
-        return LeafCount(p->Left) + LeafCount(p->Right);
-    }
+    void Display(BinaryNode* p, int lvl = 0);
     int Height(BinaryNode* p)
     {
         if (p == NULL)
@@ -261,28 +245,18 @@ public:
             delete parent;
             return reBalance(son);
         }
-        else // 자식이 두개
+        // 자식이 두개
+        BinaryNode* succp = parent;
+        BinaryNode* succ = parent->getRight();
+        while (succ->getLeft() != NULL)
         {
-            BinaryNode* succp = parent;
-            BinaryNode* succ = parent->getRight();
-            while (succ->getLeft() != NULL)
-            {
-                succp = succ;
-                succ = succ->getLeft();
-            }
-            if (succp != parent)
-            {
-                succp->setLeft(succ->getRight());
-            }
-            else
-            {
-                succp->setRight(succ->getRight());
-            }
-            succ->setLeft(parent->getLeft());
-            succ->setRight(parent->getRight());
-            delete parent;
-            return reBalance(succ);
+            succp = succ;
+            succ = succ->getLeft();
         }
+        int key = succ->getData();
+        BinaryNode* buffer = delAVL(parent, key);
+        parent->setData(key);
+        return buffer;
     }
 };
 
@@ -291,15 +265,18 @@ int main()
     AVLTree test;
     int ary[10];
     randnum(ary, 10);
+    cout << "Random Insertion: ";
     for (int i = 0; i < 10; i++)
     {
         test.Insert(ary[i]);
+        cout << ary[i] << " ";
     }
-    test.Inorder();
-    test.Del(3);
-    test.Del(10);
-    cout << endl;
-    test.Inorder();
+    cout << "\n\n";
+    test.Display(test.GetRoot());
+    cout << "\n\n\n";
+    cout << "Deletion: 3, 10\n" << endl;
+    test.Del(3); test.Del(10);
+    test.Display(test.GetRoot());
 }
 
 int BSearchTree::CreatTree(int n, int* IntArray)
@@ -340,52 +317,6 @@ int BSearchTree::CreatTree(int n, int* IntArray)
         }
     }
     return 1;
-}
-
-BinaryNode* BSearchTree::NodeSearch(int x, BinaryNode** parent, bool option) // option이 false면 찾기만하고 true면 없을 때 삽입까지
-{
-    BinaryNode* p, * q, * r;
-    r = q = NULL;
-    p = root;
-    while (p != NULL)
-    {
-        r = q;
-        q = p;
-        if (p->data == x)
-        {
-            *parent = r;
-            return p;
-        }
-        if (p->data > x)
-        {
-            p = p->Left;
-        }
-        else
-        {
-            p = p->Right;
-        }
-    }
-    if (option == false)
-    {
-        *parent = NULL;
-        return NULL;
-    }
-    p = new BinaryNode;
-    p->data = x;
-    if (!root)
-    {
-        root = p;
-    }
-    else if (q->data < x)
-    {
-        q->Right = p;
-    }
-    else
-    {
-        q->Left = p;
-    }
-    *parent = q;
-    return p;
 }
 
 void BSearchTree::Inorder()
@@ -519,85 +450,14 @@ void BSearchTree::DeleteNode(BinaryNode* ptr)
     }
 }
 
-void BSearchTree::SelDeletion(int x)
+void BSearchTree::Display(BinaryNode* p, int lvl)
 {
-    BinaryNode* parent;
-    BinaryNode* p = NodeSearch(x, &parent, false);
-    if (p == NULL)
+    if (p == NULL) return;
+    Display(p->getRight(), lvl + 1);
+    for (int i = 0; i < lvl; i++)
     {
-        cout << "void Deletion" << endl;
-        return;
+        cout << "      ";
     }
-    if (p->Left == NULL && p->Right == NULL) // 잎노드
-    {
-        if (parent == NULL)
-        {
-            root = NULL;
-        }
-        else if (parent->data > p->data)
-        {
-            parent->Left = NULL;
-        }
-        else
-        {
-            parent->Right = NULL;
-        }
-    }
-    else if (p->Left == NULL || p->Right == NULL) // 자식이 하나만 있음
-    {
-        BinaryNode* son;
-        if (p->Right != NULL)
-        {
-            son = p->Right;
-        }
-        else
-        {
-            son = p->Left;
-        }
-        if (parent == NULL)
-        {
-            root = son;
-        }
-        else if (parent->data > p->data)
-        {
-            parent->Left = son;
-        }
-        else
-        {
-            parent->Right = son;
-        }
-    }
-    else // 자식이 둘다 있음, 실제로 데이터만 바꿔도 되지만 난 노드 자리를 통째로 바꿨다.
-    {
-        BinaryNode* succp = p;
-        BinaryNode* succ = p->Right;
-        while (succ->Left != NULL)
-        {
-            succp = succ;
-            succ = succ->Left;
-        }
-        if (succp != p)
-        {
-            succp->Left = succ->Right;
-        }
-        else
-        {
-            succp->Right = succ->Right;
-        }
-        if (parent == NULL)
-        {
-            root = succ;
-        }
-        else if (parent->data > p->data)
-        {
-            parent->Left = succ;
-        }
-        else
-        {
-            parent->Right = succ;
-        }
-        succ->Left = p->Left;
-        succ->Right = p->Right;
-    }
-    delete p;
+    cout << "+[" << p->getData() << "]" << endl;
+    Display(p->getLeft(), lvl + 1);
 }
