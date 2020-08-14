@@ -1,11 +1,35 @@
 #include <iostream>
+#include <ctime>
+#include <cstdlib>
 using namespace std;
 
 // 이론만 듣고 짜본 Red-Black tree이다. 
 // 이론만 들어서 놓친 부분이 있는데 바로 노드에 부모 노드 포인터를 넣지 않았다....
 // 따라서 상위노드를 찾는 과정에서 탐색을 하게되는데 이때 비효율적이다. (애초에 알았으면... 고치기는 귀찮다.)
+// 삽입보다 삭제 구현이 정말 귀찮더라.... 고려할 케이스가 너무 많았다
 
-enum { RED, BLACK, DBLACK };
+void randnum(int* num, int size)
+{
+	srand((unsigned int)time(NULL));
+	for (int i = 0; i < size; i++)
+	{
+		*(num + i) = i + 1;
+	}
+	int tmp, a, b;
+	for (int i = 0; i < (size * 2); i++)
+	{
+		a = rand() % size;
+		b = rand() % size;
+		if (a != b)
+		{
+			tmp = *(num + a);
+			*(num + a) = *(num + b);
+			*(num + b) = tmp;
+		}
+	}
+}
+
+enum { RED, BLACK };
 
 class RBNode
 {
@@ -73,22 +97,18 @@ public:
 int main()
 {
 	RBTree Tree;
-	Tree.Insert(10);
-	Tree.Insert(11);
-	Tree.Insert(12);
-	Tree.Insert(24);
-	Tree.Insert(37);
-	Tree.Insert(42);
-	Tree.Insert(13);
-	Tree.Insert(17);
-	Tree.Insert(3);
-	Tree.Insert(2);
-	Tree.Insert(20);
-	Tree.Insert(31);
-	Tree.Delete(17);
-	Tree.Delete(24);
-	Tree.Delete(11);
-	Tree.Delete(13);
+	int Rand[15]; randnum(Rand, 15);
+	cout << "Random Insertion: ";
+	for (int i = 0; i < 15; i++)
+	{
+		Tree.Insert(Rand[i]);
+		cout << Rand[i] << " ";
+	}
+	cout << "\n\n";
+	Tree.Display(Tree.getRoot());
+	cout << "\n\n\n";
+	cout << "Deletion: 3, 10\n" << endl;
+	Tree.Delete(3); Tree.Delete(10);
 	Tree.Display(Tree.getRoot());
 }
 
@@ -237,7 +257,7 @@ void RBTree::Delete(int k)
 	{
 		cout << "Void Deletion" << endl; return;
 	}
-	RBNode* p = Root, * q = NULL, *Linked = NULL, *pLinked = NULL, *bLinked = NULL;
+	RBNode* p = Root, * q = NULL, * Linked = NULL, * pLinked = NULL, * bLinked = NULL;
 	while (p != NIL)
 	{
 		if (p->getData() > k)
@@ -273,7 +293,7 @@ void RBTree::Delete(int k)
 		{
 			q->setRight(NIL); bLinked = q->getLeft();
 		}
-		Linked = NIL; 
+		Linked = NIL;
 		pLinked = q;
 	}
 	else if (p->getLeft() == NIL || p->getRight() == NIL) // 자식이 하나만 있음
@@ -319,34 +339,7 @@ void RBTree::Delete(int k)
 		p = succ;
 		Linked = succ->getLeft();
 		pLinked = succp;
-	} 
-	/*
-	else // 자식이 둘다 있음
-	{
-		RBNode* succp = p;
-		RBNode* succ = p->getRight();
-		while (succ->getLeft() != NIL)
-		{
-			succp = succ;
-			succ = succ->getLeft();
-		}
-		if (succp != p)
-		{
-			succp->setLeft(succ->getRight());
-		}
-		else
-		{
-			succp->setRight(succ->getRight());
-		}
-		p->setData(succ->getData());
-		if (q == NULL)
-		{
-			Root = p;
-		}
-		p = succ;
-		Linked = succ->getRight();
 	}
-	*/
 	if (p->getColor() == RED) // 지우려는 노드가 빨강이면 그냥 종료
 	{
 		delete p; return;
@@ -380,30 +373,20 @@ void RBTree::ReAdjust_del(RBNode* Dbnode, RBNode* Parent, RBNode* Brother)
 			buffer = buffer->getRight();
 		}
 	}
-	if (Brother->getColor() == RED) // 형제 노드가 빨간색
+	bool is_DB_right = false;
+	if (Dbnode != NIL)
 	{
-		Brother->setColor(BLACK); Parent->setColor(RED);
-		if (Brother->getData() > Parent->getData()) // 형제가 우노드였다면
+		is_DB_right = Dbnode->getData() > Parent->getData() ? true : false;
+	}
+	else
+	{
+		is_DB_right = Brother->getData() > Parent->getData() ? false : true;
+	}
+	if (is_DB_right == true) // 더블 블랙 노드가 오른쪽인 경우
+	{
+		if (Brother->getColor() == RED) // 형제 노드가 빨간색
 		{
-			if (Grandpa != NULL)
-			{
-				if (Grandpa->getData() < Parent->getData())
-				{
-					Grandpa->setRight(LeftRotation(Parent));
-				}
-				else
-				{
-					Grandpa->setLeft(LeftRotation(Parent));
-				}
-			}
-			else
-			{
-				Root = LeftRotation(Parent);
-			}
-			Brother = Parent->getRight();
-		}
-		else // 형제가 좌노드였다면
-		{
+			Brother->setColor(BLACK); Parent->setColor(RED);
 			if (Grandpa != NULL)
 			{
 				if (Grandpa->getData() < Parent->getData())
@@ -420,102 +403,65 @@ void RBTree::ReAdjust_del(RBNode* Dbnode, RBNode* Parent, RBNode* Brother)
 				Root = RightRotation(Parent);
 			}
 			Brother = Parent->getLeft();
+			ReAdjust_del(Dbnode, Parent, Brother); return;
 		}
-		ReAdjust_del(Dbnode, Parent, Brother); return;
-	}
-	else if (Brother->getColor() == BLACK && Brother->getRight()->getColor() == BLACK && Brother->getLeft()->getColor() == BLACK)
-	{
-		Brother->setColor(RED);
-		if (Parent->getColor() == RED)
+		else // 형제 노드가 검은색
 		{
-			Parent->setColor(BLACK); return;
-		}
-		if (Grandpa != NULL)
-		{
-			if (Grandpa->getData() > Parent->getData())
+			if (Brother->getRight()->getColor() == BLACK && Brother->getLeft()->getColor() == BLACK) // 형제 자식들이 모두 검은색
 			{
-				Brother = Grandpa->getRight();
+				Brother->setColor(RED);
+				if (Parent->getColor() == RED)
+				{
+					Parent->setColor(BLACK); return;
+				}
+				if (Grandpa != NULL)
+				{
+					if (Grandpa->getData() > Parent->getData()) // 부모의 형제 얻기
+					{
+						Brother = Grandpa->getRight();
+					}
+					else
+					{
+						Brother = Grandpa->getLeft();
+					}
+					ReAdjust_del(Parent, Grandpa, Brother); return; // 부모가 검은색이였다면 더블 블랙이므로 다시 재귀적으로 검사
+				}
+				return;
 			}
-			else
+			else if (Brother->getLeft()->getColor() == BLACK && Brother->getRight()->getColor() == RED)
 			{
-				Brother = Grandpa->getLeft();
+				Brother->setColor(RED); Brother->getRight()->setColor(BLACK);
+				Parent->setLeft(LeftRotation(Brother)); Brother = Parent->getLeft();
+				ReAdjust_del(Dbnode, Parent, Brother); return;
 			}
-			ReAdjust_del(Parent, Grandpa, Brother); return; // 부모가 검은색이였다면 더블 블랙이므로 다시 재귀적으로 검사
-		}
-		return;
-	}
-	else if (Brother->getColor() == BLACK && Brother->getLeft()->getColor() == RED && Brother->getRight()->getColor() == BLACK)
-	{
-		Brother->setColor(RED); Brother->getLeft()->setColor(BLACK);
-		if (Brother->getData() > Parent->getData()) // brother가 우측
-		{
-			Parent->setRight(RightRotation(Brother)); Brother = Parent->getRight();
-		}
-		else
-		{
-			Parent->setLeft(RightRotation(Brother)); Brother = Parent->getLeft();
-		}
-		ReAdjust_del(Dbnode, Parent, Brother); return;
-	}
-	else if (Brother->getColor() == BLACK && Brother->getRight()->getColor() == RED)
-	{
-		Brother->setColor(Parent->getColor()); Parent->setColor(BLACK);
-		Brother->getRight()->setColor(BLACK);
-		if (Grandpa != NULL)
-		{
-			if (Grandpa->getData() < Parent->getData())
+			else if (Brother->getLeft()->getColor() == RED)
 			{
-				Grandpa->setRight(LeftRotation(Parent));
+				Brother->setColor(Parent->getColor()); Parent->setColor(BLACK);
+				Brother->getLeft()->setColor(BLACK);
+				if (Grandpa != NULL)
+				{
+					if (Grandpa->getData() < Parent->getData())
+					{
+						Grandpa->setRight(RightRotation(Parent));
+					}
+					else
+					{
+						Grandpa->setLeft(RightRotation(Parent));
+					}
+				}
+				else
+				{
+					Root = RightRotation(Parent);
+				}
+				return;
 			}
-			else
-			{
-				Grandpa->setLeft(LeftRotation(Parent));
-			}
-		}
-		else
-		{
-			Root = LeftRotation(Parent);
-		}
-		return;
-	}
-}
-
-/*
-void RBTree::ReAdjust_del(RBNode* p, int key)
-{
-	if (p == Root) // 더블 블랙 노드가 루트면 종료
-	{
-		return;
-	}
-	RBNode* Grandpa = NULL, * Parent = NULL, * Brother = NULL, * buffer = Root;
-	while (buffer != p)
-	{
-		Grandpa = Parent;
-		Parent = buffer;
-		if (buffer->getData() > p->getData())
-		{
-			buffer = buffer->getLeft();
-		}
-		else
-		{
-			buffer = buffer->getRight();
 		}
 	}
-	bool is_bro_right = false;
-	if (Parent->getData() > p->getData())
+	else // 더블 블랙 노드가 왼쪽인 경우
 	{
-		Brother = Parent->getRight();
-		is_bro_right = true;
-	}
-	else
-	{
-		Brother = Parent->getLeft();
-	}
-	if (Brother->getColor() == RED) // 형제 노드가 빨간색
-	{
-		Brother->setColor(BLACK); Parent->setColor(RED);
-		if (is_bro_right == true) // 형제가 우노드였다면
+		if (Brother->getColor() == RED) // 형제 노드가 빨간색
 		{
+			Brother->setColor(BLACK); Parent->setColor(RED);
 			if (Grandpa != NULL)
 			{
 				if (Grandpa->getData() < Parent->getData())
@@ -531,72 +477,62 @@ void RBTree::ReAdjust_del(RBNode* p, int key)
 			{
 				Root = LeftRotation(Parent);
 			}
+			Brother = Parent->getRight();
+			ReAdjust_del(Dbnode, Parent, Brother); return;
 		}
-		else // 형제가 좌노드였다면
+		else // 형제 노드가 검은색
 		{
-			if (Grandpa != NULL)
+			if (Brother->getRight()->getColor() == BLACK && Brother->getLeft()->getColor() == BLACK) // 형제 자식들이 모두 검은색
 			{
-				if (Grandpa->getData() < Parent->getData())
+				Brother->setColor(RED);
+				if (Parent->getColor() == RED)
 				{
-					Grandpa->setRight(RightRotation(Parent));
+					Parent->setColor(BLACK); return;
+				}
+				if (Grandpa != NULL)
+				{
+					if (Grandpa->getData() > Parent->getData()) // 부모의 형제 얻기
+					{
+						Brother = Grandpa->getRight();
+					}
+					else
+					{
+						Brother = Grandpa->getLeft();
+					}
+					ReAdjust_del(Parent, Grandpa, Brother); return; // 부모가 검은색이였다면 더블 블랙이므로 다시 재귀적으로 검사
+				}
+				return;
+			}
+			else if (Brother->getLeft()->getColor() == RED && Brother->getRight()->getColor() == BLACK)
+			{
+				Brother->setColor(RED); Brother->getLeft()->setColor(BLACK);
+				Parent->setRight(RightRotation(Brother)); Brother = Parent->getRight();
+				ReAdjust_del(Dbnode, Parent, Brother); return;
+			}
+			else if (Brother->getRight()->getColor() == RED)
+			{
+				Brother->setColor(Parent->getColor()); Parent->setColor(BLACK);
+				Brother->getRight()->setColor(BLACK);
+				if (Grandpa != NULL)
+				{
+					if (Grandpa->getData() < Parent->getData())
+					{
+						Grandpa->setRight(LeftRotation(Parent));
+					}
+					else
+					{
+						Grandpa->setLeft(LeftRotation(Parent));
+					}
 				}
 				else
 				{
-					Grandpa->setLeft(RightRotation(Parent));
+					Root = LeftRotation(Parent);
 				}
-			}
-			else
-			{
-				Root = RightRotation(Parent);
+				return;
 			}
 		}
-		ReAdjust_del(p); return;
-	}
-	else if (Brother->getColor() == BLACK && Brother->getRight()->getColor() == BLACK && Brother->getLeft()->getColor() == BLACK)
-	{
-		Brother->setColor(RED);
-		if (Parent->getColor() == RED)
-		{
-			Parent->setColor(BLACK); return;
-		}
-		ReAdjust_del(Parent); return; // 부모가 검은색이였다면 더블 블랙이므로 다시 재귀적으로 검사
-	}
-	else if (Brother->getColor() == BLACK && Brother->getLeft()->getColor() == RED)
-	{
-		Brother->setColor(RED); Brother->getLeft()->setColor(BLACK);
-		if (is_bro_right == true)
-		{
-			Parent->setRight(RightRotation(Brother));
-		}
-		else
-		{
-			Parent->setLeft(RightRotation(Brother));
-		}
-		ReAdjust_del(p); return;
-	}
-	else if (Brother->getColor() == BLACK && Brother->getRight()->getColor() == RED)
-	{
-		Brother->setColor(Parent->getColor()); Parent->setColor(BLACK); 
-		Brother->getRight()->setColor(BLACK);
-		if (Grandpa != NULL)
-		{
-			if (Grandpa->getData() < Parent->getData())
-			{
-				Grandpa->setRight(LeftRotation(Parent));
-			}
-			else
-			{
-				Grandpa->setLeft(LeftRotation(Parent));
-			}
-		}
-		else
-		{
-			Root = LeftRotation(Parent);
-		}
-		return;
 	}
 }
-*/
 
 void RBTree::Display(RBNode* p, int lvl)
 {
