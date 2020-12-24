@@ -31,6 +31,7 @@ void DFS(int Cur, int Dep) {
 			mdist += Dist;
 		}
 		Min = min(mdist, Min);
+		return;
 	}
 	for (int i = Cur; i < List.size(); i++)
 	{
