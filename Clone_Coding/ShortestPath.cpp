@@ -218,42 +218,33 @@ public:
 	void ShortestPath_Q(int starter = 0) // 우선 순위 큐를 이용한 딕스트라 알고리즘
 	{
 		priority_queue<Distance, vector<Distance>, greater<Distance>> storage;
-		for (int i = 0; i < size; i++)
+		dist[starter] = 0; storage.push({ starter, 0 });
+		while (!storage.empty())
 		{
-			if (starter != i)
+			int Weight = storage.top().dist, Cur = storage.top().index;
+			storage.pop();
+			if (dist[Cur] < Weight) // 거리가 더 큰, 즉 잘못된 상태로 저장되어 있는 원소들은 pop하고 무시
+				continue;
+			for (int i = 0; i < size; i++)
 			{
-				dist[i] = adj[starter][i];
-				Distance buffer; buffer.dist = dist[i]; buffer.index = i;
-				storage.push(buffer);
-			}
-		}
-		dist[starter] = 0;
-		found[starter] = true;
-		while (storage.empty() == false)
-		{
-			// 제일 거리가 최소인 정점 탐색
-			Distance Mini = storage.top(); storage.pop();
-			cout << vertices[starter] << "에서 " << vertices[Mini.index] << "까지 최단거리: " << Mini.dist << endl;
-			found[Mini.index] = true;
-			while (storage.empty() == false)
-			{
-				storage.pop();
-			}
-			for (int j = 0; j < size; j++)
-			{
-				if (found[j] == false)
+				if (dist[i] > Weight + adj[Cur][i])
 				{
-					dist[j] = min(dist[j], dist[Mini.index] + adj[Mini.index][j]);
-					Distance buffer; buffer.dist = dist[j]; buffer.index = j;
-					storage.push(buffer);
+					dist[i] = Weight + adj[Cur][i];
+					storage.push({ i, dist[i] });
 				}
 			}
+		}
+		cout << "Dijkstra Algorithm\n";
+		for (int i = 0; i < size; i++) {
+			if (i == starter) 
+				continue;
+			cout << vertices[starter] << "에서 " << vertices[i] << "까지 최단거리: " << dist[i] << "\n";
 		}
 	}
 	void ShortestPath(int starter = 0)
 	{
-		for (int i = 0; i < size; i++)
-		{
+		cout << "Dijkstra Algorithm\n";
+		for (int i = 0; i < size; i++) {
 			dist[i] = adj[starter][i];
 		}
 		dist[starter] = 0;
@@ -293,7 +284,7 @@ class WGraphFloyd :public WGraph // 모든 최단 경로 다 뽑아버리는 Flo
 	int track[MAX_LEN][MAX_LEN]; // 거처가는 중간점 중 도착 바로 전 정점, 중간점이 없다면 -1
 public:
 	WGraphFloyd() {}
-	void Floyd() 
+	void Floyd()
 	{
 		for (int i = 0; i < size; i++)
 		{
@@ -321,7 +312,7 @@ public:
 				}
 			}
 		}
-		cout << "	";
+		cout << "Floyd Algorithm\n	";
 		for (int i = 0; i < size; i++)
 		{
 			cout << vertices[i] << "	";
@@ -339,21 +330,28 @@ public:
 	}
 	void BackTracking(int start, int end)
 	{
-		int Bindex = track[start][end];
-		cout << vertices[end] << " --> ";
-		while (Bindex != -1)
+		deque<char> List;
+		int Via = track[start][end];
+		List.push_front(vertices[end]);
+		while (Via != -1)
 		{
-			cout << vertices[Bindex] << " --> ";
-			Bindex = track[start][Bindex];
+			List.push_front(vertices[Via]);
+			Via = track[start][Via];
 		}
-		cout << vertices[start];
+		List.push_front(vertices[start]);
+		cout << "Floyd BackTracking\n" << vertices[start] << "에서 " << vertices[end] << "까지 최단 경로\n";
+		for (int i = 0; i < List.size(); i++) {
+			cout << List[i];
+			if (i != List.size() - 1)
+				cout << " --> ";
+		}
 	}
 };
 
 int main()
 {
 	WGraphDijkstra Dijkstra;
-	
+
 	for (int i = 0; i < 7; i++)
 	{
 		Dijkstra.insertVertex('A' + i);
