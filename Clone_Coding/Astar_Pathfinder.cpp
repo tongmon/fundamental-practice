@@ -9,10 +9,11 @@ using namespace std;
 // 특정 노드에서 특정 목적 노드까지의 최단 경로만 뽑아주기에 더 빠르다.
 // 게임에서 많이 쓰인다.
 // true 모드는 벽 모서리 통과 불가능이고 false는 벽 모서리도 통과하면서 경로를 탐색한다.
+// 우선순위 큐를 활용하면 빠르게 탐색이 가능하다.
 
 #define MID_LEN 128
 
-enum {Path = 0, Wall, Starter, Finish, ShortestWay};
+enum { Path = 0, Wall, Starter, Finish, ShortestWay };
 
 typedef struct _point // 좌표 클래스
 {
@@ -21,6 +22,7 @@ typedef struct _point // 좌표 클래스
 
 class BrickInfo
 {
+public:
 	int F, G, H;
 	Cord Cur, Parent;
 public:
@@ -46,7 +48,7 @@ public:
 	Matrix(short map[][MID_LEN], int width, int height)
 	{
 		Width = width; Height = height;
-		for (int i = 0;i < Width;i++)
+		for (int i = 0; i < Width; i++)
 		{
 			for (int j = 0; j < Height; j++)
 			{
@@ -86,12 +88,12 @@ public:
 	}
 };
 
-class Astar:public Matrix
+class Astar :public Matrix
 {
 	Cord Start, End;
 public:
 	Astar(short map[][MID_LEN], int w, int h) : Matrix(map, w, h) {}
-	int getG(Cord Cur, Cord a) 
+	int getG(Cord Cur, Cord a)
 	{
 		if (abs(a.x - Cur.x) == 1 && abs(a.y - Cur.y) == 1)
 		{
@@ -140,28 +142,18 @@ public:
 					getend = true;
 				}
 				if (getstart == true && getend == true)
-				{
-					break;
-				}
-			}
-			if (getstart == true && getend == true)
-			{
-				break;
+					return true;
 			}
 		}
-		if (getstart != true || getend != true)
-		{
-			return false;
-		}
-		return true;
+		return false;
 	}
 	void AstarAlgorithm(bool EdgeOption = true)
-	{	
+	{
 		vector<BrickInfo> Closed;
 		vector<BrickInfo> Opened;
 		if (setStart() == false)
 		{
-			cout << "Set the Start, End Point currectly!" << endl; return;
+			cout << "Plz Set the Start, End Point currectly!" << endl; return;
 		}
 		Cord Cur = Start;
 		Closed.push_back(BrickInfo(Start, Cur, 0, 0));
@@ -286,6 +278,86 @@ public:
 			}
 		}
 	}
+	void AstarAlgorithm_Improved(bool EdgeOption = true)
+	{
+		using Point = tuple<int, int, int>;
+
+		if (!setStart()) {
+			cout << "Plz Set the Start, End Point currectly!\n";
+			return;
+		}
+
+		int Dist[MID_LEN][MID_LEN], is_Finded = 0;
+		pair<int, int> Track[MID_LEN][MID_LEN];
+		short Dir[8][2] = { {0,1},{1,0},{0,-1},{-1,0},{1,1},{-1,-1},{1,-1},{-1,1} };
+		short DirSize = EdgeOption ? 8 : 4;
+		priority_queue<Point, vector<Point>, greater<Point>> Q;
+
+		for (int i = 0; i < MID_LEN; i++)
+		{
+			for (int j = 0; j < MID_LEN; j++)
+			{
+				Dist[i][j] = 99999;
+			}
+		}
+
+		Track[Start.y][Start.x] = { -1,-1 };
+		Dist[Start.y][Start.x] = 0;
+		int h = getH(Start);
+		Q.push({ h, Start.x, Start.y });
+
+		while (!Q.empty())
+		{
+			int F = get<0>(Q.top());
+			int X = get<1>(Q.top());
+			int Y = get<2>(Q.top());
+			Q.pop();
+
+			if (X == End.x && Y == End.y) {
+				is_Finded = 1;
+				break;
+			}
+
+			int CurG = F - getH({ X,Y });
+
+			if (CurG > Dist[Y][X])
+				continue;
+
+			for (int i = 0; i < DirSize; i++)
+			{
+				int nX = X + Dir[i][0], nY = Y + Dir[i][1];
+				if (!is_vailed(nX, nY) || getMap(nX, nY) == Wall)
+					continue;
+
+				int G = CurG + getG({ nX,nY }, { X,Y });
+
+				if (G < Dist[nY][nX]) {
+					Dist[nY][nX] = G;
+					Track[nY][nX] = { X,Y };
+					Q.push({ G + getH({nX,nY}), nX, nY });
+				}
+			}
+		}
+
+		if (!is_Finded) {
+			cout << "Can't Reach the Goal!\n";
+			return;
+		}
+
+		pair<int, int> B = { End.x, End.y };
+		deque<pair<int, int>> Way;
+		while (B.first != -1) {
+			Way.push_front(B);
+			B = Track[B.second][B.first];
+		}
+
+		Way.pop_back(); Way.pop_front();
+		for (auto A : Way) {
+			setMatrix(A.first, A.second, ShortestWay);
+		}
+		cout << "\nFinished Travel With Priority Queue!" << endl;
+		Display();
+	}
 };
 
 int main()
@@ -314,5 +386,6 @@ int main()
 		{0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}
 	};
 	Astar PathFinder(Map, 20, 20);
-	PathFinder.AstarAlgorithm(true);
+	// PathFinder.AstarAlgorithm(true);
+	PathFinder.AstarAlgorithm_Improved(true);
 }
