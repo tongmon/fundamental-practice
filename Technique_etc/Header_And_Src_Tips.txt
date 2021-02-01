@@ -1,0 +1,132 @@
+개인 프로젝트를 하면서 배운 팁을 남겨본다.
+
+일단 헤더를 마구잡이로 집어넣고 참조하면서 문제되는 것이 많았는데...
+대표적으로 첫번째가 상호참조에 대한 문제였다.
+
+클래스 A와 B가 있는데  A 내부 변수에 B를 선언하고 B 내부 변수에 A를 선언하면
+링크 에러가 뜬다.
+밑의 예시를 해놓았다.
+
+-A.h-
+#include "B.h"
+class A
+{
+	class B;
+}
+
+-B.h-
+#include "A.h"
+class B
+{
+	class A;
+}
+
+위의 처럼 하면 안된다는 것이다.
+물론 위의 처럼 명시적으로 상호참조하는 것 뿐 아니라
+상속 받은 부모 항목에서 상호참조가 생기는 모든 것들이 오류를 만든다.
+예를 하나 더 들자면
+
+-A.h-
+#include "C.h"
+class A : public C
+{
+	int buffer;
+}
+
+-C.h-
+#include <stdio.h>
+#include "B.h"
+class C
+{
+	class B;
+}
+
+-B.h-
+#include "A.h"
+class B
+{
+	class A;
+}
+
+위처럼 C -> B, B -> A 인데 C가 A의 부모이기에 결국 상호참조다.
+이를 해결하려면 밑의 처럼 하면 된다.
+
+-A.h-
+#include "C.h"
+class A : public C
+{
+	int buffer;
+}
+
+-C.h-
+#include <stdio.h>
+
+class B;
+
+class C
+{
+	class B;
+}
+
+-C.cpp-
+#include "C.h"
+#include "B.h"
+
+/* 구현 */
+
+-B.h-
+#include "A.h"
+class B
+{
+	class A;
+}
+
+위 처럼 구현하면 결국에 A쪽에선 한번도 B.h를 참조하지 않은 것 처럼 된다.
+위의 경우는 A, C 쪽에서 문제를 해결한 것이고 B쪽에서 문제를 해결할 수도 있다.
+
+-B.h-
+class A;
+
+class B
+{
+	class A;
+}
+
+-B.cpp-
+#include "B.h"
+#include "A.h"
+
+/* 구현 */
+
+위와 같이 클래스 B 쪽에서 고칠 수도 있다.
+
+다음은 상수 모음 헤더를 만들면서 중복 정의로 고생하고 해결하면서 얻는 팁이다.
+
+상수 헤더가 밑과 같다고 해보자
+
+#pragma once
+
+const int AAA = 1;
+
+위 헤더는 Constants.h 라고 하자
+
+이를 main.cpp, A.cpp에 #include "Constants.h" 이렇게 막 다 붙이고 다니면 
+무조건 중복 문제가 발생한다.
+
+이를 해결하려면 extern을 사용함과 동시에 Constants.cpp에 정의해주어야 한다.
+extern을 사용하면 다시 중복으로 정의를 하는 경우가 생겨도 컴파일러가
+변수를 재정의하는 것으로 인지하지 "이건 중복문제야 오류!!!!!!" 이러지 않는다.
+
+따라서 올바르게 사용하려면
+
+-Constants.h-
+#pragma once
+
+extern const int AAA;
+
+-Constants.cpp-
+#include "Constants.h"
+
+const int AAA = 1;
+
+위처럼 선언하면 중복없이 사용이 가능하다.
