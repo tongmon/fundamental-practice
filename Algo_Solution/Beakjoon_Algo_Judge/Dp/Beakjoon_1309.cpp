@@ -35,3 +35,22 @@ int main()
 	}
 	cout << DP[N];
 }
+
+/*
+int N, Dp[100001][3];
+
+int main(void)
+{
+	ios::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+	cin >> N;
+	Dp[1][0] = Dp[1][1] = Dp[1][2] = 1;
+	for (int i = 2; i <= N; i++) {
+		Dp[i][0] = Dp[i - 1][0] + Dp[i - 1][1] + Dp[i - 1][2];
+		Dp[i][1] = Dp[i - 1][2] + Dp[i - 1][0];
+		Dp[i][2] = Dp[i - 1][1] + Dp[i - 1][0];
+		for (auto& A : Dp[i])
+			A %= 9901;
+	}
+	cout << (Dp[N][0] + Dp[N][1] + Dp[N][2]) % 9901;
+}
+*/
