@@ -52,3 +52,26 @@ int main()
 	}
 	cout << Dynamic(N);
 }
+
+/*
+* 7달 후의 풀이...
+int N, Ary[1001], Dp[1001], Max;
+
+int main()
+{
+	ios::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+	cin >> N;
+	for (int i = 1; i <= N; i++)
+		cin >> Ary[i];
+	for (int i = 1; i <= N; i++) {
+		int M = 0;
+		for (int j = 1; j < i; j++) {
+			if (Ary[j] < Ary[i])
+				M = max(M, Dp[j]);
+		}
+		Dp[i] = Ary[i] + M;
+		Max = max(Max, Dp[i]);
+	}
+	cout << Max;
+}
+*/
