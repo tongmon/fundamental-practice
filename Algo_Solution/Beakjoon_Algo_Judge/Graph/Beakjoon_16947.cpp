@@ -4,6 +4,8 @@ using namespace std;
 /*
 https://www.acmicpc.net/problem/16947
 그래프 순환 유무 검색하는 문제다.
+초반에 bfs로 구현하려했는데 잘 안되어서 dfs로 다시 구현했다.
+순환은 dfs로 바로 구현하자
 이 문제를 통해 구현속도를 늘려간다.
 */
 
