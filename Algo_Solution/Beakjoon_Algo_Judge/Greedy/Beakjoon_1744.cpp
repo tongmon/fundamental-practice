@@ -78,3 +78,40 @@ int main()
     }
     cout << Sum;
 }
+
+/*
+// 2021-06-29 9달 만에 풀어서 본 나의 개선 코드
+// 1 끼리는 곱하는 것이 비효율적이고 더해야 한다는 주의점을 잘 알아야 한다.
+
+int N, a, z;
+long long Ans;
+vector<int> m, p;
+
+void func(vector<int>& k) {
+    while (k.size() > 1) {
+        int A = k.back();
+        k.pop_back();
+        Ans += A * k.back();
+        k.pop_back();
+    }
+}
+
+int main()
+{
+    ios::sync_with_stdio(false); cin.tie(0); cout.tie(0);
+    cin >> N;
+    for (int i = 0; i < N; i++) {
+        cin >> a;
+        if (!a) z++;
+        else if (a == 1) Ans++;
+        else if (a > 1) p.push_back(a);
+        else m.push_back(a);
+    }
+    sort(p.begin(), p.end());
+    sort(m.begin(), m.end(), greater<int>());
+    func(p); func(m);
+    if (!p.empty()) Ans += p[0];
+    if (!z && !m.empty()) Ans += m[0];
+    cout << Ans;
+}
+*/
