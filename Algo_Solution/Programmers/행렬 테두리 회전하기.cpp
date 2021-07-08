@@ -3,6 +3,9 @@ using namespace std;
 
 /*
 https://programmers.co.kr/learn/courses/30/lessons/77485
+행렬 테두리 회전하는 문제인데 배열 테두리 회전할 때 모서리 부분 신경쓰기 싫어서
+4개 빼고 회전하고 다시 끼워넣는 방식으로 구현하였다.
+이 문제를 통해 구현 속도를 늘려간다.
 */
 
 int M[101][101], k;
