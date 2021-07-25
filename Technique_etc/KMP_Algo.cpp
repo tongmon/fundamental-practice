@@ -16,17 +16,17 @@ O(M+N)으로 시간이 확 줄어든다!
 설령 오류가 안났다 하더라도 그 자료에 대한 탐색이 이루어지지 않는다는 것을 명심해라.
 */
 
-void LPS_Maker(string *Target, vector<int> *lps) // lps 배열을 생성하면서도 여태 만들어진 lps 값들을 이용한다.
+void LPS_Maker(string * Pattern, vector<int> *lps) // lps 배열을 생성하면서도 여태 만들어진 lps 값들을 이용한다.
 {
-	lps->reserve(Target->size());
+	lps->reserve(Pattern->length());
 	int j = 0; lps->push_back(0);
-	for (int i = 1; i < Target->size(); i++)
+	for (int i = 1; i < Pattern->length(); i++)
 	{
-		while (j > 0 && Target->at(i) != Target->at(j)) // 접두사와 접미사가 같지 않다면 어디까지 물러서야하는지 lps배열을 참조해 알아낸다.
+		while (j > 0 && Pattern->at(i) != Pattern->at(j)) // 접두사와 접미사가 같지 않다면 어디까지 물러서야하는지 lps배열을 참조해 알아낸다.
 		{
 			j = lps->at(j - 1);
 		}
-		if (Target->at(i) == Target->at(j)) // 접두사와 접미사가 같다면 얼마나 같은 문자들이 있는지가 수가 담긴 j를 lps 배열에 넣어준다.
+		if (Pattern->at(i) == Pattern->at(j)) // 접두사와 접미사가 같다면 얼마나 같은 문자들이 있는지가 수가 담긴 j를 lps 배열에 넣어준다.
 		{
 			lps->push_back(++j);
 		}
@@ -34,19 +34,45 @@ void LPS_Maker(string *Target, vector<int> *lps) // lps 배열을 생성하면�
 	}
 }
 
+// 간단하게 얘 써라, 반환형은 배열인데 어느 부분부터 매칭되는지 들어간다.
+// Target에서 특정 Pattern이 어디에 위치하는지 빠르게 알 수 있다.
+vector<size_t> KMP(const string& Target, const string& Pattern)
+{
+	vector<size_t> lps, Result;
+	lps.reserve(Pattern.length());
+	lps.push_back(0);
+	for (int i = 1, k = 0; i < Pattern.length(); i++) {
+		while (k > 0 && Pattern[i] != Pattern[k])
+			k = lps[k - 1];
+		lps.push_back((Pattern[i] == Pattern[k] ? ++k : 0));
+	}
+	for (int i = 0, j = 0; i < Target.length(); i++) {
+		while (j > 0 && Target[i] != Pattern[j])
+			j = lps[j - 1];
+		if (Target[i] == Pattern[j]) {
+			if (j == Pattern.length() - 1) {
+				Result.push_back(i - Pattern.length() + 2);
+				j = lps[j];
+			}
+			else j++;
+		}
+	}
+	return Result;
+}
+
 int main(void)
 {
 	string Pattern, Info; 
 	cout << "문자열을 입력하세요: "; cin >> Info;
 	cout << "찾을 패턴을 입력하세요: "; cin >> Pattern;
-	int Pat_Size = Pattern.size(); // 패턴의 크기 입력
+	int Pat_Size = Pattern.length(); // 패턴의 크기 입력
 	vector<int> lps; // 비효울적으로 처음부터 다시 돌아가서 탐색하지 않게 어디까지 돌아가야 하는지에 대한 정보가 저장되는 배열
 	LPS_Maker(&Pattern, &lps); // lps 배열을 생성
 	for (int i = 0; i < Pat_Size; i++) // 결정된 lps 배열값 출력
 	{
 		cout << Pattern[i] << " ---> " << lps[i] << '\n';
 	}
-	for (int i = 0, j = 0; i < Info.size(); i++)
+	for (int i = 0, j = 0; i < Info.length(); i++)
 	{
 		while (j > 0 && Info[i] != Pattern[j]) // lps 배열 생성시와 비슷하게 어디까지 돌아가서 탐색해야 하는지 lps 값을 참조하여 알아낸다.
 		{
@@ -61,5 +87,10 @@ int main(void)
 			}
 			else j++; // 문자가 패턴과 같지만 아직 매칭된 것이 아니므로 j를 증가시킨다. i는 저절로 증가된다.
 		}
+	}
+	cout << '\n';
+	vector<size_t> A = KMP("stringstringsfdrinringstr", "str");
+	for (auto a : A) {
+		cout << a << ' ';
 	}
 }
