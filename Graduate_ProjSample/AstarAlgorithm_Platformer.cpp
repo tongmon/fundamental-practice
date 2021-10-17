@@ -2,18 +2,18 @@
 using namespace std;
 
 // A* 알고리즘, 평면에서만 적용 가능, 중력이 작용하는 플랫포머 게임에서는 이를 응용해야 됨.
-void AstarAlgorithm(const vector<vector<int>>&Map, const pair<int,int> &StartPoint, const pair<int, int>& EndPoint, bool EdgeOption = true)
+void AstarAlgorithm(const vector<vector<int>>& Map, const pair<int, int>& StartPoint, const pair<int, int>& EndPoint, bool EdgeOption = true)
 {
 	// pair<int,int>에서 first가 x 좌표, second가 y 좌표
 	// tuple<int,int,int>에서 get<0>()가 가중치(G+H)인 F 값, get<1>()가 x 좌표, get<2>()가 y 좌표
-	
+
 	int mapWidth = Map[0].size(), mapHeight = Map.size();
 
 	auto getG = [](const pair<int, int>& A, const pair<int, int>& B)->int {return abs(A.first - B.first) && abs(A.second - B.second) ? 14 : 10; };
 
 	auto getH = [&](const pair<int, int>& A)->int {return 10 * (abs(A.first - EndPoint.first) + abs(A.second - EndPoint.second)); };
 
-	auto is_ValidXY = [&](const pair<int, int>& A)->bool {return (A.first >= 0 && A.second >= 0 && A.first < mapWidth && A.second < mapHeight); };
+	auto is_ValidXY = [&](const pair<int, int>& A)->bool {return (A.first >= 0 && A.second >= 0 && A.first < mapWidth&& A.second < mapHeight); };
 
 	if (StartPoint.first < 0 || StartPoint.second < 0 || EndPoint.first < 0 || EndPoint.second < 0
 		|| StartPoint.first >= mapWidth || StartPoint.second >= mapHeight || EndPoint.first >= mapWidth || EndPoint.second >= mapHeight
@@ -83,7 +83,7 @@ void AstarAlgorithm(const vector<vector<int>>&Map, const pair<int,int> &StartPoi
 	for (const auto& A : Way)
 		TraceResult[A.second][A.first] = (int)1e9;
 	cout << "\nFinished Travel!\n" << endl;
-	
+
 	for (const auto& A : TraceResult) {
 		for (const auto& B : A) {
 			string printBrick = ". ";
@@ -122,7 +122,7 @@ public:
 	Map(const pair<float, float>& startCoordiante, const int& squareSize, const vector<vector<int>>& mapInfo)
 	{
 		mWidth = mapInfo[0].size(), mHeight = mapInfo.size();
-		int X = startCoordiante.first, Y = startCoordiante.second;
+		float X = startCoordiante.first, Y = startCoordiante.second;
 		mMap.resize(mapInfo.size(), vector<Square>(mapInfo[0].size(), Square()));
 		for (int i = mHeight - 1; i >= 0; i--) {
 			for (int j = 0; j < mWidth; j++) {
@@ -157,14 +157,14 @@ public:
 	};
 	shared_ptr<vector<NodeInfo>> mLink;
 	Node() { mLink = nullptr; }
-	Node(shared_ptr<vector<NodeInfo>> link) { mLink = make_shared<vector<NodeInfo>>(link.get()); }
+	Node(vector<NodeInfo>* link) { mLink = make_shared<vector<NodeInfo>>(link); }
 	void AddNode(const NodeInfo& nodeinfo)
 	{
 		if (mLink == nullptr)
 			mLink = make_shared<vector<NodeInfo>>(new vector<NodeInfo>());
 		mLink.get()->push_back(nodeinfo);
 	}
-	void AddNode(pair<int,int> XY, pair<int,int>velXY, int State)
+	void AddNode(pair<int, int> XY, pair<int, int>velXY, int State)
 	{
 		if (mLink == nullptr)
 			mLink = make_shared<vector<NodeInfo>>(new vector<NodeInfo>());
@@ -183,7 +183,7 @@ void NodeMaker(const Map& Map, const pair<int, int>& StartPoint, const pair<int,
 {
 	NodeMap.clear();
 	NodeMap.resize(Map.mHeight, vector<Node>(Map.mWidth, Node()));
-	
+
 	const auto& MapInfo = Map.mMap;
 	for (int i = 0; i < Map.mHeight; i++)
 	{
@@ -198,30 +198,40 @@ void NodeMaker(const Map& Map, const pair<int, int>& StartPoint, const pair<int,
 
 				// 적 캐릭터 크기가 들어갈 수 있는 공간이 있는지 천장 검사
 				float X = MapInfo[i][j].mCenter.first, Y = MapInfo[i][j].mCenter.second + MapInfo[i][j].mHalf.second + 0.2f;
-				int Size = (int)ceil(ObjHalfSize.second * 2 / (float)MapInfo[i][j].mHalf.first), k; // Size는 블록 몇 개 검사해야하는지 크기
+				int hSize = (int)ceil(ObjHalfSize.second * 2 / (float)MapInfo[i][j].mHalf.second),
+					wSize = (int)ceil(ObjHalfSize.first * 2 / (float)MapInfo[i][j].mHalf.first), k; // hSize, wSize는 물건 크기에 따라 높이, 너비 블록 몇 개 검사해야하는지 크기
 				bool is_Fit = true;
 
 				// 해당 블록에 오브젝트가 들어갈 수 있는지 크기 검사
-				for (k = i; k >= 0 && k >= i - Size; k--)
+				for (k = i; k >= 0 && k >= i - hSize; k--)
 					is_Fit &= MapInfo[k][j].mType != 1;
 				is_Fit = k >= 0 ? is_Fit : false; // k가 음수라는 것은 천장을 넘어섰다는 것이므로 false로 만들어 줌
 				if (!is_Fit) continue; // 해당 블록에 오브젝트가 서있을 수 없으니 노드도 찍을 수 없고 그냥 넘김
 
-				// 적 캐릭터(오브젝트)가 좌, 우로 움직이는 경우 캐릭터 키에 걸리는 낮은 블록이 있어 그 곳으로 바로 걸어갈 수 없는 경우 계산 
-				is_Fit = true;
-				for (k = i; k >= 0 && k >= i - Size; k--)
-					is_Fit &= MapInfo[k][j - 1].mType != 1;
-				is_Fit = k >= 0 ? is_Fit : false;
-				if (is_Fit) {
-					int p = i;
-					// 내려가는 곳에는 제한없이 이동이 가능할 것임, 낙뎀 같은 페널티가 있다면 for문 조정 필요
-					for (; p < Map.mHeight; p++) if (MapInfo[p][j - 1].mType == 1) break;
-					if (p < Map.mHeight)
-						NodeMap[i][j].AddNode({ j,i }, {2e9,2e9}, 0);
-				}
+				// 적 캐릭터(오브젝트)가 좌, 우로 움직이는 경우 캐릭터 키에 걸리는 낮은 블록이 있어 그 곳으로 바로 걸어갈 수 없는 경우 계산
+				// 2021-10-17 기준으로 너비는 판단하지 않고 높이만 판단하고 있음. 추가 요망
+				auto ObjSizeCalculation = [&](bool is_Left)->void {
+					if ((is_Left && j - 1 < 0) || (!is_Left && Map.mWidth <= j + 1))
+						return;
+					int t = is_Left ? j - 1 : j + 1;
+					is_Fit = true;
+					for (k = i; k >= 0 && k >= i - hSize; k--)
+						is_Fit &= MapInfo[k][t].mType != 1;
+					is_Fit = k >= 0 ? is_Fit : false;
+					if (is_Fit) {
+						int p = i + 1;
+						// 내려가는 곳에는 제한없이 이동이 가능할 것임, 낙뎀 같은 페널티가 있다면 for문 조정 필요
+						for (; p < Map.mHeight; p++) if (MapInfo[p][t].mType == 1) break;
 
-				
+						// 최초 바닥 블록 한 칸 위 그리고 한칸 좌측 방향에 노드를 만든다.
+						if (p < Map.mHeight)
+							NodeMap[i][j].AddNode({ t,p + 1 }, { 2e9,2e9 }, (int)Node::NodeState::Walk);
+					}
+				};
 
+				// 좌, 우의 경우 모두 판단
+				ObjSizeCalculation(true);
+				ObjSizeCalculation(false);
 			}
 		}
 	}
@@ -275,4 +285,6 @@ int main()
 	};
 
 	AstarAlgorithm(Map, { 1,1 }, { 17,17 }, false);
+
+	cout << "\n" << ceil(0.001);
 }
