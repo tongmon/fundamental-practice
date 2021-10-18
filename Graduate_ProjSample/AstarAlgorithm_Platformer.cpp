@@ -1,6 +1,7 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+/*
 // A* 알고리즘, 평면에서만 적용 가능, 중력이 작용하는 플랫포머 게임에서는 이를 응용해야 됨.
 void AstarAlgorithm(const vector<vector<int>>& Map, const pair<int, int>& StartPoint, const pair<int, int>& EndPoint, bool EdgeOption = true)
 {
@@ -94,6 +95,7 @@ void AstarAlgorithm(const vector<vector<int>>& Map, const pair<int, int>& StartP
 		cout << "\n";
 	}
 }
+*/
 
 // AABB 충돌 검사 내장 사각형 클래스
 // 네 모퉁이의 좌표로 해도 되지만 여기선 중심과 반지름으로 했다.
@@ -104,7 +106,7 @@ public:
 	pair<float, float> mHalf;
 	int mType;
 
-	Square() { mCenter = { 0,0 }, mHalf = { 1,1 }; }
+	Square() { mCenter = { 0.f,0.f }, mHalf = { 1.f,1.f }; }
 	Square(const pair<float, float>& center, const pair<float, float>& half, const int& type) { mCenter = center, mHalf = half; mType = type; }
 	~Square() {}
 	bool Overlaps(const Square& A) const {
@@ -118,15 +120,15 @@ public:
 	int mWidth;
 	int mHeight;
 	vector<vector<Square>> mMap; // 맵의 실제 좌표 정보
-	Map() {}
-	Map(const pair<float, float>& startCoordiante, const int& squareSize, const vector<vector<int>>& mapInfo)
+	Map() { mWidth = mHeight = 0; }
+	Map(const pair<float, float>& startCoordiante, const int& squareSize, const vector<vector<int>>& mapInfo) // 일단 맵의 격자는 정사각형이라고 가정하고 수행
 	{
 		mWidth = mapInfo[0].size(), mHeight = mapInfo.size();
 		float X = startCoordiante.first, Y = startCoordiante.second;
 		mMap.resize(mapInfo.size(), vector<Square>(mapInfo[0].size(), Square()));
 		for (int i = mHeight - 1; i >= 0; i--) {
 			for (int j = 0; j < mWidth; j++) {
-				mMap[i][j] = move(Square({ X,Y }, { squareSize, squareSize }, mapInfo[i][j]));
+				mMap[i][j] = move(Square({ X,Y }, { (float)squareSize, (float)squareSize }, mapInfo[i][j]));
 				X += squareSize;
 			}
 			X = startCoordiante.first;
@@ -135,11 +137,12 @@ public:
 	}
 };
 
+
 // 적이 실제로 갈 수 있는 경로를 나타내는 노드
 // vector<vector<Node>> NodeMap 이런 방식으로 사용 
 class Node {
 public:
-	enum class NodeState : int // 행동패턴 삽입
+	enum class NodeState : int // 걷기, 점프 등의 행동패턴 삽입
 	{
 		Walk,
 		Jump,
@@ -150,24 +153,34 @@ public:
 	// 만약 점프를 한다면 그에 따른 적절한 속도가 필요함
 	class NodeInfo
 	{
-		int X = 0, Y = 0, vX = (int)2e9, vY = (int)2e9;
+	public:
+		int X = 0, Y = 0;
+		float vX = 2e9, vY = 2e9;
 		NodeState State;
 	public:
-		NodeInfo(int x, int y, int vx, int vy, int iState) { X = x, Y = y, vX = vx, vY = vy, State = (NodeState)iState; }
+		NodeInfo(int x, int y, float vx, float vy, int iState) { X = x, Y = y, vX = vx, vY = vy, State = (NodeState)iState; }
+		NodeInfo(int x, int y, float vx, float vy, NodeState iState) { X = x, Y = y, vX = vx, vY = vy, State = iState; }
 	};
 	shared_ptr<vector<NodeInfo>> mLink;
 	Node() { mLink = nullptr; }
-	Node(vector<NodeInfo>* link) { mLink = make_shared<vector<NodeInfo>>(link); }
+	Node(shared_ptr<vector<NodeInfo>> link) { mLink = link; }
+	Node(vector<NodeInfo>* link) { mLink = make_shared<vector<NodeInfo>>(*link); }
 	void AddNode(const NodeInfo& nodeinfo)
 	{
 		if (mLink == nullptr)
-			mLink = make_shared<vector<NodeInfo>>(new vector<NodeInfo>());
+			mLink = make_shared<vector<NodeInfo>>(*(new vector<NodeInfo>()));
 		mLink.get()->push_back(nodeinfo);
 	}
 	void AddNode(pair<int, int> XY, pair<int, int>velXY, int State)
 	{
 		if (mLink == nullptr)
-			mLink = make_shared<vector<NodeInfo>>(new vector<NodeInfo>());
+			mLink = make_shared<vector<NodeInfo>>(*(new vector<NodeInfo>()));
+		mLink.get()->push_back(NodeInfo(XY.first, XY.second, velXY.first, velXY.second, State));
+	}
+	void AddNode(pair<int, int> XY, pair<int, int>velXY, NodeState State)
+	{
+		if (mLink == nullptr)
+			mLink = make_shared<vector<NodeInfo>>(*(new vector<NodeInfo>()));
 		mLink.get()->push_back(NodeInfo(XY.first, XY.second, velXY.first, velXY.second, State));
 	}
 };
@@ -196,26 +209,25 @@ void NodeMaker(const Map& Map, const pair<int, int>& StartPoint, const pair<int,
 			// 지면이 존재하면 검사
 			if (i + 1 < Map.mHeight && MapInfo[i + 1][j].mType == 1) {
 
-				// 적 캐릭터 크기가 들어갈 수 있는 공간이 있는지 천장 검사
+				// 적 캐릭터 크기가 들어갈 수 있는 공간이 있는지 검사
 				float X = MapInfo[i][j].mCenter.first, Y = MapInfo[i][j].mCenter.second + MapInfo[i][j].mHalf.second + 0.2f;
 				int hSize = (int)ceil(ObjHalfSize.second * 2 / (float)MapInfo[i][j].mHalf.second),
 					wSize = (int)ceil(ObjHalfSize.first * 2 / (float)MapInfo[i][j].mHalf.first), k; // hSize, wSize는 물건 크기에 따라 높이, 너비 블록 몇 개 검사해야하는지 크기
 				bool is_Fit = true;
 
 				// 해당 블록에 오브젝트가 들어갈 수 있는지 크기 검사
-				for (k = i; k >= 0 && k >= i - hSize; k--)
+				for (k = i; k >= 0 && k > i - hSize; k--)
 					is_Fit &= MapInfo[k][j].mType != 1;
 				is_Fit = k >= 0 ? is_Fit : false; // k가 음수라는 것은 천장을 넘어섰다는 것이므로 false로 만들어 줌
 				if (!is_Fit) continue; // 해당 블록에 오브젝트가 서있을 수 없으니 노드도 찍을 수 없고 그냥 넘김
 
 				// 적 캐릭터(오브젝트)가 좌, 우로 움직이는 경우 캐릭터 키에 걸리는 낮은 블록이 있어 그 곳으로 바로 걸어갈 수 없는 경우 계산
-				// 2021-10-17 기준으로 너비는 판단하지 않고 높이만 판단하고 있음. 추가 요망
-				auto ObjSizeCalculation = [&](bool is_Left)->void {
+				auto ObjHeightCalculation = [&](bool is_Left)->int {
 					if ((is_Left && j - 1 < 0) || (!is_Left && Map.mWidth <= j + 1))
-						return;
+						return -1;
 					int t = is_Left ? j - 1 : j + 1;
 					is_Fit = true;
-					for (k = i; k >= 0 && k >= i - hSize; k--)
+					for (k = i; k >= 0 && k > i - hSize; k--)
 						is_Fit &= MapInfo[k][t].mType != 1;
 					is_Fit = k >= 0 ? is_Fit : false;
 					if (is_Fit) {
@@ -223,13 +235,39 @@ void NodeMaker(const Map& Map, const pair<int, int>& StartPoint, const pair<int,
 						// 내려가는 곳에는 제한없이 이동이 가능할 것임, 낙뎀 같은 페널티가 있다면 for문 조정 필요
 						for (; p < Map.mHeight; p++) if (MapInfo[p][t].mType == 1) break;
 
-						// 최초 바닥 블록 한 칸 위 그리고 한칸 좌측 방향에 노드를 만든다.
+						// 최초 검사된 바닥 블록 한 칸 위 그리고 한칸 좌측 방향에 노드를 만든다.
 						if (p < Map.mHeight)
-							NodeMap[i][j].AddNode({ t,p + 1 }, { 2e9,2e9 }, (int)Node::NodeState::Walk);
+							return p - 1;
+						// NodeMap[i][j].AddNode({ t,p - 1 }, { 2e9,2e9 }, (int)Node::NodeState::Walk);
+					}
+					return -1;
+				};
+
+				// 적 캐릭터 크기로 인해 노드가 될 수 있는 곳인지 아닌지 검사
+				auto ObjSizeCalculation = [&](bool is_Left)->void {
+					int posY = ObjHeightCalculation(is_Left);
+					// 적 캐릭터 너비가 길어서 밑으로 떨어질 수 없는 경우 계산
+					if (posY != -1) {
+						bool is_NodePlace = true;
+						if (posY != i) {
+							for (int y = i; y <= posY && is_NodePlace; y++) {
+								int x = is_Left ? j - 1 : j + 1;
+								for (; is_Left && x >= 0 && x > j - 1 - wSize && is_NodePlace; x--) {
+									is_NodePlace &= MapInfo[y][x].mType != 1;
+								}
+								for (; !is_Left && x < Map.mWidth && x < j + 1 + wSize && is_NodePlace; x++) {
+									is_NodePlace &= MapInfo[y][x].mType != 1;
+								}
+								if ((is_Left && x > 0) || (!is_Left && x < Map.mWidth)) is_NodePlace = false;
+							}
+						}
+						if (is_NodePlace)
+							NodeMap[i][j].AddNode({ is_Left ? j - 1 : j + 1,posY }, { 2e9,2e9 }, Node::NodeState::Walk);
 					}
 				};
 
-				// 좌, 우의 경우 모두 판단
+				// 현재 노드에서 한칸 좌,우측의 경우 판단
+				// 물체의 높이와 너비를 모두 고려해야 함
 				ObjSizeCalculation(true);
 				ObjSizeCalculation(false);
 			}
@@ -284,7 +322,5 @@ int main()
 		{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
 	};
 
-	AstarAlgorithm(Map, { 1,1 }, { 17,17 }, false);
-
-	cout << "\n" << ceil(0.001);
+	// AstarAlgorithm(Map, { 1,1 }, { 17,17 }, false);
 }
