@@ -109,6 +109,8 @@ public:
 	Square() { mCenter = { 0.f,0.f }, mHalf = { 1.f,1.f }; }
 	Square(const pair<float, float>& center, const pair<float, float>& half, const int& type) { mCenter = center, mHalf = half; mType = type; }
 	~Square() {}
+	pair<float, float> GetLeftTop() { return { mCenter.first - mHalf.first, mCenter.second + mHalf.second }; }
+	pair<float, float> GetRightBottom() { return { mCenter.first + mHalf.first, mCenter.second - mHalf.second }; }
 	bool Overlaps(const Square& A) const {
 		return abs(mCenter.first - A.mCenter.first) <= mHalf.first + A.mHalf.first
 			&& abs(mCenter.second - A.mCenter.second) <= mHalf.second + A.mHalf.second;
@@ -119,10 +121,12 @@ class Map {
 public:
 	int mWidth;
 	int mHeight;
+	pair<float, float> mstMapPoint;
 	vector<vector<Square>> mMap; // 맵의 실제 좌표 정보
 	Map() { mWidth = mHeight = 0; }
 	Map(const pair<float, float>& startCoordiante, const int& squareSize, const vector<vector<int>>& mapInfo) // 일단 맵의 격자는 정사각형이라고 가정하고 수행
 	{
+		mstMapPoint = startCoordiante;
 		mWidth = mapInfo[0].size(), mHeight = mapInfo.size();
 		float X = startCoordiante.first, Y = startCoordiante.second;
 		mMap.resize(mapInfo.size(), vector<Square>(mapInfo[0].size(), Square()));
@@ -134,6 +138,10 @@ public:
 			X = startCoordiante.first;
 			Y += squareSize;
 		}
+	}
+	pair<int, int> GetMapTileAtPoint(const pair<float, float>& point) {
+		return { (int)((point.first - mstMapPoint.first + mMap[0][0].mHalf.first) / (mMap[0][0].mHalf.first * 2)),
+		(int)((point.second - mstMapPoint.second + mMap[0][0].mHalf.second) / (mMap[0][0].mHalf.second * 2)) };
 	}
 };
 
@@ -191,13 +199,12 @@ public:
 // 3. 블록 하나 당 크기
 // 
 
-void NodeMaker(const Map& Map, const pair<int, int>& StartPoint, const pair<int, int>& EndPoint,
-	const pair<float, float>& ObjHalfSize, vector<vector<Node>>& NodeMap)
+void NodeMaker(Map& Map, const pair<float, float>& ObjHalfSize, const pair<float, float>& MaxSpeed, float Gravity, vector<vector<Node>>& NodeMap)
 {
 	NodeMap.clear();
 	NodeMap.resize(Map.mHeight, vector<Node>(Map.mWidth, Node()));
 
-	const auto& MapInfo = Map.mMap;
+	auto& MapInfo = Map.mMap;
 	for (int i = 0; i < Map.mHeight; i++)
 	{
 		for (int j = 0; j < Map.mWidth; j++)
@@ -270,6 +277,26 @@ void NodeMaker(const Map& Map, const pair<int, int>& StartPoint, const pair<int,
 				// 물체의 높이와 너비를 모두 고려해야 함
 				ObjSizeCalculation(true);
 				ObjSizeCalculation(false);
+
+				// 점프 고려
+				// 포물선을 그려 충돌 유무 체크
+				// x축과 y축 초기 속도와 그 간격을 잘 조절하는 것이 관건이다.
+				float xStartSpeed = 1.f, yStartSpeed = 10.f, xSpeedGap = 5.f, ySpeedGap = 5.f, timeGap = 2.f;
+				float initX = MapInfo[i][j].GetRightBottom().first, float initY = MapInfo[i][j].mCenter.second;
+				for (float xSpeed = xStartSpeed; xSpeed <= MaxSpeed.first; xSpeed += xSpeedGap)
+				{
+					for (float ySpeed = yStartSpeed; ySpeed < MaxSpeed.second; ySpeed += ySpeedGap)
+					{
+						float xDist = initX, yDist = initY;
+						for (float fTime = 0; fTime < ; fTime += timeGap)
+						{
+							xDist = fTime * xSpeed;
+							yDist = ySpeed * fTime + fTime * fTime / 2.f * Gravity; // 등가속도 운동
+							pair<int, int> mapIndex = Map.GetMapTileAtPoint({ xDist ,yDist });
+							MapInfo[mapIndex.second][mapIndex.first].Overlaps(Square({ xDist + ObjHalfSize.first, yDist }, ObjHalfSize, 1));
+						}
+					}
+				}
 			}
 		}
 	}
