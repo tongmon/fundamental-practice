@@ -1,0 +1,124 @@
+explicit
+암시적 변환 금지 시킴, 암시적 복사 생성자 호출 금지
+예시) 
+long p = 3;
+char K = p; 이건 가능하지만 만약에서 long 형 변환에 explicit이 붙어있다면 컴파일러는 에러를 내뿜는다.
+char K = long(p); 이렇게 해야 에러 없이 진행 가능하다.
+즉 모든 것을 명시적으로 하게 만드려면 함수나 생성자 앞에 explicit을 붙이면 된다.
+
+mutable
+밑과 같은 클래스 const 함수는 클래스 내의 멤버 변수를 바꿀 수 없다.
+void DoSomething(int x) const { }
+하지만 클래스 내의 멤버 변수가 mutable int a; 이렇게 mutable이 붙어 선언이 되었다면 클래스 const 함수 내에서 멤버 변수를 바꿀 수 있다.
+이런 애를 쓰는 이유는 이 함수를 사용하는 인터페이스로 보아서는 const가 붙어야 하는데 내부적으로 클래스 멤버 변수를 변경해야 하는 함수면 이를 사용한다.
+
+형변환
+static_cast<int>(float_variable); <=> (int)(float_variable)
+
+dyanmic_cast
+상속 관계에 있는 두 포인터 간에 캐스팅을 해줌 (static_cast<> 와 다르게 오류 찾기 쉬워서 씀)
+
+보통 함수 호출보다 virtual이 붙은 함수 호출하는 시간이 더 오래걸린다.
+클래스 포인터 다룰 때 항상 더 큰 녀석(자식)을 더 작은 녀석(부모)에게 줄 수 있다는 것을 인지하자 (그 반대는 안된다.)
+다이아몬드 상속 문제(다중 상속에서 발생하는 문제)를 해결하는 virtual 상속에 대해 기억하기!
+
+탬풀릿 사용시에는 template <class T>보다는 template <typename T> 이용하기
+
+함수는 아니지만 함수인 척을 하는 녀석 Funtor
+예시)
+struct Comp {
+  bool operator()(int a, int b) { return a > b; }
+};
+Comp compare;
+int a = 3, b = 1;
+cout << compare(a, b);
+이런 짓이 가능해서 템플릿 프로그래밍에서 비교연산자 재정의해서 쓰기보다 이러한 Funtor를 넘겨 오름차순, 내림차순을 바꾸게 된다.
+
+템플릿 template <typename T, int num = 5> 이런 문법 가능
+
+대표적인 쓰임새 예시)
+
+template <typename T>
+struct Compare {
+  bool operator()(const T& a, const T& b) const { return a < b; }
+};
+
+template <typename T, typename Comp = Compare<T>>
+T Min(T a, T b) {
+  Comp comp;
+  if (comp(a, b)) {
+    return a;
+  }
+  return b;
+}
+
+템플릿 함수를 작성할 때 그 순서에 유의할 것.
+
+#define SIZE 10 // C-style
+constexpr int size = 10; // modern C++
+
+C++17의 Fold 기법
+
+템플릿 메타 프로그래밍에서 들어가는 인수는 상수여야 한다.
+
+밑과 같은 경우가 템플릿 메타 프로그래밍인데 여기서 함수 인자와 같이 들어가게 되는 N은 무조건 const 형과 같은 상수여야 한다.
+template <int N>
+struct Factorial {
+	static const int result = N * Factorial<N - 1>::result;
+};
+
+template <>
+struct Factorial<1> {
+	static const int result = 1;
+};
+
+Factorial<k>::result
+여기서 k는 상수가 아니면 에러다. 템플릿 메타 프로그래밍은 무조건 컴파일 시간에 결정될 수 있는 것만 가능하다.
+
+typedef vector<int> VecInt;
+using VecInt = vector<int>;
+
+typedef void (*func)(int, int);
+using func = void (*)(int, int);
+
+함수 객체(Funtor)에는 절대로 특정 상태를 저장해서 이에 따라 결과가 달라지는 루틴을 짜면 안된다.
+이는 C++ 컴파일러마다 STL 인터페이스는 같지만 구현 방식이 천차만별이기 때문이다.
+
+람다 활용성
+vec.erase(std::remove_if(vec.begin(), vec.end(), [](int i) -> bool { return i % 2 == 1; })
+위와 같이 "벡터에서 홀수인 원소 지우기"를 수행하는 코드를 간결하게 작성가능하다.
+
+&는 좌측값 참조다.
+잘 알다싶이 다음 예시와 같이 보통 쓰임
+void StringFunc(string &str) { str = "changed"; }
+void StringFunc(const string &str) { cout << "str is const var" << endl; }
+
+&&는 우측값 참조다.
+int &b = 3; 이렇게 사용은 안되지만 int &&b = 3; 이런 표현은 가능하다.
+마치 const int &b = 3; 이게 되는 것 처럼 말이다.
+const int &b = 3;과 int &&b = 3;는 엄연한 차이가 있다.
+const int &b = 3;에서의 b는 좌측값이다. 3값을 가지는 변수의 별명이 b라는 뜻을 여전히 가지고 있다. 다만 수정이 불가할 뿐이다.
+int &&b = 3;에서의 b는 우측값이다. 3과 같은 녀석이라는 것이다. 
+근데 밑과 같은 코드도 가능하다.
+int &&b = 3; int &c = b; int &d = c; 이러면 d는 3이다.
+int a = 3; int &&b = a; 이런 표현은 불가하다. a는 좌측값이기 때문이다.
+int a = 3; int &&b = std::move(a); 이건 된다. move는 좌측값을 우측값으로 바꿔주기 때문에... 하지만 a는 그냥 변수명만 가지는 껍데기가 된다.
+
+
+우측값 참조로 속도 향상을 도모한다.
+int &a = b + c -> 불가능
+int &&a = b + c -> 가능, 속도 빠름
+int a = b + c -> 가능, 속도 느림
+우측값 참조로 된 a는 b + c 의 결과가 반영된 임시객체를 가리키게 된다.
+속도가 빨라지는 이유는 int a = b + c 이 경우 b + c 결과가 a에 복사된다.
+연산 순서는 b + c 연산 후 객체 생성 -> b + c 객체를 a로 복사 -> b + c 객체 파괴 이렇게 3번의 연산이 이루어진다. 
+반면 int &&a = b + c 의 연산 순서를 보면 b + c 연산 후 객체 생성 -> a는 b + c 객체를 참조 이렇게 복사가 이루어지는 곳이 없이 순조롭게 연산이 끝난다.
+여담으로 int &&a = 3 이렇게도 가끔 쓴다.
+
+좌측값 이동 시에는 std::move() 함수를 사용한다.
+string temp = "이건 이동한다.";
+vector<string> strAry;
+strAry.push_back(move(temp));
+이러한 코드가 실행되고 나면 temp는 껍데기만 남은 허상일 뿐이다.
+실제 알멩이는 strAry[0]에 들어가있다.
+여기서 사용되는 push_back 함수는 && 즉 우측값 레퍼런스를 사용하는 함수다.
