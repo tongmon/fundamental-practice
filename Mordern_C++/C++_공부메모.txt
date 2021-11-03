@@ -88,6 +88,12 @@ using func = void (*)(int, int);
 vec.erase(std::remove_if(vec.begin(), vec.end(), [](int i) -> bool { return i % 2 == 1; })
 위와 같이 "벡터에서 홀수인 원소 지우기"를 수행하는 코드를 간결하게 작성가능하다.
 
+lvalue(좌측값) rvalue(우측값)에 대한 정의
+좌측값 = 대입 시에 왼쪽 혹은 오른쪽에 오는 식, ex) int p; int a = p; -> a, p 모두 좌측값
+추가적으로 좌측값은 어떠한 메모리 위치를 가리키고 있는 값이라고도 볼 수 있다.
+우측값 = 대입 시에 오직 오른쪽에만 오는 식, ex) int a = 3; -> 여기서 3이 우측값 / int q, p; int a = p * q; -> 여기서 p * q 는 우측값
+int func() { int a = 1; return a; } -> 여기서 func()는 우측값이다. 왜냐하면 func() = 3; 이건 불가능하기 때문
+
 &는 좌측값 참조다.
 잘 알다싶이 다음 예시와 같이 보통 쓰임
 void StringFunc(string &str) { str = "changed"; }
@@ -95,17 +101,12 @@ void StringFunc(const string &str) { cout << "str is const var" << endl; }
 
 &&는 우측값 참조다.
 int &b = 3; 이렇게 사용은 안되지만 int &&b = 3; 이런 표현은 가능하다.
-마치 const int &b = 3; 이게 되는 것 처럼 말이다.
-const int &b = 3;과 int &&b = 3;는 엄연한 차이가 있다.
-const int &b = 3;에서의 b는 좌측값이다. 3값을 가지는 변수의 별명이 b라는 뜻을 여전히 가지고 있다. 다만 수정이 불가할 뿐이다.
-int &&b = 3;에서의 b는 우측값이다. 3과 같은 녀석이라는 것이다. 
-근데 밑과 같은 코드도 가능하다.
-int &&b = 3; int &c = b; int &d = c; 이러면 d는 3이다.
-int a = 3; int &&b = a; 이런 표현은 불가하다. a는 좌측값이기 때문이다.
-int a = 3; int &&b = std::move(a); 이건 된다. move는 좌측값을 우측값으로 바꿔주기 때문에... 하지만 a는 그냥 변수명만 가지는 껍데기가 된다.
-
-
-우측값 참조로 속도 향상을 도모한다.
+int p = 1, q = 2; int &&b = p + q; 이런 임시 우측값을 담는 표현도 가능하다.
+우측값 참조의 대표적인 쓰임은 컴파일러로 하여금 컴파일 시간에 어떤 인자로 좌측값이 오는지 우측값이 오는지에 따라 오버로딩을 할 수 있도록 도와주는 것이다.
+기본적으로 int p = 1;을 수행하면 값 1은 p에 복사되고 1에 필요한 메모리는 없어진다.
+반면 int &&p = 1;을 수행하면 값 1에 필요한 메모리는 사라지지 않고 이 메모리를 p는 가리키게 된다. 
+마치 1에 temp라는 별명을 쥐어주고 temp를 가리키는 것과 같다.
+int temp = 1; int &p = temp; 이 코드와 비슷한 효과를 낸다. (물론 우측값 참조는 int temp = 1; 이러한 과정이 없으므로 더 빠르다.)
 int &a = b + c -> 불가능
 int &&a = b + c -> 가능, 속도 빠름
 int a = b + c -> 가능, 속도 느림
@@ -113,12 +114,30 @@ int a = b + c -> 가능, 속도 느림
 속도가 빨라지는 이유는 int a = b + c 이 경우 b + c 결과가 a에 복사된다.
 연산 순서는 b + c 연산 후 객체 생성 -> b + c 객체를 a로 복사 -> b + c 객체 파괴 이렇게 3번의 연산이 이루어진다. 
 반면 int &&a = b + c 의 연산 순서를 보면 b + c 연산 후 객체 생성 -> a는 b + c 객체를 참조 이렇게 복사가 이루어지는 곳이 없이 순조롭게 연산이 끝난다.
-여담으로 int &&a = 3 이렇게도 가끔 쓴다.
 
-좌측값 이동 시에는 std::move() 함수를 사용한다.
-string temp = "이건 이동한다.";
-vector<string> strAry;
-strAry.push_back(move(temp));
-이러한 코드가 실행되고 나면 temp는 껍데기만 남은 허상일 뿐이다.
-실제 알멩이는 strAry[0]에 들어가있다.
-여기서 사용되는 push_back 함수는 && 즉 우측값 레퍼런스를 사용하는 함수다.
+class Mover
+{
+	int m_var;
+public:
+	void func(int a) { m_var = a; }
+	void func(int& a) { m_var = a; }
+	void func(const int& a) { m_var = a; }
+	void func(int&& a) { m_var = a; }
+};
+위와 같은 클래스에서 4가지 func를 비교해보겠다.
+
+1. void func(int a) { m_var = a; }
+함수 인자를 받을 때 a로 값이 복사되어 한 번 복사가 발생되고 m_var에 a 값을 옮기는 과정에서 복사 한 번이 더 발생한다.
+총 복사: 2번
+
+2. void func(int& a) { m_var = a; }
+참조로 받은 a를 m_var에 옮기는 과정에서 복사가 1번 일어난다.
+총 복사: 1번
+
+3. void func(const int& a) { m_var = a; }
+참조로 받은 a를 m_var에 옮기는 과정에서 복사가 1번 일어난다. (a는 const로 변경불가 할 뿐 참조로 받은 것이다.)
+총 복사: 1번
+
+4. void func(int&& a) { m_var = a; }
+m_var는 가리키는 우측값만 달라지는 것이기에 발생되는 복사는 없다. (마치 m_var = 1과 같다.)
+총 복사: 0번
