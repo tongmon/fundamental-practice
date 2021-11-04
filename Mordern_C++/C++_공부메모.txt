@@ -176,7 +176,8 @@ void swap(T &a, T &b) {
 }
 복사가 발생하는 구간이 없이 모두 이동 생성이다.
 복사 생성보다는 이동 생성이 빠르고 좌측값을 우측값으로 바꾸어 이동 생성을 가능하게 하는 것이 바로 move() 함수이다.
-물론 이렇게 이동 생성으로 득을 보려면 자료형 T에 T& T::operator=(T&& s) 이러한 
+물론 이렇게 이동 생성으로 득을 보려면 자료형 T에 T& T::operator=(T&& s) 이러한 대입 연산자 오버로딩을 따로 만들어 줘야 한다.
+중요한 것은 = 연산자에 의해서 이동이 발생한는 것이지 move() 함수에서 이동이 발생하는 것이 아니라는 것이다.
 
 move() 예시를 좀 더 들어보면 우측값 참조는 우측값 + 참조이다.
 void func(int&& a) { a = 3; }
@@ -188,3 +189,44 @@ func(move(p));
 int q = 1;
 func(move(q));
 이것도 마찬가지로 q의 값은 3이다. 우측값으로 넘겼지만 참조라 q의 값이 func() 함수 때문에 변한다.
+
+- move() 주의점
+void func(int &&a)
+{
+	int b = a; // a는 우측값으로 받았지만 이름이 있기에 다시 좌측값으로 치기에 복사가 발생함
+	int c = move(a); // a는 move()로 인해 우측값이 되어 이동 연산이 가능해진다.
+}
+함수를 짜는 경우에 위와 같은 경우를 잘 생각해야 한다.
+
+class A {};
+void func(A& a) {}
+void func(A&& a) {}
+이러한 코드에서 func(A())는 void func(A&& a) {}가 호출된다. A()는 생성자로 임시 생성된 임시객체이기 때문에 우측값이다.
+
+- 보편적(템플릿) 참조
+void func(int&& a) {}
+위와 같은 함수가 있다고 하자
+func(1) -> 우측값이라 가능하다.
+func(A) -> A라는 변수는 좌측값이라 불가능하다.
+그렇다면 func(A)이러한 짓을 위해 void func(int& a) {}라는 함수를 추가적으로 더 만들어줘야 한다.
+여간 귀찮은 일이다.
+
+하지만 템플릿 프로그래밍을 사용하면 이 귀찮은 짓을 덜 수가 있다.
+template <class T>
+void func(T&& a) { /* 어떤 행동 */ }
+이러한 함수가 있다면 func(1), func(A) 모두 커버가 가능하다. 굳이 추가적으로 T&, const T&에 대한 함수를 따로 작성하지 않아도 된다.
+
+- forward 형변환 (사실은 forward는 함수)
+template <class T>
+void subfunc(T&& p) {  }
+
+template <class T>
+void func(T&& a) { subfunc(a); }
+이러한 두 함수가 존재한다고 하면 func에서 호출하는 subfunc(a)에서 문제가 발생하는데 func() 내부에서 사용되는 a는 우측값 참조로 받았지만 이름이 있는 상태이기에 좌측값으로 취급이 된다.
+그러면 subfunc() 함수는 T& a를 가정하고 참조 a를 받는 함수로만 컴파일러가 취급한다.
+이를 해결하기 위해 forward 형변환이 필요하다. 밑과 같이 작성한 func() 함수는 이러한 문제를 해결한다.
+template <class T>
+void func(T&& a) { subfunc(forward<T>(a)); }
+이렇게 작성하면 func() 내부에서는 우측값이면 subfunc(move(a))로 수행되고 좌측값이면 subfunc(a)로 수행된다.
+
+
