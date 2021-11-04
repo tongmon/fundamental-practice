@@ -229,4 +229,9 @@ template <class T>
 void func(T&& a) { subfunc(forward<T>(a)); }
 이렇게 작성하면 func() 내부에서는 우측값이면 subfunc(move(a))로 수행되고 좌측값이면 subfunc(a)로 수행된다.
 
-
+자동으로 메모리 해제해주는 스마트 포인터가 있다.
+스마트 포인터 unique_ptr
+소유권은 유일해야 한다. 즉 객체를 가리키는 포인터는 무조건 하나여야 한다.
+unique_ptr<int> A(new int(1));
+unique_ptr<int> A = make_unique<int>(1);
+위와 같이 사용하면 되고 실제 값을 얻거나 포인터 위치를 참조할 때는 기존 포인터와 동일하게 *A, A 이렇게 사용한다.
