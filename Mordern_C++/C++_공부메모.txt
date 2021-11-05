@@ -230,8 +230,36 @@ void func(T&& a) { subfunc(forward<T>(a)); }
 이렇게 작성하면 func() 내부에서는 우측값이면 subfunc(move(a))로 수행되고 좌측값이면 subfunc(a)로 수행된다.
 
 자동으로 메모리 해제해주는 스마트 포인터가 있다.
-스마트 포인터 unique_ptr
+- 스마트 포인터 unique_ptr
 소유권은 유일해야 한다. 즉 객체를 가리키는 포인터는 무조건 하나여야 한다.
 unique_ptr<int> A(new int(1));
 unique_ptr<int> A = make_unique<int>(1);
-위와 같이 사용하면 되고 실제 값을 얻거나 포인터 위치를 참조할 때는 기존 포인터와 동일하게 *A, A 이렇게 사용한다.
+위와 같이 사용하면 되고 실제 값을 얻거나 포인터 위치를 참조할 때는 기존 포인터와 동일하게 *A, A(또는 A.get()) 이렇게 사용한다.
+메모리 해제는 별 신경을 쓸 필요가 없다. 블록을 벗어나던 아니던 포인터가 쓰이지 않는다고 판단되면 알아서 해제한다.
+스마트 포인터라고 해서 포인터를 함수에 넘기거나 하는 경우 더 특별한 것은 없다.
+unique_ptr<int> A(new int(1));
+void func(int* ptr) {}
+이렇게 한 뒤에 func(A); 하면 된다. 기존의 포인터를 인자로 받는 함수와 같다.
+unique_ptr은 말 그대로 유니크하기 함부로 = 로 포인터를 더 연결할 수 없다.
+밑의 예시를 보면
+unique_ptr<int> A(new int(1)), B;
+B = A; // 안된다. A의 값을 가리키는 포인터는 A 뿐이여야 한다.
+B = move(A); // 된다. 하지만 기존 A는 껍데기가 된다.
+A의 주소를 보면 00000000으로 나오고 기존의 A의 주소가 B의 주소가 된 것을 알 수 있다.
+예시 한 가지 더!
+vector<std::unique_ptr<A>> vec;
+unique_ptr<A> pa(new A(1));
+vec.push_back(pa); // 될까? 안된다. unique_ptr의 소유권은 유일해야 한다.
+vec.push_back(std::move(pa)); // 잘 된다. 단지 기존의 pa가 껍데기가 될 뿐...
+
+class A
+{
+public:
+	A(int a){};
+	A(const A& a) = delete;
+};
+여기서 A(const A& a) = delete; 이러한 표현이 가능한데 = delete를 하게 되면 A의 생성자를 명시적으로 사용하지 않겠다는 것이다. 
+따라서 A temp(1); 이러한 표현은 불가능하다는 것이고 보통 객체가 하나여야 하는 싱글턴 패턴에서 자주 사용한다.
+
+
+
