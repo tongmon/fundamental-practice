@@ -273,9 +273,9 @@ B = A; // 가능하다.
 
 밑의 경우가 특이한데
 std::vector<std::shared_ptr<int>> vec;
-vec.push_back(std::shared_ptr<A>(new int(1)));
-vec.push_back(std::shared_ptr<A>(vec[0]));
-vec.push_back(std::shared_ptr<A>(vec[1]));
+vec.push_back(std::shared_ptr<int>(new int(1)));
+vec.push_back(std::shared_ptr<int>(vec[0]));
+vec.push_back(std::shared_ptr<int>(vec[1]));
 이러한 경우 vec[0], vec[1], vec[2] 이 세개의 포인터는 모두 같은 곳을 가리키게 된다.
 이러한 시점에서 vec.erase(vec.begin());을 몇번 수행해야 이 포인터가 할당 해제가 될까?
 3번해야 할당된 shared_ptr이 해제가 된다. 위의 경우 참조 횟수는 3번이 된다.
@@ -285,3 +285,27 @@ shared_ptr의 참조횟수는 use_count()라는 함수로 알 수 있다.
 shared_ptr<int> A(new int(1));
 A.use_count(); // 이런 식으로 사용한다.
 여기서 A의 참조 횟수는 1이다.
+
+shared_ptr 생성방식도 unique_ptr과 거의 비슷한데 한가지 주의사항이 있다.
+std::shared_ptr<int> p1(new int(1));
+얘는 int 값 1을 가진 녀석을 동적할당한다.
+그 후에 shared_ptr 포인터로 동적할당한 녀석을 가리키면서 shared_ptr의 참조횟수를 담고있는 객체를 동적할당한다.
+일단 여기서 값비싼 연산인 동적할당 2번이 발생한다.
+std::shared_ptr<int> p1 = std::make_shared<int>(1);
+얘는 그와 다르게 shared_ptr의 참조횟수를 담고있는 객체와 int 값 1을 가진 녀석을 한방에 동적할당하여 연산이 더 적다.
+그니까 바람직하게 std::make_shared<int>(); 이 녀석을 사용하도록 하자.
+
+int* p = new int(1);
+shared_ptr<int> pA(p);
+shared_ptr<int> pB(p);
+위 예시를 보면 pA와 pB의 참조횟수를 담고있는 객체는 다르다.
+따라서 pA.use_count()와 pB.use_count()는 모두 1이다.
+따라서 pA와 pB 중 하나라도 참조횟수가 0이 된다면 1을 담고있던 값을 가리키턴 포인터 p는 할당 해제될 것이다.
+이때 오류가 발생하는데 만약 pA의 참조횟수가 0이 되어 p를 해제하게 된다면 pB의 참조횟수는 아직 1이라 pB가 가리키는 포인터는 아직 해제가 안된줄 알고 있게 된다.
+이는 모순적인 상황이고 결과적으로 p에 대한 소멸자가 두번 호출되게 되어 컴파일러는 에러를 출력하게 된다.
+
+int* p = new int(1);
+shared_ptr<int> pA = shared_ptr<int>(p);
+shared_ptr<int> pB = shared_ptr<int>(pA);
+반면 위와 같이 shared_ptr<int> 객체를 새로 생성하는 것이 아니라 shared_ptr<int>가 가리키는 포인터를 직접 가져다 주면 해결된다.
+이때 참조횟수를 담고있는 객체를 pA와 pB가 모두 공유하게 되고 pA.use_count()와 pB.use_count()는 모두 2이다.
