@@ -529,18 +529,36 @@ void CallFunc(int a, int b) {
 
 class CallClass {
 public:
+	CallClass() {}
 	void operator()(int a, int b) { cout << "a + b = " << a + b << endl; }
+	int MemberFunc_1(const CallClass& var) { return 1; }
+	void MemberFunc_2(int p) const { cout << "this is const function\n"; }
+	short MemberFunc_3() { return 1; }
 };
 
 int main()
 {
 	function<void(int, int)> A = CallFunc;
-	function<void(int, int)> B = CallClass();
-	function<int(string&&)> C = [](string&& str)->int {cout << str << endl; return (str.empty() ? 1 : 0); };
-	
 	A(1, 2);
+
+	function<void(int, int)> B = CallClass();
 	B(3, 4);
+
+	function<int(string&&)> C = [](string&& str)->int {cout << str << endl; return 1; };
 	cout << C("Modern C++ Study") << "\n";
+
+	CallClass tempClass;
+	function<int(CallClass&, const CallClass&)> D = &CallClass::MemberFunc_1;
+	D(tempClass, CallClass());
+
+	function<void(const CallClass&, int)> E = &CallClass::MemberFunc_2;
+	E(tempClass, 1);
+
+	function<short(CallClass&)> F = &CallClass::MemberFunc_3;
+	F(tempClass);
 }
 -------------------------------------------------------------------------------------------------------------
-{ function<반환형(함수 인자들)> 함수객체이름 = 함수 or Functor or 람다 }와 같이 사용하면 된다.
+보통의 함수나 Functor는 { function<반환형(함수 인자들)> 함수객체이름 = 함수 or Functor or 람다 }와 같이 사용하면 된다.
+멤버 함수는 { function<멤버 함수 반환형(멤버 함수를 가지고 있는 특정 객체 참조, 멤버 함수 인자들)> 함수객체이름 = 멤버 함수의 주소 }
+클래스의 멤버 함수는 약간 다르게 돌아가는데 함수 인자들 외에 해당 객체의 참조를 인자로 받아야 한다.
+그리고 해당 클래스 멤버 함수에 대한 주소를 받아야 하기에 &가 추가적으로 붙게 된다.
