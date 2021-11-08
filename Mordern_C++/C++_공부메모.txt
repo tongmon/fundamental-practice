@@ -45,8 +45,8 @@ struct Compare {
 
 template <typename T, typename Comp = Compare<T>>
 T Min(T a, T b) {
-  Comp comp;
-  if (comp(a, b)) {
+  Comp cmp;
+  if (cmp(a, b)) {
     return a;
   }
   return b;
@@ -507,3 +507,40 @@ i가 0인 경우부터 생각해보자.
 이렇게 weak_ptr은 허상을 가리킬 수 있는 위험성이 있기에 lock()이라는 중간 다리를 건너야 한다.
 중간 다리를 건너는 과정으로 인해 오버헤드가 발생하기에 왠만하면 weak_ptr말고 shared_ptr, unique_ptr을 사용해야 한다.
 결과적으로 weak_ptr은 shared_ptr을 가리키는 일종의 임시 포인터라고 생각하면 된다.
+shared_ptr가 어떤 상태이던지 weak_ptr은 그냥 가리킬 뿐이다.
+
+- Callable
+()를 붙여서 호출 가능한 것을 C++에서는 Callable이라고 한다. (전에 보았던 Funtor와 비슷하다.)
+class CallClass {
+public:
+	void operator()(int a, int b) { std::cout << "a + b = " << a + b << std::endl; }
+};
+위와 같이 생긴 녀석이 바로 Callable이다.
+이유는 CallClass obj; obj(1, 2);와 같은 코드가 가능하기 때문이다.
+auto CallFunc = [](int a, int b) { std::cout << "a + b = " << a + b << std::endl; }; 이 녀석도 Callable이다.
+왜냐면 CallFunc(1, 2);이렇게 ()를 붙여서 호출이 가능하기 때문이다.
+이러한 Callable을 객체 형태로 보관가능하게 해주는 것이 std::function이다.
+
+간단한 사용법은 다음 예시를 보면 이해하기 쉽다.
+-------------------------------------------------------------------------------------------------------------
+void CallFunc(int a, int b) {
+	cout << "a + b = " << a + b << endl;
+}
+
+class CallClass {
+public:
+	void operator()(int a, int b) { cout << "a + b = " << a + b << endl; }
+};
+
+int main()
+{
+	function<void(int, int)> A = CallFunc;
+	function<void(int, int)> B = CallClass();
+	function<int(string&&)> C = [](string&& str)->int {cout << str << endl; return (str.empty() ? 1 : 0); };
+	
+	A(1, 2);
+	B(3, 4);
+	cout << C("Modern C++ Study") << "\n";
+}
+-------------------------------------------------------------------------------------------------------------
+{ function<반환형(함수 인자들)> 함수객체이름 = 함수 or Functor or 람다 }와 같이 사용하면 된다.
