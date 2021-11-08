@@ -265,6 +265,40 @@ public:
 여기서 A(const A& a) = delete; 이러한 표현이 가능한데 = delete를 하게 되면 A의 생성자를 명시적으로 사용하지 않겠다는 것이다. 
 따라서 A temp(1); 이러한 표현은 불가능하다는 것이고 보통 객체가 하나여야 하는 싱글턴 패턴에서 자주 사용한다.
 
+기존의 동적 할당과 비교하면 밑과 같이 다르다.
+
+class A {
+	int p;
+public:
+	A() { p = 1; }
+	A(int k) { p = k; cout << "생성됨\n"; }
+	~A() { cout << "해제됨\n"; }
+};
+
+// 기존의 방식
+vector<A*> pAry;
+for (int i = 0; i < 10; i++)
+{
+	A* ptr = new A();
+	pAry.push_back(ptr);
+}
+cout << "소멸 호출\n";
+while (!pAry.empty()) {
+	delete pAry.back();
+	pAry.pop_back();
+}
+일일이 해제해야 한다.
+
+// unique_ptr을 사용한 방식
+vector<unique_ptr<A>> pAry;
+for (int i = 0; i < 10; i++)
+{
+	unique_ptr<A> ptr = make_unique<A>();
+	pAry.push_back(move(ptr));
+}
+cout << "소멸 호출\n";
+따로 할당 해제에 대한 코드를 넣을 필요가 없다.
+
 - 스마트 포인터 shared_ptr
 포인터에 대한 소유권이 유일하지 않아도 된다.
 따라서 unique_ptr과 다르게 객체를 몇 개의 포인터가 가리키는지 알 수 있는 참조횟수가 도입되는데 이 참조횟수를 기록하는 객체에 대한 공간이 따로 할당된다.
@@ -326,6 +360,16 @@ shared_ptr<A> pB = p->shared_from_this();
 enable_shared_from_this 이 녀석을 상속하면 shared_from_this()라는 함수가 따라오는데 얘가 객체의 shared_ptr을 가져온다.
 명심할 점은 shared_from_this()는 shared_ptr이 정의된 객체에서만 사용해야 한다는 것이다.
 
+shared_ptr을 사용할 때 블록 범위를 잘 고려해야 한다. 특정 블록에서 정의된 shared_ptr은 그 블록 안에서만 참조를 하게 되고 벗어나는 순간 참조 횟수 1개를 깎는다.
+shared_ptr<int> pA;	
+if (true) {
+	shared_ptr<int> pB = make_shared<int>(1);
+	pA = pB;
+	// 이 순간의 pA의 참조 횟수는 2이다.
+}
+// 이 순간의 pA의 참조 횟수는 1이다. pB는 더 이상 없기 때문이다.
+
+
 shared_ptr는 문제점이 있는데 바로 순환 참조이다.
 다음 예시로 알 수 있다. 한 명의 사람은 어떤 모임에 속하게 될 것이고 어떤 모임은 여러 명의 사람을 담고 있을 것이다.
 -----------------------------------------------------------------------------------------------------
@@ -365,14 +409,101 @@ int main()
 Group 1개와 User 10개의 생성자만 호출될 뿐이다. 이는 순환 참조 문제 때문이다.
 pGroup이 가진 vector 배열은 10개의 User 공유포인터를 가지고 각 공유포인터들은 동적 생성된 User를 가리킨다.
 그러면 일단 i가 0인 경우만 분석해보자.
-shared_ptr<User> pUser = make_shared<User>(i); 에서 i가 0인 경우 객체가 동적 생성되었고 이 객체를 m_GroupList[0] 이 공유 포인터가 가리키고 있다.
-따라서 m_GroupList[0] 이 녀석의 참조 횟수는 1이다.
+shared_ptr<User> pUser = make_shared<User>(i); 에서 i가 0인 경우 객체가 동적 생성되었고 이때 참조횟수가 1개 증가한다. 
+이때 pGroup->AddUser(pUser); 하면서 m_GroupList[0]가 만들어지고 해당 공유 포인터의 참조횟수가 1개 증가하여 m_GroupList[0]의 참조횟수는 2가 된다.
 그 다음 pUser->SetGroup(pGroup); 이 구문이 진행되면서 i가 0인 경우 동적 할당된 객체의 Group이 지정된다.
 이 때 m_Belong은 pGroup을 가리키게 되고 pGroup 공유 포인터의 참조 횟수는 1개 증가된다. (i가 0일 때 pGroup 참조 횟수는 1개일 것이다.)
-이렇게 m_GroupList[0]과 pGroup의 참조횟수가 서로 1개인 경우 이 둘을 갑자기 해제하는 상황을 생각해보자.
-먼저 컴파일러는 먼저 생성된 공유 포인터 pGroup에 연결된 객체를 해제하려고 할 것이다.
-해제하려고 보니 해당 객체에는 m_GroupList[0]이라는 공유 포인터가 있었고 해당 공유 포인터는 참조 횟수가 1개여서 해제할 수가 없는 상황이다.
+이렇게 m_GroupList[0]과 pGroup의 참조횟수가 서로 0 이상인 경우 이 둘을 갑자기 해제하는 상황을 생각해보자.
+먼저 컴파일러는 공유 포인터 pGroup에 연결된 객체를 해제하려고 할 것이다. (엄격하게는 m_GroupList[0] 이 녀석에 연결된 녀석부터 해제하려 하겠지만 설명할 때 순서는 별 상관없다.)
+해제하려고 보니 해당 객체에는 m_GroupList[0]이라는 공유 포인터가 있었고 해당 공유 포인터는 참조 횟수가 0 이상이라 해제할 수가 없는 상황이다.
 이를 해제할 수가 없으니 pGroup은 해제가 되지 않고 m_GroupList[0] 이 녀석의 참조 횟수가 0이 되는 순간을 기다리게 된다.
 그렇다면 m_GroupList[0] 이 녀석의 참조 횟수가 0이 되는 것이 가능할까? 불가능하다.
 이유는 m_GroupList[0]가 가리키는 User 객체를 해체하려하면 User 객체의 공유 포인터 m_Belong이 pGroup을 가리키고 있어 참조 횟수가 1이라 이를 못하게 한다.
 따라서 서로의 멤버 변수 공유 포인터의 참조 횟수가 0이 아니라 서로 동적 할당 해체를 하지 못하고 소멸자도 호출되지 못하는 것이다.
+이는 shared_ptr의 고질적인 문제로 이를 해결하려면 weak_ptr이 필요하다.
+그리고 예시에 보았듯이 unique_ptr과 다르게 shared_ptr을 인자로 받는 함수는 명확하게 shared_ptr이라고 밑 예시와 같이 명시해주어야 한다. (이는 weak_ptr도 마찬가지이다.)
+void SetGroup(shared_ptr<Group> group) { m_Belong = group; }
+
+- 스마트 포인터 weak_ptr
+shared_ptr은 weak_ptr이 될 수 있다. (형변환이 된다.)
+weak_ptr은 shared_ptr과 다르게 1을 초과하여 참조횟수를 늘리지 않는다.
+
+shared_ptr<int> pA = make_shared<int>(1), pB, pC, pD;
+pB = pC = pD = pA;
+이 상태에서 pA의 참조 횟수는 4이다.
+
+shared_ptr<int> pShare = make_shared<int>(1);
+weak_ptr<int> pA = pShare, pB, pC, pD;
+pB = pC = pD = pA;
+반면 이 상태에서 pA의 참조 횟수는 1이다.
+주의할 점은 weak_ptr<int> pA = make_shared<int>(1); 이렇게 사용해버리면 pA는 이상한 곳을 가리키게 된다. 따라서 실제 공유 포인터를 거친 후에 그 것을 이용해서 넘겨야 한다.
+위의 경우에서 pA, pB, pC, pD 중 어느 하나라도 해제 되면 참조 횟수가 0이 되어버려 실제 할당된 객체가 해제되어버려 나머지 weak_ptr은 허상을 가리키고 있는 것이 되어버린다.
+허상의 주소값을 호출하는 것을 방지하기 위해 weak_ptr의 주소를 실제로 알기위해서는 한 단계의 함수를 거쳐서 호출하게 되어있는데 그 것이 lock 함수이다.
+위 코드 예시에서 pA의 실제 주소를 알려면 pA.lock() 이렇게 해야한다.
+lock() 함수는 pA가 허상의 주소 즉, 이미 해제된 객체를 가리키고 있다면 false(nullptr)를 반환하고 아니라면 주소값에 해당하는 shared_ptr을 반환한다.
+
+---------------------------------------------------------------------------------------
+weak_ptr<int> pA, pB;
+if (true) {
+	shared_ptr<int> pShare = make_shared<int>(200);
+	pB = pA = pShare;
+	cout << (pA.lock() ? "포인터 값: " + to_string(*pA.lock()) : "포인터는 null 값") << "\n";
+}
+cout << (pA.lock() ? "포인터 값: " + to_string(*pA.lock()) : "포인터는 null 값") << "\n";
+---------------------------------------------------------------------------------------
+이 예시에서 출력 값은 다음과 같다.
+---------------------------------------------------------------------------------------
+포인터 값: 200
+포인터는 null 값
+---------------------------------------------------------------------------------------
+pShare 포인터의 참조 횟수는 if문 안에서 1이지만 if문을 벗어나면 0이 된다.
+따라서 if문 안에서는 weak_ptr인 pA는 공유 포인터인 pShare를 가리키고 실제 주소가 존재하니 pA.lock() 값이 nullptr이 아니라 실제 객체의 값이 출력된다.
+if문 밖에서는 pShare이 해제되었으니 pA는 허상을 가리키게 되면서 pA.lock()에서 nullptr이 도출되고 이로 인해 포인터는 null 값이라는 결과가 출력된다.
+pB = pA = pShare; 이 구문을 수행하는 시점에서도 pA, pB의 참조 횟수는 최대 1로 증가하지 않는다.
+
+그렇다면 아까 shared_ptr로 짰던 Group과 User 클래스 예시를 weak_ptr로 짜보자.
+-----------------------------------------------------------------------------------------------------
+class User;
+
+class Group
+{
+public:
+	vector<weak_ptr<User>> m_GroupList;
+public:
+	Group() { cout << "Group 생성됨.\n"; }
+	~Group() { m_GroupList.clear(); cout << "Group 소멸됨.\n"; }
+	void AddUser(weak_ptr<User> user) { m_GroupList.push_back(user); }
+	void PopUser() { m_GroupList.pop_back(); }
+};
+
+class User
+{
+public:
+	weak_ptr <Group> m_Belong;
+	int m_Num;
+public:
+	User(int i) { m_Num = i; cout << i << "번째 User 생성됨.\n"; }
+	~User() { cout << m_Num << "번째 User 소멸됨.\n"; }
+	void SetGroup(weak_ptr<Group> group) { m_Belong = group; }
+};
+
+int main()
+{
+	shared_ptr<Group> pGroup = make_shared<Group>();
+
+	for (int i = 0; i < 10; i++) {
+		shared_ptr<User> pUser = make_shared<User>(i);
+		pGroup->AddUser(pUser);
+		pUser->SetGroup(pGroup);
+	}
+}
+-----------------------------------------------------------------------------------------------------
+실행 후 출력을 보면 생성과 해제가 모두 잘 이루어지는 것을 알 수 있다.
+i가 0인 경우부터 생각해보자.
+공유 포인터인 pUser는 make_shared로 생성되고 참조 횟수가 1이 된다. 그 후에 AddUser를 수행하여 weak_ptr인 m_GroupList[0]의 참조횟수도 1이 된다.
+그 후에 SetGroup() 함수로 인해 공유 포인터 pGroup을 weak_ptr인 m_Belong이 가리키게 된다. 당연히 pGroup은 공유 포인터라 참조횟수는 weak_ptr과 따로 돌기에 1에서 증가하지 않는다.
+그 후 for문의 블록이 다시 돌아가기에 공유 포인터 pUser가 해제되면서 pUser와 연결되어있던 m_GroupList[0]은 허상의 공간을 가리키게 된다.
+이러한 루틴이 for문에서 10번 반복되고 맨 마지막에 공유 포인터 pGroup이 해제되면서 이에 연결되어 있던 weak_ptr인 m_Belong들은 허상의 공간을 가리키게 된다.
+이렇게 weak_ptr은 허상을 가리킬 수 있는 위험성이 있기에 lock()이라는 중간 다리를 건너야 한다.
+중간 다리를 건너는 과정으로 인해 오버헤드가 발생하기에 왠만하면 weak_ptr말고 shared_ptr, unique_ptr을 사용해야 한다.
+결과적으로 weak_ptr은 shared_ptr을 가리키는 일종의 임시 포인터라고 생각하면 된다.
