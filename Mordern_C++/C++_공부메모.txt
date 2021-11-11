@@ -563,3 +563,52 @@ int main()
 클래스의 멤버 함수는 약간 다르게 돌아가는데 함수 인자들 외에 해당 객체의 참조를 인자로 받아야 한다.
 그리고 해당 클래스 멤버 함수에 대한 주소를 받아야 하기에 &가 추가적으로 붙게 된다.
 
+- bind 함수
+함수 인자 중 하나를 정해주는 bind 함수가 존재한다.
+placeholders라는 함수 인자 위치가 존재하는데 이를 이용하면 해당 인자 위치에는 함수 값을 넣을 수 있게 된다.
+
+밑은 사용 예시다.
+int add(int v, int w, int x, int y, int z) { return v + w + x + y + z; }
+auto add_binded = std::bind(add, std::placeholders::_1, 7, std::placeholders::_2, 7, 7);
+이경우 add_binded 함수는 add(사용자 지정 값, 7, 사용자 지정 값, 7, 7); 으로 인식되고 사용자 지정 값을 추려준다.
+따라서 add_binded(0,1)은 0 + 7 + 1 + 7 + 7 이 되어 22라는 값이 도출된다.
+이렇게 std::placeholders::는 사용자 지정 값을 넣을 수 있는 공간을 만들어주는 역할을 해주고 20번째까지 존재한다.
+
+bind에 지정해주는 값은 복사되어서 전달되기에 참조를 사용하는 경우는 참조 인자라고 명시해주어야 한다. 밑은 이에 대한 예시이다.
+void Swap(int& a, int& b) 
+{ 
+	int t = move(a); 
+	a = move(b);
+	b = move(t);
+}
+int a = 3, b = 7;
+auto Swap_binded = std::bind(Swap, a, b); swap_binded();
+위와 같은 상황에서 a와 b는 과연 바뀌었을까? 안바뀐다. bind에 전달된 값은 복사되어 들어가기 때문이다.
+이렇게 auto Swap_binded = std::bind(Swap, std::ref(a), std::ref(b)); 참조라고 명시를 하면 바뀐다.
+
+template <class T>
+void Swap(T& a, T& b)
+{ 
+	T t = move(a);
+	a = move(b);
+	b = move(t);
+}
+auto Swap_binded = std::bind(Swap<int>, std::ref(a), std::ref(b));
+만약 Swap함수가 위과 같은 템플릿 함수라면 그 형을 당연히 명시해주어야 한다.
+그런데 이 템플릿 Swap 함수가 클래스 멤버 함수라면? function 자료형을 다루었던 방식을 생각해보면 된다.
+class CSwap
+{
+public:
+	template <class T>
+	void Swap(T& a, T& b)
+	{
+		T t = move(a);
+		a = move(b);
+		b = move(t);
+	}
+};
+CSwap swapClass;
+auto Swap_binded = std::bind(&CSwap::Swap<int>, std::ref(swapClass), std::ref(a), std::ref(b));
+Swap_binded();
+이렇게 특정 클래스 객체를 따로 집어 넣어주면 된다.
+그리고 const &인 경우는 std::cref()를 사용한다.
