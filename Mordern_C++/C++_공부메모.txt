@@ -612,3 +612,158 @@ auto Swap_binded = std::bind(&CSwap::Swap<int>, std::ref(swapClass), std::ref(a)
 Swap_binded();
 이렇게 특정 클래스 객체를 따로 집어 넣어주면 된다.
 그리고 const &인 경우는 std::cref()를 사용한다.
+
+- C++ 쓰레드
+C++에서는 thread라는 자료형을 통해 쓰레딩을 사용한다.
+
+단순한 예시를 들어보자
+void func(int &p) { p++; return p; }
+이러한 함수를 쓰레딩으로 돌리기 위해선 std::thread th_for_func = thread(func, std::ref(i)); 이렇게 사용한다.
+아니면 std::thread th_for_func(func, std::ref(i)); 이렇게 생성자로 넣어준다.
+std::bind 함수와 인자가 유사하다.
+쓰레드를 생성하고 난 뒤에는 join() 함수를 통해 수행하게 된다. 위의 경우에서는 th_for_func.join() 이렇게 사용한다.
+join()은 해당 쓰레드가 모두 끝나는 경우 return 된다.
+join()과 다른 성격을 가진 녀석도 있는데 detach() 함수이다.
+join()을 하면 어떤 프로그램이 수행되는 시간 내에 무조건 join()한 함수가 종료된다. (반대로 join()한 함수가 종료되지 않았다면 프로그램도 계속 돌아간다.)
+detach()를 하면 프로그램의 동작이 끝났어도 백그라운드로 해당 함수들이 수행된다.
+간단하게 main 함수가 동작을 중단해도 detach()로 수행한 쓰레드들은 알아서 동작한다.
+thread에게 전달하는 함수의 반환값은 추후에 알 방법이 없기 때문에 특정 함수를 수행하고 난 뒤에 어떤 결과값을 받고 싶다면 void 형 함수의 인자에 포인터나 참조로 넘겨야 한다.
+
+밑은 쓰레딩 연산 속도를 비교하기 위한 예제 코드다.
+------------------------------------------------------------------------------------------------
+#include <bits/stdc++.h>
+using namespace std;
+
+const int destin = 2100000000;
+double result;
+clock_t Start, End;
+
+void func(int& s)
+{
+	for (int i = 0; i < destin; i++)
+		s++;
+}
+
+void th_func(int& s) {
+	int sum = 0;
+	for (int i = 0; i < destin / 3; i++)
+		sum++;
+	s += sum;
+}
+
+int func_ret(int p) {
+	return p;
+}
+
+int main()
+{
+	int sum = 0;
+	Start = clock();
+	func(sum);
+	End = clock();
+	result = (double)(End - Start) / 1e3;
+	cout << "Sum Result : " << sum << '\n';
+	cout << "Normal Func Time : " << result << "\n\n";
+
+	sum -= destin;
+
+	Start = clock();
+	std::thread th_1 = thread(th_func, std::ref(sum));
+	std::thread th_2 = thread(th_func, std::ref(sum));
+	std::thread th_3(th_func, std::ref(sum));
+	th_1.join();
+	th_2.join();
+	th_3.join();
+	End = clock();
+	result = (double)(End - Start) / 1e3;
+	cout << "Sum Result : " << sum << '\n';
+	cout << "Thread Func Time : " << result << '\n';
+}
+------------------------------------------------------------------------------------------------
+위를 실행해보면 결과는 다음과 같다.
+----------------------------
+Sum Result : 2100000000
+Normal Func Time : 1.414
+
+Sum Result : 2100000000
+Thread Func Time : 0.45
+----------------------------
+거의 3배 이상 속도 차이가 나는 것을 알 수 있다.
+
+위의 예시는 쓰레드들이 같은 원소를 참조하여 발생하는 문제를 고려하지 않았다.
+th_func에서는 int sum이라는 변수를 따로 두어서 여기에 더한 뒤에 최종 값은 s에 추가적으로 더해주는 것이기에 여기선 이러한 문제가 발생하지 않는다.
+하지만 밑과 같이 구현된다면 어떻게 될까?
+void th_func(int& s) {
+	for (int i = 0; i < destin / 3; i++)
+		s++;
+}
+이렇게 구현이 되면 문제가 발생한다.
+각 쓰레드마다 공통된 변수 s를 동시에 접근해서 같이 더하면 한쪽은 더해지고 나머지 한쪽은 더해지지 않는 경우가 발생하기 때문이다.
+이렇게 각기 다른 쓰레드가 같은 자원을 동시에 접근하는 것을 방지하기 위해 C++에 std::mutex가 존재한다.
+
+먼저 임계구역 교통정리를 해주는 mutex를 선언한다.
+그냥 변수 선언하듯이 std::mutex var; 이렇게 해주면 된다.
+다른 쓰레드들이 건드리지 못하게 할 때는 lock()으로 잠금하고 다른 쓰레드들의 접근을 허용할 때는 unlock()을 사용하면 된다.
+그렇다면 th_func를 mutex를 활용하여 제대로 바꾸려면 어떻게 해야할까?
+void func_improved(int& s, std::mutex& mvar)
+{
+	mvar.lock();
+	for (int i = 0; i < destin / 3; i++)
+		s++;
+	mvar.unlock();
+}
+이렇게 바꾸면 될까?
+이렇게 바꾼다면 한개의 쓰레드가 for문을 돌리는 동안 공유 자원이 잠겨 다른 쓰레드들은 그냥 지켜만 봐야한다.
+제대로 바꾼 함수는 다음과 같아야 한다.
+void func_improved(int& s, std::mutex& mvar)
+{
+	mvar.lock();
+	for (int i = 0; i < destin / 3; i++)
+		s++;
+	mvar.unlock();
+}
+꼭 unlock()을 해주어야 한다는 점이 프로그래머에게 위험할 수 있다.
+따라서 다음과 같은 std::lock_guard<std::mutex> lock()이 등장했다.
+블록 내에서 선언된 다음과 같은 임계구역 잠금 변수는 선언시에 lock()을 걸며 블록을 빠져나오면서 자동으로 unlock()을 해준다.
+바꾼 함수는 다음과 같다.
+void func_improved(int& s, std::mutex& mvar)
+{
+	for (int i = 0; i < destin / 3; i++) {
+		std::lock_guard<std::mutex> lock(mvar);
+		s++; 
+	}
+}
+mutex에는 데드락을 방지하기 위해 try_lock()이라는 함수도 제공한다. 해당 mutex의 lock()을 일단 시도하고 lock()이 성공한다면 true를 반환하고 실패한다면 false를 반환한다.
+밑과 같이 보통 쓰인다.
+void func_1(std::mutex& m1, std::mutex& m2) {
+  for (int i = 0; i < 10; i++) {
+    m1.lock();
+    m2.lock();
+
+	// 어떤 작업
+
+    m2.unlock();
+    m1.unlock();
+  }
+}
+
+void func_2(std::mutex& m1, std::mutex& m2) {
+  for (int i = 0; i < 10; i++) {
+    while (true) {
+      m2.lock();
+
+      if (!m1.try_lock()) {
+        m2.unlock();
+        continue;
+      }
+
+      // 어떤 작업
+	  
+      m1.unlock();
+      m2.unlock();
+      break;
+    }
+  }
+}
+func_1은 보통의 방식대로 lock(), unlock()만 해주지만 func_2는 같은 방식으로 구현했다가 데드락이 걸려버릴 것이다.
+따라서 func_2는 m1과 m2가 모두 lock()될 수 있는 상황을 만날 때 까지 계속 기다리도록 구현해야 한다.
