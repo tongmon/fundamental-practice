@@ -1,0 +1,70 @@
+어떤 자료형의 최대값, 최솟값을 알고 싶다면 std::numeric_limits<type>::max() 나 min()을 이용할 것
+
+if문 내의 조건식이 복잡하다면 드 모르간의 법칙을 이용해 볼 것
+
+struct 구조체에는 맞춤(align)이라는 개념이 있다.
+일단 구조체 내부 변수 중에 가장 크기가 큰 자료형을 잡고 해당 되는 크기의 블록으로 구조체 변수에 해당하는 메모리를 구성한다.
+밑은 예시다.
+struct Person
+{
+	float height;
+	float weight;
+	char name[10];
+	short grade;
+};
+여기서 sizeof(Person)을 하면 20이라는 크기가 나온다.
+float은 4byte로 2개 담겨있고 short는 2byte로 1개, 그리고 1byte인 char형 크기 10의 배열 하나가 담겨있다.
+총 4+4+10+2=20이라 20이 나온 것이다.
+하지만 항상 그럴까?
+
+struct Huge_Person
+{
+	float height;
+	short grade;
+	float weight;
+	char name[10];
+};
+구조체 내부 변수의 선언 순서가 이와 같이 바뀌면 어떻게 될까?
+이 경우 sizeof(Person)을 하면 24가 나온다.
+
+이러한 두 경우를 비교해보면 다음과 같다.
+Person 구조체의 경우를 보면 내부 구조체 변수에서 가장 큰 크기를 가지는 단일 변수는 float형이고 이때 4byte의 크기를 가진다. (따라서 메모리 블록을 4byte 단위로 끊어 생성한다.)
+이제 다시 내부 변수들을 보면 height -> 4byte로 블록에 딱 맞는다. 블록에 끼우고 다음 weight -> 4byte로 블록에 딱 맞는다.
+다음 char name[10]을 보면 4byte끼우고 6byte남아서 다시 4byte끼우고 2byte남아서 4byte끼운다. 지금 여기까지 메모리 블록 상태는 다음과 같다.
+height | weight | name(4) | name(4) | name(2) + 나머지 2byte ('|' 사이 간격은 4byte이다.)
+2byte가 남아서 short형인 grade를 끼우니 딱 20byte로 메모리 정렬이 되고 최종적으로 메모리 블록 구조는 다음과 같다.
+height | weight | name(4) | name(4) | name(2) + grade
+Huge_Person 구조체의 경우를 보면 내부 구조체 변수에서 가장 큰 크기를 가지는 단일 변수는 Person 구조체와 똑같다.
+height, grade를 메모리에 끼우면 height | grade + 나머지 2byte가 된다.
+그 다음 weight를 끼우게 되면 height | grade + 나머지 2byte | weight이 된다. 나머지 2byte에 weight을 모두 끼울 수 없기 때문에 4byte블록을 따로 생성하게 된다.
+그 다음에 char name[10]을 끼우게 되면 height | grade + 나머지 2byte | weight | name(4) | name(4) | name(2) + 나머지 2byte 가 된다.
+이렇게 제일 큰 크기의 블록으로 메모리를 최적화 때문에 나누게 된다는 것을 잊지 말자.
+
+근데 이러한 블록 크기를 강제를 할 수 있는데 그 키워드가 바로 alignas(크기)이다.
+struct alignas(16) Person
+{
+	float height;
+	float weight;
+	char name[10];
+	short grade;
+};
+이렇게 된다면 height weight name(8) | name(2) grade + 나머지 12byte 가 되어 결과적으로 Person에 할당되는 메모리는 32byte가 될 것이다.
+특정 구조체가 어떤 크기 기준으로 정렬이 되어있는지를 알려면 alignof(구조체)를 사용하게 된다.
+
+포인터 *에서 타입은 중요하다. 괜히 int*, float* 이렇게 타입에 따른 포인터가 따로 있는 것이 아니다. 주소를 해석하는데 차이가 발생한다.
+const int*와 int* const도 차이가 있다.
+const int*는 포인터가 가리키는 녀석의 값을 바꾸지 못한다.
+예를 보면 const int* p = &num이면 num의 값을 못바꾼다. 즉 *p = 1; 이런게 안된다. num의 주소는 바꿀 수 있다.
+int* const는 포인터가 가리키는 녀석의 주소값을 바꾸지 못한다.
+예를 보면 int* const p = &num이면 p = 1; 이렇게 &num을 바꿀 수 없다. *p = 1;은 가능하다.
+포인터에게 강력한 제약을 걸고 싶다면 const int* const p; 이렇게 하면 된다.
+
+배열에서의 포인터는 약간 독특하게 돌아간다.
+int ary[] = {1,2,3};
+이렇게 선언된 상태에서 ary는 &ary[0]과 같고 ary+1은 &ary[1], *(ary+1)과 같다.
+하지만 &ary는 약간 특이한 방식으로 돌아간다는 것을 기억하자.
+&ary는 무엇을 뜻하냐면 int를 3개 담고있는 배열형의 포인터를 가리킨다.
+마치 std::array를 생각하면 편하다. int ary[] = {1,2,3}이나 std::array<int,3> ary{1,2,3};이나 비슷한 동작을 한다는 것과 같은 원리이다.
+따라서 int third[] = {1,2,3}; int forth[] = {1,2,3,4};에서 &third와 &forth는 포인터 형부터 차이가 있다.
+정확한 타입을 알려주는 typeid(변수) 함수를 이용하면 이 둘의 차이를 알 수 있다.
+typeid(&third).name()과 typeid(&forth).name()는 자료형에 차이가 있지만 typeid(&third[0]).name()과 typeid(&forth[0]).name()는 자료형 차이가 없다.
