@@ -68,3 +68,23 @@ int ary[] = {1,2,3};
 따라서 int third[] = {1,2,3}; int forth[] = {1,2,3,4};에서 &third와 &forth는 포인터 형부터 차이가 있다.
 정확한 타입을 알려주는 typeid(변수) 함수를 이용하면 이 둘의 차이를 알 수 있다.
 typeid(&third).name()과 typeid(&forth).name()는 자료형에 차이가 있지만 typeid(&third[0]).name()과 typeid(&forth[0]).name()는 자료형 차이가 없다.
+
+동적할당 초기화 표현법
+int* arr = new int[3]{1,2,3}; -> 이렇게 초기화 가능
+동적할당 해제된 포인터에 대해서는 nullptr 처리를 해주어야 추후에 포인터 검사를 정확히 할 수 있다.
+arr = nullptr; if(arr) { /* 작업 */ } 이렇게 처리가능한데 만약 arr이 해제되었는데 arr = nullptr;을 하지 않았다면 저 if문 처럼 판단이 불가하다.
+그리고 NULL과 nullptr은 차이가 있는데 int func(int k) {cout << k << endl;} 이러한 함수에서 func(NULL)은 NULL이 정수형 0 취급이라 표현이 가능하지만 func(nullptr) 이러한 표현은 불가능하다.
+
+void 포인터는 주솟값만을 가질 수 있다. 명확하게 표현하려면 원본 포인터로 형변환 시켜줘야 된다.
+int a = 10;
+int *num = &a;
+void *vnum = num;
+cout << *(int*)vnum << endl;  -> 이렇게 void 포인터인 vnum을 int형 포인터로 변환한 뒤에 실제값을 얻기 위해 *을 붙여주어야 명확한 값을 얻을 수 있다.
+이러한 void 포인터는 특정 바이트를 동적할당만 해주고 추후에 명확한 형으로 값을 넣어주는 경우에 사용하게 된다.
+
+vector<T>에 대한 <, >, ==, <=, >= 비교 연산자는 기본적으로 정의되어 있다.
+vector<int> A{1,2,3}, B{3,2,1}; 이 상황에서 if(A < B) {} 이러한 표현이 가능하다.
+
+
+
+
