@@ -85,6 +85,24 @@ cout << *(int*)vnum << endl;  -> 이렇게 void 포인터인 vnum을 int형 포�
 vector<T>에 대한 <, >, ==, <=, >= 비교 연산자는 기본적으로 정의되어 있다.
 vector<int> A{1,2,3}, B{3,2,1}; 이 상황에서 if(A < B) {} 이러한 표현이 가능하다.
 
+함수 포인터는 보통 밑과 같이 조건에 따라 사용되는 함수가 다른데 이를 숏코딩하거나 가독성을 늘리고 싶을 때 사용한다.
+enum class ReqType { Login, Register, Logout };
 
+bool onLogin(string id, string pw) { /* 내용 */ return true; }
+bool onRegister(string id, string pw) { /* 내용 */ return true; }
+bool onLogout(string id, string pw) { /* 내용 */ return true; }
 
+int main()
+{
+	bool (*funcPtrAry[])(string, string) { onLogin, onRegister, onLogout }; // 포인터 배열을 이용
+	// function<bool(string,string)> funcPtrAry[] = {onLogin, onRegister, onLogout}; 얘도 가능
+	
+	// using defFuncPtrAry = bool(*)(string, string); 이걸 하면
+	// defFuncPtrAry funcPtrAry[] = { onLogin, onRegister, onLogout }; 얘도 가능
+	
+	ReqType type = ReqType::Login;
+	/*어떤 처리*/
+	
+	funcPtrAry[(int)type]("tongstar", "tongtong");
+}
 
