@@ -106,3 +106,48 @@ int main()
 	funcPtrAry[(int)type]("tongstar", "tongtong");
 }
 
+-define 함수의 위험성
+#define SQUARE(X) X*X
+
+int main()
+{
+	int n = 10;
+	cout << SQUARE(++n);
+}
+저 SQUARE값은 컴파일러에 따라 달라지기 때문에 define으로 함수를 만들어 쓰기보다는 inline 함수를 만들어 사용하자.
+
+-this 포인터 활용법
+
+struct Transaction
+{
+	const int txID;
+	const int fromID;
+	const int toID;
+	const int value;
+};
+
+class TransactionBuilder
+{
+	int mfromID;
+	int mtoID;
+	int mvalue;
+	
+public:
+	Transaction build() {
+		int txID = mfromID ^ mtoID ^ mvalue;
+		return { txID, mfromID, mtoID, mvalue };
+	}
+	
+	TransactionBuilder& setFromID(int fromID) {
+		mfromID = fromID;
+		return *this;
+	}
+};
+
+int main()
+{
+	Transaction txTemp = TransactionBuilder().setFromID(1212).build(); // 이러한 표현이 가능
+}
+
+이렇게 this 포인터를 이용하면 TransactionBuilder() 이렇게 임시 객체를 생성하여 함수를 호출해 나갈 수가 있다.
+사실 이 표현은 연산자를 오버로딩하는 경우에 많이 쓰이고 있다.
