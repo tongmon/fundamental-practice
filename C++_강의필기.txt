@@ -280,6 +280,7 @@ public:
 	long double GetCentiMeter() { return m_Centimeter; }
 	friend Centi operator-(Centi&& A, Centi&& B);
 	friend Centi operator+(Centi&& A, Centi&& B);
+	Centi operator-() { return Centi(-m_Centimeter); }
 };
 
 Centi operator-(Centi&& A, Centi&& B)
@@ -327,6 +328,10 @@ Centi operator"" km(long double val) {
 
 int main()
 {
-	Centi centimeter = 1km + 1m + 1cm - 1mm;
+	Centi centimeter = 1.0km + 1m + 1cm - 1mm;
 	cout << fixed << centimeter.GetCentiMeter() << "cm" << endl;
 }
+이 코드에서 *, / 이와 같은 연산자 오버로딩을 사용해서 기능을 불려나갈 수도 있다.
+중요한 것은 long double val 인자만 사용하는 경우는 1.0km는 사용가능하지만 1km와 같은 int형 원소를 다루지 못한다.
+따라서 unsigned long long int val을 인자로 사용하는 함수를 오버로딩 해주었다.
+그리고 기본적으로 단일로 -1km 이러한 표현도 불가능하기에 Centi operator-() { return Centi(-m_Centimeter); } 해당 함수도 추가하였다.
