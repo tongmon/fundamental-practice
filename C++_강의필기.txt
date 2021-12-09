@@ -176,6 +176,11 @@ GetAge와 같은 static 멤버함수는 static 멤버변수만을 다룰 수가 
 
 -자잘팁
 cout.setf(ios_base::boolalpha); -> bool 값에 따라 1, 0이 아닌 true, false로 출력하게 해준다.
+std::for_each(~~~.begin(), ~~~.end(), 어떤 함수)는 특정 배열의 원소를 돌면서 지정된 함수를 실행시킨다. (for문을 사용하는 코드를 줄여준다고 보면 된다.)
+plus<int> p; p(1, 2)를 하면 1+2인 3이 나온다.
+negate<int> q; q(3)를 하면 -1을 곱한 수인 -3이 나온다.
+equal_to<int> r; r(2, 1)를 하면 2와 1이 다르기에 0이 나온다. (같은 수를 넣으면 1이 나온다.)
+위의 functor들은 보통 임시객체를 호출하고 바로 사용하지 않을까 싶다... 예를 들면 equal_to<int>()(1, 2) 이렇게 말이다.
 
 -우주선 연산자 (<=>)
 기호는 <=> 이것이고 C++20 이후부터 헤더 <compare>에서 지원을 한다. 
@@ -203,3 +208,125 @@ A와 B를 비교하는 경우 ==, !=, <, <=, >, >= 여기 중에서 어떠한 �
 3. partial_ordering은 weak_ordering보다 약한 질서로 float, double과 같은 부동소수점에 대한 비교가 허용된다는 점이다.
 즉 1 <=> 1.0 이렇게 비교하면 도출값은 partial_ordering::equivalent가 나온다. int와 float(아니면 double)의 비교는 비트의 개수부터가 다르기 때문에 ==이 동등을 모형화하고 있다고 보는 것이다.
 다음은 코드 예시이다.
+
+&&, || 연산자의 오버로딩 주의점
+기본적으로 정의되어 있는 &&, || 연산자는 최적화를 위해 특정 조건에서 뒤의 연산을 무시하는 규칙이 있다.
+false && 어떤 짓 -> 앞이 false이기에 어떤 짓을 행하지 않는다.
+true || 어떤 짓 -> 앞이 true이기에 어떤 짓을 행하지 않는다.
+이러한 원리가 &&, ||를 오버로딩해서 사용하면 깨진다.
+연산자 오퍼레이터는 결국에 함수이고 함수의 인자로 들어오는 녀석은 실행이 되거나 값을 받게 되는데 이때 기본적인 &&, || 연산자와 다르게 작동할 수 있다.
+
+생성자는 형변환 연산자라고 볼 수 있다. (실제로 생긴 것도 형변환이랑 비슷하다.)
+class String
+{
+	char * mChar;
+public:
+	String(const char *) { /*어떤 짓*/ }
+}
+
+void func(String str) { /*어떤 짓*/ }
+
+이 상태에서 func("abc") 하면 컴파일러가 자동적으로 func(String("abc"))로 바꿔줘서 정상적으로 돌아간다.
+근데 String(const char *) { /*어떤 짓*/ } 얘를 explicit String(const char *) { /*어떤 짓*/ } 으로 하면 func("abc") 이게 암시적 변환이 막히기 때문에 안된다.
+명시적으로 func(String("abc")) 해줘야만 된다.
+
+- 형변환 연산자 오퍼레이터
+밑의 예시를 보면 if(myCandys) {} 이렇게 클래스를 bool형으로 사용하는 경우가 나오는데 이것이 형변환 연산자를 operator bool() 로 재정의하여 가능한 것이다.
+class CandyBag
+{
+	vector<string> mCandys;
+public:
+	CandyBag() {}
+	CandyBag(initializer_list<string> list) {
+		for (auto& str : list)
+			mCandys.push_back(str);
+	}
+	CandyBag(vector<string>&& Candys) { mCandys = move(Candys); }
+	void Clear() { mCandys.clear(); }
+	operator bool() { return !mCandys.empty(); }
+};
+
+int main()
+{
+	CandyBag myCandys{ "white", "choco", "mint" };
+	if (myCandys) {
+		cout << "I have Candy\n";
+	}
+	myCandys.Clear();
+	if (!myCandys) {
+		cout << "I don't have any Candy\n";
+	}
+}
+CandyBag에 캔디가 있다면 bool 형변환 시에 true를 반환하고 캔디가 없다면 false를 반환하게 된다.
+여타 operator는 변환형이 맨 앞에 나오고 함수 인자도 받았지만 형변환 operator는 형변환 연산자를 재정의하기에 인자와 반환형이 필요없다.
+
+-chrono 표준 시간 라이브러리 헤더
+시간을 다루는 std로 사용법은 다음과 같다.
+std::chrono::minute varMin = 24h + 5min; varMin.count(); // minute 형이기에 count()를 하면 분이 나온다.
+std::chrono::seconds varSec = 24h + 5min + 10s; varSec.count(); // seconds 형이기에 count()를 하면 초가 나온다.
+
+- 접미사, 단위 붙이기(사실상 operator, 정확한 명칭은 리터럴 연산자 오퍼레이터)
+std::chrono를 보면 해당 변수가 특이한데 시간은 h, 분은 m과 같은 접미사가 붙는다.
+이런 것들도 operator를 이용한다. 짜는 법은 다음과 같다. 길이 접미사를 붙여본 코드이다.
+주의점은 리터럴 연산자는 클래스 내부 멤버함수로 구현이 불가능하여 friend 함수로 만들어 주는 것이 좋다.
+그리고 리터럴 연산자를 만들어 줄 수 있는 기본 자료형도 한정적이다. 
+기본적으로 음수는 불가능하여 따로 -에 대한 오퍼레이터를 또 정의해주어야 한다. 실수형은 long double만 된다.
+밑은 길이로 만들어본 리터럴 연산자 오퍼레이터 예시 코드이다.
+class Centi
+{
+	long double m_Centimeter;
+public:
+	Centi(long double val = 0) : m_Centimeter(val) {}
+	long double GetCentiMeter() { return m_Centimeter; }
+	friend Centi operator-(Centi&& A, Centi&& B);
+	friend Centi operator+(Centi&& A, Centi&& B);
+};
+
+Centi operator-(Centi&& A, Centi&& B)
+{
+	return Centi(A.m_Centimeter - B.m_Centimeter);
+}
+
+Centi operator+(Centi&& A, Centi&& B)
+{
+	return Centi(A.m_Centimeter + B.m_Centimeter);
+}
+
+Centi operator"" mm(unsigned long long int val)
+{
+	return Centi(val * 0.1);
+}
+
+Centi operator"" mm(long double val) {
+	return Centi(val * 0.1);
+}
+
+Centi operator"" cm(unsigned long long int val) {
+	return Centi(val);
+}
+
+Centi operator"" cm(long double val) {
+	return Centi(val);
+}
+
+Centi operator"" m(unsigned long long int val) {
+	return Centi(val * 1e2);
+}
+
+Centi operator"" m(long double val) {
+	return Centi(val * 1e2);
+}
+
+Centi operator"" km(unsigned long long int val) {
+	return Centi(val * 1e5);
+}
+
+Centi operator"" km(long double val) {
+	return Centi(val * 1e5);
+}
+
+int main()
+{
+	Centi centimeter = 1km + 1m + 1cm - 1mm;
+	cout << fixed << centimeter.GetCentiMeter() << "cm" << endl;
+}
