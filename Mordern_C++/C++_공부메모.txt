@@ -817,3 +817,36 @@ mt19937라는 자료형은 난수 생성 엔진으로 메르센 트위스터라�
 보통은 그냥 mt19937를 사용하는 엔진을 만들어 쓰는 것이 편하다.
 std::mt19937 gen(rd()); 여기서 rd() 대신에 특정 시드값을 std::mt19937 gen(123); 이렇게 박아 넣어도 된다. (당연히 시드가 같기 때문에 )
 위에선 균등 난수열을 생성하기 위해서 uniform_int_distribution를 사용했지만 <random>에는 다른 분포 유형도 많이 있다. (normal_distribution: 정규 분포 등...)
+
+- <chrono> 라이브러리
+기존 c에서 쓰던 clock 함수와 비슷하지만 좀 더 정밀하다.
+사용법은 다음과 같다.
+std::chrono::time_point<std::chrono::high_resolution_clock> start = std::chrono::high_resolution_clock::now(); // 시작 시각 체크
+std::chrono::time_point<std::chrono::high_resolution_clock> end = std::chrono::high_resolution_clock::now(); // 끝 시각 체크
+auto result = end - start;
+이러한 코드에서 result.count()를 하면 몇 틱(tick)이 걸렸는지를 알 수가 있다.
+틱에 대한 단위는 컴퓨터마다 다를 수 있기 때문에 실제 걸린 시간을 알기 위해서는 std::chrono::duration_cast<std::chrono::microseconds>(result).count()를 해주면 된다.
+여기서는 std::chrono::microseconds인 ms(0.000001s) 단위를 사용했지만 std::chrono::seconds로 초 단위를 구할 수도 있고 다른 시각 단위도 많다.
+
+현재 시간을 출력하는 방법은 c의 time_t 구조체를 병행하여 사용하게 된다.
+auto now = std::chrono::system_clock::now();
+std::time_t t = std::chrono::system_clock::to_time_t(now);
+cout << std::put_time(std::localtime(&t), "%F %T %z");
+C++20에서는 다음과 같이 더 간단해졌다. c의 time_t 구조체, localtime 함수를 사용할 필요도 없어 depricated 경고를 피할 수 있다.
+auto local = std::chrono::zoned_time{ std::chrono::current_zone(), std::chrono::system_clock::now() };
+cout << local;
+
+- <filesystem> 라이브러리
+사용법은 밑과 같다.
+std::filesystem::path p("./some_file"); // 현재 프로젝트 폴더 공간에서 some_file이라는 폴더 혹은 파일이 있는지를 찾아보려 한다.
+std::filesystem::exists(p) // some_file이라는 폴더 혹은 파일의 존재 유무를 boolean형으로 알려준다.
+std::filesystem::is_regular_file(p) // some_file이라는 것이 파일인지 아닌지 여부를 boolean형으로 알려준다.
+std::filesystem::is_directory(p) // some_file이라는 것이 폴더인지 아닌지 여부를 boolean형으로 알려준다.
+
+경로 지정 방식에 관한 함수는 다음과 같다.
+fs::path p("./some_file.txt");
+해당 선언이 이루어진 상태를 가정해보자.
+fs::current_path(); // 얘는 현재 경로를 알려준다.
+p.relative_path() // 얘는 ./some_file.txt에 대한 상대 경로를 알려준다.
+fs::absolute(p) // 얘는 ./some_file.txt에 대한 절대 경로를 알려준다.
+fs::canonical(p) // 얘는 ./some_file.txt에 대한 공식적인 절대 경로를 알려준다. 앵간하면 absolute() 얘말고 canonical()이 녀석을 쓰자.
