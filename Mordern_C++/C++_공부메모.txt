@@ -850,3 +850,43 @@ fs::current_path(); // 얘는 현재 경로를 알려준다.
 p.relative_path() // 얘는 ./some_file.txt에 대한 상대 경로를 알려준다.
 fs::absolute(p) // 얘는 ./some_file.txt에 대한 절대 경로를 알려준다.
 fs::canonical(p) // 얘는 ./some_file.txt에 대한 공식적인 절대 경로를 알려준다. 앵간하면 absolute() 얘말고 canonical()이 녀석을 쓰자.
+
+특정 디렉토리 안의 파일 순회는 다음과 같다.
+fs::directory_iterator itr(fs::current_path() / "gyungjun");
+while (itr != fs::end(itr)) 
+{
+    const fs::directory_entry& entry = *itr;
+    entry.path(); // 얘가 경로를 포함한 파일 이름을 가지고 있다.
+    itr++;
+}
+위 코드에서 fs::current_path() / "gyungjun" 이 녀석이 특이할 수 있는데 operator / 를 지원해서 현재 폴더 아래의 /gyungjun 폴더에서 탐색을 진행하게 된다.
+즉 예를 들어 현재 current_path가 C:// 라면 fs::current_path() / "gyungjun"는 C://gyungjun// 이게 되는 것이다.
+위 코드를 ranged for문을 이용하여 좀 더 줄여보면 아래와 같다.
+for (const fs::directory_entry& entry : fs::directory_iterator(fs::current_path() / "gyungjun")) 
+{
+    std::cout << entry.path() << std::endl;
+}
+위와 같은 순회 방식은 폴더 내의 폴더가 있는 경우 재귀적으로 순회를 하지 않는다. 그냥 폴더 이름을 바로 알려줄 뿐이다.
+따라서 재귀적으로 순회하는 방식은 다음과 같이 recursive_directory_iterator를 이용해야 한다.
+for (const fs::directory_entry& entry : fs::recursive_directory_iterator(fs::current_path() / "gyungjun")) 
+{
+    std::cout << entry.path() << std::endl;
+}
+
+std::ofstream에서는 폴더를 직접 만들지 못한다. 특정 확장자를 가진 파일만을 만들어 줄 뿐이다.
+따라서 std::filesystem에서는 폴더를 만드는 함수를 제공하는데 다음과 같이 간단하다.
+fs::path p("./gyungjun/research");
+fs::create_directory(p);
+위의 코드를 실행하면 현재 경로의 gyungjun 폴더 내부의 research 폴더를 생성해준다.
+그런데 만약에 현재 경로에 gyungjun 폴더가 없었다면 create_directory() 함수가 현재 경로에 gyunjun 폴더를 생성하고 그 내부의 research 폴더도 생성할까?
+이 경우엔 에러가 출력된다.
+이렇게 한번에 여러 개의 폴더를 한번에 만드는 경우는 create_directory(p) 함수 대신에 create_directories(p)를 사용하면 된다.
+
+파일을 복사하는 방법은 다음과 같다.
+fs::path from("./fromDir");
+fs::path to("./toDir");
+fs::copy(from, to, fs::copy_options::recursive);
+이렇게 수행하면 옵션이 recursive이기 때문에 fromDir의 내용을 재귀적으로 toDir에 복사하여 넣게 된다.
+그냥 fs::copy(from, to);를 하게 된다면 그냥 fromDir에 있는 파일들만 복사하게 된다.
+주의점은 이미 있는 파일을 덮어씌우려는 경우는 실제로 덮어씌우지 않고 예외를 던진다.
+따라서 skip_existing(이미 존재하는 거 제외), overwrite_existing(이미 존재하는 파일 덮어씌움), update_existing(이미 존재하는 파일이 더 오래된 경우 덮어씌움) 이러한 옵션을 잘 이용해야 한다.
