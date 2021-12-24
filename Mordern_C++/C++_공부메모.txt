@@ -997,3 +997,55 @@ for (auto& [key, val] : m)
 	std::cout << "Key : " << key << " value : " << val << std::endl;
 }
 
+- <regex> 라이브러리
+문자열을 탐색할 때 매우 강력한 힘을 내는 정규식을 C++11부터 지원한다.
+C++20에 와서도 정규식 재귀 패턴을 지원하지는 않지만 그것 외에는 모두 지원하기에 쓸만하다.
+std::regex re(".*\.txt"); 이렇게 선언이 가능하고 다음 정규식은 보통 확장자가 txt인 파일을 찾을 때 사용될 것이다.
+정규식 엔진도 std::regex re(".*\.txt", std::regex::grep); std::regex re(".*\.txt", std::regex::grep | std::regex::icase);과 같이 바꾸어 줄 수 있다.
+이러한 옵션 외에도 최적화를 통해 정규식 탐색 속도를 올려주는 std::regex::optmize 옵션도 존재한다.
+regex 관련 함수는 다음과 같다.
+
+regex_match(/*문자열*/str, /*정규식*/re); // 주어진 문자열과 정규식이 정확히 맞아 떨어지는지 검사한다. 모든 문자열이 정규식 패턴과 일치해야 한다.
+예를 들어 regex_match("temp.txt", std::regex(".*\.txt")); 이 녀석은 true가 나오지만 regex_match("temp.txt is there!", std::regex(".*\.txt")); 이 녀석은 false가 나온다.
+매칭된 부분을 모두 가져올 수도 있는데 이 경우에 std::smatch라는 자료형을 이용한다.
+예시는 다음과 같다.
+std::regex R("(.*)\.txt");
+vector<std::string> files{ "temp.txt", "this.pdf", "power.png", "kbs.txt", "mbc.gif", "pokemon.txt", "tv.pdf"};
+std::smatch matchs;
+for (auto& file : files) {
+	if (regex_match(file, matchs, R)) {
+		for (auto& match : matchs) {
+			cout << match.str() << ' ';
+		}
+		cout << '\n';
+	}
+}
+예시에서 중요히 봐야하는 것은 R("(.*)\.txt") 이 부분이다. .*를 괄호로 감싸고 있는데 이렇게 감싼 부분에 대한 정보가 모아져 따로 matchs에 들어가게 된다.
+예를 들어 regex_match("temp.txt", matchs, R)'; 이를 수행하면 matchs에는 temp.txt, temp가 순서대로 담기게 된다.
+첫번째에는 무조건 매칭된 전체 문자열이 들어가고 두번째 부터 앞서 나온 괄호에 감싸져 매칭된 부분(여기선 (.*)가 된다.)에 대한 문자열만 들어가게 된다.
+
+regex_search(/*문자열*/str, /*정규식*/re); // 주어진 문자열에서 정규식에 해당하는 패턴이 있는지 검사한다. 정확히 맞아 떨어지지 않아도 부분적으로 매칭되면 true를 반환한다.
+예를 들어 regex_search("temp.txt", regex("txt")); 이렇게 해도 txt가 매칭되기에 true를 반환한다.
+regex_match와 똑같이 regex_search도 std::smatch를 이용하여 매칭되는 문자열을 담을 수 있다.
+예시는 다음과 같다.
+std::regex R(" ");
+string files = "temp.txt this.pdf power.png kbs.txt mbc.gif pokemon.txt tv.pdf";
+std::smatch match;
+while (regex_search(files, match, R)) {
+	cout << match.prefix() << '\n';
+	files = match.suffix();
+}
+cout << files;
+해당 코드를 실행하면 files의 내용이 공백 단위로 끊겨서 줄을 바꾸며 출력된다. 즉 토큰으로 끊는 작업을 하는 것이다.
+주의할 점은 마지막에만 cout << 다음에 files가 왔다는 것이다.
+이렇게 한 이유를 알기위해 먼저 smatch의 prefix()와 suffix()가 무엇인지를 먼저 알아야 한다.
+regex_search("temp.txt this.pdf", match, regex(" "));를 수행하면 match에 매칭된 정보가 저장되게 된다.
+일단 처음으로 매칭된 정보인 " " 공백이 match[0]에 저장이 된다.
+추가적으로 prefix, suffix라는 정보도 저장이 되는데 prefix는 매칭된 부분의 앞에 나오는 내용이 모두 담기고 suffix 매칭된 부분의 뒤에 나오는 내용이 모두 담긴다.
+"temp.txt this.pdf" 여기서는 공백이 매칭이 되었기에 공백 전인 "temp.txt" 이 녀석이 prefix가 되고 공백 후인 "this.pdf" 이 녀석이 suffix가 된다.
+다시 예시 코드로 넘어가보면 처음 regex_search()가 수행되면 match의 상태는 다음과 같다. 
+match[0] = " ", prefix = "temp.txt", suffix = "this.pdf power.png kbs.txt mbc.gif pokemon.txt tv.pdf"
+계속해서 prefix에 파일 이름만 담기게 하기 위해서 files를 suffix로 바꿔주면서 반복문을 수행하는 것이다.
+계속 반복문이 진행되다 보면 regex_search() 함수가 false를 반환하게 될 것이고 match에는 아무런 내용도 담기지 않을 것이다.
+따라서 마지막 남은 파일 이름은 마지막 suffix인 files에 담기게 되고 마지막 출력을 cout << files;로 적게 된 것이다.
+이런 방식 말고 std::sregex_iterator를 사용할 수도 있다.
