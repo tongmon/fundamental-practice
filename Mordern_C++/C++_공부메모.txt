@@ -997,6 +997,10 @@ for (auto& [key, val] : m)
 	std::cout << "Key : " << key << " value : " << val << std::endl;
 }
 
+- C++ 가변인자 (<cstdarg> 라이브러리)
+
+
+
 - <regex> 라이브러리
 문자열을 탐색할 때 매우 강력한 힘을 내는 정규식을 C++11부터 지원한다.
 C++20에 와서도 정규식 재귀 패턴을 지원하지는 않지만 그것 외에는 모두 지원하기에 쓸만하다.
@@ -1049,3 +1053,23 @@ match[0] = " ", prefix = "temp.txt", suffix = "this.pdf power.png kbs.txt mbc.gi
 계속 반복문이 진행되다 보면 regex_search() 함수가 false를 반환하게 될 것이고 match에는 아무런 내용도 담기지 않을 것이다.
 따라서 마지막 남은 파일 이름은 마지막 suffix인 files에 담기게 되고 마지막 출력을 cout << files;로 적게 된 것이다.
 이런 방식 말고 std::sregex_iterator를 사용할 수도 있다.
+위의 예시 코드를 std::sregex_iterator를 사용하여 바꾸면 다음과 같다.
+std::regex R(" ");
+string files = "temp.txt this.pdf power.png kbs.txt mbc.gif pokemon.txt tv.pdf";
+std::sregex_iterator start(files.begin(), files.end(), R), back; // auto start = std::sregex_iterator(files.begin(), files.end(), R); 도 가능
+auto end = std::sregex_iterator();
+while (start != end) {
+	cout << start->prefix() << '\n';
+	back = start++;
+}
+cout << back->suffix() << '\n';
+std::smatch는 사용하지 않고 std::sregex_iterator 내부에 prefix와 suffix에 대한 정보가 있다.
+
+std::regex_replace(/*치환하고자 하는 대상 문자열*/target_str, /*정규식*/re, /*어떤 걸로 치환할 건지*/pattern); // 대상 문자열에서 정규식 패턴에 맞는 부분을 특정 문자열로 교체한다.
+기존 regex 함수들은 반환형이 boolean이였지만 이 녀석은 치환 완료된 문자열을 반환한다.
+예시는 다음과 같다.
+std::regex R("%s");
+string target = "my name is %s";
+string result = regex_replace(target, R, "gyungjunlee");
+cout << result;
+%s 부분이 gyungjunlee로 교체되었다.
