@@ -1002,7 +1002,49 @@ for (auto& [key, val] : m)
 예를 들어 C의 printf()함수는 printf("내 나이: %d, 내 이름: %s", 25, "gyungjunlee"); 이렇게 인자가 자유자재이고 형태도 각양각색이다.
 이러한 함수를 구현하려면 가변인자를 사용해야 한다.
 
+std::string format_with_cplus(const std::string& str, ...)
+{
+	std::vector<std::pair<int, int>> replace_list;
+	std::vector<std::string> replace_pattern{ "%s", "%c", "%d", "%u", "%f" };
+	int pos, pat_Index, shift = 0;
+	for (int i = 0; i < replace_pattern.size(); i++) {
+		pos = 0;
+		while ((pat_Index = str.find(replace_pattern[i], pos)) != std::string::npos) {
+			replace_list.push_back({ pat_Index, i });
+			pos += pat_Index + replace_pattern[i].length();
+		}
 
+	}
+	std::va_list va;
+	std::sort(replace_list.begin(), replace_list.end());
+	__va_start(&va, str);
+	std::string pattern, result = str;
+	for (const auto& element : replace_list) {
+		switch (element.second) {
+		case 0:
+			pattern = va_arg(va, char *);
+			break;
+		case 1:
+			pattern += va_arg(va, char);
+			break;
+		case 2:
+			pattern = to_string(va_arg(va, int));
+			break;
+		case 3:
+			pattern = to_string(va_arg(va, unsigned int));
+			break;
+		case 4:
+			pattern = to_string(va_arg(va, double));
+			break;
+		default:
+			break;
+		}
+		result.replace(element.first + shift, replace_pattern[element.second].length(), pattern);
+		shift += pattern.length() - replace_pattern[element.second].length();
+	}
+	va_end(va);
+	return result;
+}
 
 - <regex> 라이브러리
 문자열을 탐색할 때 매우 강력한 힘을 내는 정규식을 C++11부터 지원한다.
