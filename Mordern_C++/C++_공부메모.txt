@@ -1001,8 +1001,24 @@ for (auto& [key, val] : m)
 특정 함수는 가변인자를 사용할 수 있다.
 예를 들어 C의 printf()함수는 printf("내 나이: %d, 내 이름: %s", 25, "gyungjunlee"); 이렇게 인자가 자유자재이고 형태도 각양각색이다.
 이러한 함수를 구현하려면 가변인자를 사용해야 한다.
+가변인자에 필요한 요소는 3가지가 존재한다.
 
-std::string format_with_cplus(const std::string& str, ...)
+va_list : 가변인자를 담을 자료형이 필요한데 이 녀석이 그 역할을 수행한다.
+자료형이기에 std::va_list variadic_list; 이렇게 선언해주면 된다.
+
+__va_start : va_list가 가변인자들을 담는 리스트 자료형이라고 했는데 이 리스트를 초기화하기 위해서는 인자들의 시작점을 알아야 한다. 그 시작점을 넘겨주기 위한 함수다.
+시작점을 알려주기 위해서 va_list의 주소와 시작 변수 이름을 넣어준다. 예를 들어 사용법은 밑과 같다.
+void valist_sample(int u, ...)
+{
+	va_list variadic_list;
+	__va_start(&variadic_list, u);
+	/*특정 작업*/
+	va_end(vardic);
+}
+u를 넣어준다.
+
+
+void printf_cplus(const std::string& str, ...)
 {
 	std::vector<std::pair<int, int>> replace_list;
 	std::vector<std::string> replace_pattern{ "%s", "%c", "%d", "%u", "%f" };
@@ -1043,7 +1059,7 @@ std::string format_with_cplus(const std::string& str, ...)
 		shift += pattern.length() - replace_pattern[element.second].length();
 	}
 	va_end(va);
-	return result;
+	cout << result;
 }
 
 - <regex> 라이브러리
