@@ -1114,6 +1114,15 @@ void print(T arg, Types... args) {
 재귀적으로 작동하는 것이다.
 재귀적으로 작동하다가 인자가 하나만 남은 경우에는 컴파일러가 print(T arg, Types... args) 이 녀석과 print(T arg) 이 녀석을 비교하고 print(T arg) 얘를 선택하게 된다.
 함수 선언 순서도 중요한데 print(T arg, Types... args) 이 녀석 내부에서 print(T arg) 이 녀석을 쓰는 경우가 생기기 때문에 선언 순서는 위와 같아야 한다.
+
+가변 템플릿 인자에서는 sizeof...() 함수를 제공하는데 이를 통해 미리 가변인자가 몇 개인지 알 수 있다.
+
+template <typename... Ts>
+int print_num(Ts... n) {
+	return sizeof...(n);
+}
+해당함수를 선언하고 print_num(1, "hello", 2.1, "hi", 3); 이렇게 실행 해주면 반환값 5가 획득될 것이다.
+
 템플릿 가변인자를 사용하면 거의 대부분의 경우는 재귀 호출을 사용하기 때문에 마지막 마무리 함수를 잘 짜주어야 한다.
 얘를 들어 다음과 같은 주어진 숫자를 모두 더하는 함수 예시를 보자.
 template <typename T>
@@ -1124,14 +1133,13 @@ T sum_all(T num, Ints... nums) {
 	return num + sum_all(nums...);
 }
 여기서 T sum_all(T k) 함수가 없으면 sum_all의 마무리를 지을 수가 없기에 에러가 난다.
-가변 템플릿 인자에서는 sizeof...() 함수를 제공하는데 이를 통해 미리 가변인자가 몇 개인지 알 수 있다.
 
-template <typename... Ts>
-int print_num(Ts... n) {
-	return sizeof...(n);
+위 함수를 더 효과적으로 적을 수 있는데 C++17에서는 fold 기법을 제공한다.
+위의 sum_all(T num, Ints... nums) 함수는 밑과 같이 변할 수 있다.
+template <typename T, typename... Ints>
+T sum_all(T num, Ints... nums) {
+	return (num + ...);
 }
-해당함수를 선언하고 print_num(1, "hello", 2.1, "hi", 3); 이렇게 실행 해주면 반환값 5가 획득될 것이다.
-
 
 
 - <regex> 라이브러리
