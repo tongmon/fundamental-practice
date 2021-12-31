@@ -1001,7 +1001,145 @@ for (auto& [key, val] : m)
 특정 함수는 가변인자를 사용할 수 있다.
 예를 들어 C의 printf()함수는 printf("내 나이: %d, 내 이름: %s", 25, "gyungjunlee"); 이렇게 인자가 자유자재이고 형태도 각양각색이다.
 이러한 함수를 구현하려면 가변인자를 사용해야 한다.
+가변인자에 필요한 요소는 3가지가 존재한다.
 
+va_list : 가변인자를 담을 자료형이 필요한데 이 녀석이 그 역할을 수행한다.
+자료형이기에 std::va_list variadic_list; 이렇게 선언해주면 된다.
+
+__va_start : va_list가 가변인자들을 담는 리스트 자료형이라고 했는데 이 리스트를 초기화하기 위해서는 인자들의 시작점을 알아야 한다. 그 시작점을 넘겨주기 위한 함수다.
+시작점을 알려주기 위해서 va_list의 주소와 시작 변수 이름을 넣어준다. 예를 들어 사용법은 밑과 같다.
+void valist_sample(int u, ...)
+{
+	va_list variadic_list;
+	__va_start(&variadic_list, u);
+	/*특정 작업*/
+	va_end(variadic_list);
+}
+u를 va_list의 시작점으로 설정하려면 위와 같이 __va_start(&variadic_list, u); 이렇게 사용하게 된다.
+함수의 인자 형태를 보면 (int u, ...) 이러한 형태를 취하고 있는데 가변인자를 사용한다는 의미로 ...을 사용한다.
+가변 인자들의 개수를 미리 알 수 있는 방법이 없기에 가변인자를 사용하는 함수들은 반드시 가변인자의 개수라던지 %s, %d와 같은 힌트를 넘겨야 한다.
+printf()함수도 보면 처음 인자에 예로 my name is %s, age is %d 이러한 문자열을 넘기게 되는데 %s와 %d와 같은 특정 패턴의 개수를 내부적으로 카운트할 것이다.
+
+va_end : va_end는 va_list 자료형의 해제를 진행한다. va_list 자료형은 내부적으로 동적할당이 되어 있는 C스타일의 자료형으로 va_end(variadic_list); 이렇게 따로 해제를 해주어야 한다.
+
+va_arg : va_list에서 원소를 하나 처리하는 매크로 함수이다. 사용법은 다음과 같다. 만약 꺼낼 녀석이 문자열이라면 va_arg(va, char *)를 사용해 va에서 원소 char *를 꺼내면서 주소를 다음 원소로 옮긴다.
+따라서 주어지는 데이터형의 크기가 중요하다. va_arg(va, int), va_arg(va, double) .. 이렇게 자료형에 따라 다음 주소로 이동하는 보폭이 달라지기 때문에 주어진 가변인자와 매칭되는 정확한 가변인자를 넘겨주어야 한다.
+예를 들어 printf("my name is %s", 1); 이렇게 하면 안된다는 것이다.
+va_arg의 치명적인 단점이 있는데 C에서 지원하는 int, char, float 등 이러한 기본적인 자료형에 대해서만 사용이 가능하다는 것이다.
+va_arg(va, std::string); va_arg(va, std::variant<double, float>); 이런 것들 모두 안된다...
+
+밑에는 해당 va_list를 사용하여 만들어본 printf 함수이다.
+void printf_cplus(const std::string& str, ...)
+{
+	std::vector<std::pair<int, int>> replace_list;
+	std::vector<std::string> replace_pattern{ "%s", "%c", "%d", "%u", "%f" };
+	int pos, pat_Index, shift = 0;
+	for (int i = 0; i < replace_pattern.size(); i++) {
+		pos = 0;
+		while ((pat_Index = str.find(replace_pattern[i], pos)) != std::string::npos) {
+			replace_list.push_back({ pat_Index, i });
+			pos += pat_Index + replace_pattern[i].length();
+		}
+
+	}
+	std::va_list va;
+	std::sort(replace_list.begin(), replace_list.end());
+	__va_start(&va, str);
+	std::string pattern, result = str;
+	for (const auto& element : replace_list) {
+		switch (element.second) {
+		case 0:
+			pattern = va_arg(va, char *);
+			break;
+		case 1:
+			pattern += va_arg(va, char);
+			break;
+		case 2:
+			pattern = to_string(va_arg(va, int));
+			break;
+		case 3:
+			pattern = to_string(va_arg(va, unsigned int));
+			break;
+		case 4:
+			pattern = to_string(va_arg(va, double));
+			break;
+		default:
+			break;
+		}
+		result.replace(element.first + shift, replace_pattern[element.second].length(), pattern);
+		shift += pattern.length() - replace_pattern[element.second].length();
+	}
+	va_end(va);
+	cout << result;
+}
+기본적으로 처음에 주어진 %s, %d와 같은 패턴의 개수들을 세고 해당 개수들을 세면서 어떤 자료형인지, 어디 위치를 교체해야 하는지도 저장한다.
+해당 저장된 배열을 통해 순회하면서 스트링을 교체해준다.
+C++에서는 va_arg의 기본 자료형 밖에 사용하지 못한다는 것과 va_list의 크기를 미리 알지 못한다는 치명적인 단점을 해결할 수 있는 방법이 존재한다.
+
+- 템플릿 가변인자
+말그대로 템플릿을 사용하여 가변인자를 이용하는 방식으로 C++11부터 지원한다.
+
+기본 템플릿 함수는 다음과 같이 생겼다.
+template <typename T>
+void func(T arg) {
+  /*어떤 작업*/
+}
+
+템플릿 가변인자 함수는 다음과 같다.
+template <typename T, typename... Types>
+void func(T arg, Types... args) {
+  /*어떤 작업*/
+}
+
+두 개를 비교해보면 처음보는 typename... Types 이러한 녀석이 가변인자의 역할을 한다.
+이 녀석을 정확한 말로 템플릿 파라미터 팩이라고 한다.
+함수에서는 Types... args 이렇게 사용된다.
+파이썬의 print()함수는 print(1, "string", 1.3); 이렇게 선언하면 1 string 1.3 이렇게 주어진 인자들을 모두 출력이 가능하다.
+기존의 va_list에서는 주어진 가변 인자의 개수를 미리 알 수가 없기에 불가능한 표현이지만 템플릿 가변인자 함수에서는 가능하다.
+구현은 다음과 같다.
+
+template <typename T>
+void print(T arg) {
+  std::cout << arg << std::endl;
+}
+
+template <typename T, typename... Types>
+void print(T arg, Types... args) {
+  std::cout << arg << " ";
+  print(args...);
+}
+
+이렇게 구현하면 파이썬의 print 함수와 동일하게 작동한다.
+원리는 다음과 같다. void print(T arg, Types... args) 해당 함수에서 인자들을 하나 읽어 사용하고 나머지 인자들은 print(args...) 이렇게 다음 함수로 넘긴다.
+재귀적으로 작동하는 것이다.
+재귀적으로 작동하다가 인자가 하나만 남은 경우에는 컴파일러가 print(T arg, Types... args) 이 녀석과 print(T arg) 이 녀석을 비교하고 print(T arg) 얘를 선택하게 된다.
+함수 선언 순서도 중요한데 print(T arg, Types... args) 이 녀석 내부에서 print(T arg) 이 녀석을 쓰는 경우가 생기기 때문에 선언 순서는 위와 같아야 한다.
+
+가변 템플릿 인자에서는 sizeof...() 함수를 제공하는데 이를 통해 미리 가변인자가 몇 개인지 알 수 있다.
+
+template <typename... Ts>
+int print_num(Ts... n) {
+	return sizeof...(n);
+}
+해당함수를 선언하고 print_num(1, "hello", 2.1, "hi", 3); 이렇게 실행 해주면 반환값 5가 획득될 것이다.
+
+템플릿 가변인자를 사용하면 거의 대부분의 경우는 재귀 호출을 사용하기 때문에 마지막 마무리 함수를 잘 짜주어야 한다.
+얘를 들어 다음과 같은 주어진 숫자를 모두 더하는 함수 예시를 보자.
+template <typename T>
+T sum_all(T k) { return k; }
+
+template <typename T, typename... Ints>
+T sum_all(T num, Ints... nums) {
+	return num + sum_all(nums...);
+}
+여기서 T sum_all(T k) 함수가 없으면 sum_all의 마무리를 지을 수가 없기에 에러가 난다.
+
+위 함수를 더 효과적으로 적을 수 있는데 C++17에서는 fold 기법을 제공한다.
+위의 sum_all(T num, Ints... nums) 함수는 밑과 같이 변할 수 있다.
+template <typename T, typename... Ints>
+T sum_all(T num, Ints... nums) {
+	return (num + ...);
+}
 
 
 - <regex> 라이브러리
