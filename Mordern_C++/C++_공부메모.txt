@@ -1135,10 +1135,10 @@ T sum_all(T num, Ints... nums) {
 여기서 T sum_all(T k) 함수가 없으면 sum_all의 마무리를 지을 수가 없기에 에러가 난다.
 
 위 함수를 더 효과적으로 적을 수 있는데 C++17에서는 fold 기법을 제공한다.
-위의 sum_all(T num, Ints... nums) 함수는 밑과 같이 변할 수 있다.
-template <typename T, typename... Ints>
-T sum_all(T num, Ints... nums) {
-	return (num + ...);
+위의 sum_all 함수는 밑과 같이 적을 수가 있다.
+template <typename... Ints>
+int sum_all(Ints... nums) {
+	return (... + nums);
 }
 
 
