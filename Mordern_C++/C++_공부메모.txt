@@ -1074,7 +1074,28 @@ void printf_cplus(const std::string& str, ...)
 }
 기본적으로 처음에 주어진 %s, %d와 같은 패턴의 개수들을 세고 해당 개수들을 세면서 어떤 자료형인지, 어디 위치를 교체해야 하는지도 저장한다.
 해당 저장된 배열을 통해 순회하면서 스트링을 교체해준다.
-C++에서는 va_arg의 기본 자료형 밖에 사용하지 못한다는 것과 va_list의 크기를 미리 알지 못한다는 치명적인 단점을 해결할 수 있는 방법이 존재한다.
+
+그렇다면 %s, %d 등의 키워드로 문자열을 바꾸어 반환해주는 함수 format_cplus를 만들어보면 밑과 같다.
+std::string format_cplus(const std::string&& str, ...) {
+	va_list va;
+	__va_start(&va, str);
+	int len = vsnprintf(nullptr, 0, str.c_str(), va);
+	if (len <= 0) return "";
+	char* buf = new char[len + 1];
+	vsnprintf(buf, static_cast<size_t>(len) + 1, str.c_str(), va);
+	va_end(va);
+	string str_ret = buf;
+	delete[]buf;
+	return str_ret;
+}
+생소할 수 있는 함수가 섞여 있는데 vsnprintf() 함수이다. 해당 함수 이름을 뜯어 보면 앞에 v가 붙는데 이는 va_list를 인자로 받는 함수라는 의미를 내포한다.
+그 다음 v를 제외한 snprintf() 함수는 버퍼에 printf() 함수의 기능을 수행한다. 즉 동적 할당된 char *를 넣어주면 해당 공간에 printf()의 결과 값을 담아서 반환해준다.
+결과적으로 vsnprintf()는 va_list를 인자로 받는 버퍼 반환 printf() 함수다.
+해당 함수에서 %s, %d 등의 키워드들은 모두 처리해주고 나머지는 대부분 va_list 초기화 밑 해제 함수와 관련있다. (앞서 구현했던 printf_cplus 함수도 vsnprintf()를 이용하면 매우 간단해진다.)
+문제는 해당 함수는 va_list를 사용하기에 char*, char, int와 같은 기본 자료형만을 다룰 수 있다.
+예를 들어 format_cplus("hello %s", "my friends!"); 해당 호출은 정상적으로 작동한다.
+하지만 format_cplus("hello %s", string("my friends!")); 해당 호출은 글씨가 깨진다.
+C++에서는 va_arg의 기본 자료형 밖에 사용하지 못한다는 것과 va_list의 크기를 미리 알지 못한다는 단점을 해결할 수 있는 방법이 존재한다.
 
 - 템플릿 가변인자
 말그대로 템플릿을 사용하여 가변인자를 이용하는 방식으로 C++11부터 지원한다.
@@ -1138,9 +1159,51 @@ T sum_all(T num, Ints... nums) {
 위의 sum_all 함수는 밑과 같이 적을 수가 있다.
 template <typename... Ints>
 int sum_all(Ints... nums) {
-	return (... + nums);
+	return (nums + ...);
 }
 
+위와 같이 num + sum_all(nums...) -> (nums + ...) 이러한 변환만 가능한 것이 아니라 sum_all(nums...) + num -> (... + nums) 이러한 표현도 가능하다.
+만약 sum_all(1,2,3,4); 이렇게 사용이 되었다면 (nums + ...) 해당 경우엔 1 + (2 + (3 + 4)) 이러한 순서로 연산이 진행된다.
+
+template <typename T, typename... Ints>
+int sum_all(T number, Ints... nums) {
+	return (number + ... + nums);
+}
+위와 같은 fold 표현도 가능하다.
+해당 함수가 만약 sum_all(10, 11, 12, 13); 이렇게 사용되었다면 ((10 + 11) + 12) + 13 이와 같은 순서로 연산이 된다.
+(nums + ... + number) 이렇게 반대로 할 수도 있다. 이 경우엔 11 + (12 + (13 + 10)) 이와 같은 순서로 연산이 된다.
+
+fold 표현에서는 ',' 표현도 가능하다.
+예시는 다음과 같다.
+template <typename T, typename... Ints>
+void push_backs(T& arys, Ints... contents) {
+	(arys.push_back(contents), ...);
+}
+위 코드는 push_back() 함수를 확장한 코드로 string str; push_backs(str, 'h', 'e', 'l', 'l', 'o');
+이렇게 하면 string str = "hello"; 와 같은 효과를 지닌다. 
+이처럼 ','는 파라메터 팩에 앞서 나온 식을 모두 수행시키는 효과를 지닌다.
+
+위에서 두 개의 함수로 쪼개져 있던 print() 템플릿 함수를 fold 기법과 람다를 통해 하나로 줄이면 다음과 같다.
+template <typename... Types>
+void print(Types&&... args) {
+	([&]()->void { cout << args << ' '; }(), ...);
+	cout << '\b';
+}
+한가지 유의사항이 있는데 fold 기법은 항상 ( ) 괄호 내부에 정의되어야 한다.
+
+템플릿 파라메터를 이용한 format_cplus 함수는 다음과 같다.
+template <typename... Types>
+std::string format_cplus(const std::string&& str, Types&&...args)
+{
+	int len = snprintf(nullptr, 0, str.c_str(), args...);
+	if (len <= 0) return "";
+	char* buf = new char[len + 1];
+	snprintf(buf, static_cast<size_t>(len) + 1, str.c_str(), args...);
+	string str_ret = buf;
+	delete[]buf;
+	return str_ret;
+}
+이로써 C++에서 가변인자를 다루는 방법을 알아보았다.
 
 - <regex> 라이브러리
 문자열을 탐색할 때 매우 강력한 힘을 내는 정규식을 C++11부터 지원한다.
