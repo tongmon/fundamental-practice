@@ -83,7 +83,40 @@ Human* Man = Cell;
 보통 다이아몬드 상속 구조를 해결하기 위해서 사용된다.
 근데 다이아몬드 상속 구조를 걍 왠만하면 쓰지말자. 골치아프다...
 예시는 다음과 같다.
+class Cell {
+public:
+	Cell() { cout << "I have Cell.\n"; }
+};
 
+class Animal : public Cell {
+public:
+	Animal() { cout << "I am Animal.\n"; }
+};
+
+class Plant : public Cell {
+public:
+	Plant() { cout << "I am Plant.\n"; }
+};
+
+class Groot : public Plant, public Animal  {
+public:
+	Groot() : Plant(), Animal() { cout << "I am Groot.\n"; }
+};
+해당 경우는 Groot 객체를 생성하면 Cell이 두번 생성된다.
+원리는 간단한데 Groot는 식물과 동물을 모두 상속하고 있다. 따라서 Groot를 생성하면 식물과 동물 모두 생성된다.
+식물이 생성될 때 Cell이 생기고 또 동물도 생성될 때 Cell이 생긴다. 결국 Cell이 2개 생기는 것이다.
+이는 불필요한 공간을 차지할 뿐 아니라 초기화가 2번 이루어진다는 점에서 문제가 발생할 수 있다.
+따라서 다음과 같이 Animal과 Plant를 바꾸어주면 Cell이 2번 생기는 현상을 방지할 수 있다.
+class Animal : virtual public Cell {
+public:
+	Animal() { cout << "I am Animal.\n"; }
+};
+
+class Plant : virtual public Cell {
+public:
+	Plant() { cout << "I am Plant.\n"; }
+};
+각각 Cell 객체를 virtual 속성으로 상속받는 것을 알 수 있다.
 
 - static_cast
 그냥 C언어의 형변환과 같다고 보면 된다. 컴파일 시간에 형변환이 옳은지 아닌지를 판단한다.
