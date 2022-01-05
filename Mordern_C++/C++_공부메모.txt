@@ -1,16 +1,89 @@
 - explicit 키워드
-암시적 변환 금지 시킴, 암시적 복사 생성자 호출 금지
-예시) 
-long p = 3;
-char K = p; 이건 가능하지만 만약에서 long 형 변환에 explicit이 붙어있다면 컴파일러는 에러를 내뿜는다.
-char K = long(p); 이렇게 해야 에러 없이 진행 가능하다.
-즉 모든 것을 명시적으로 하게 만드려면 함수나 생성자 앞에 explicit을 붙이면 된다.
+암시적 변환을 금지 시킨다. 암시적 복사 생성자 호출 금지한다. 따라서 보통 클래스의 생성자에 붙게 된다.
+다음은 예시다.
+class Alter_Int {
+	int num;
+public:
+	Alter_Int(int n) { num = n; }
+	int GetNum() { return num; }
+};
+
+void print_Num(Alter_Int num) {
+	cout << num.GetNum() << endl;
+}
+이러한 상태에서 print_Num(3); 이를 수행하면 정상적으로 동작한다. 왜냐면 컴파일러는 print_Num(Alter_Int(3))로 암시적으로 바꾸기 때문이다.
+이 암시적인 동작을 막는 것이 바로 explicit 키워드이다. 만약 위의 예시에서 Alter_Int(int n) { num = n; }를 explicit Alter_Int(int n) { num = n; }로 바꾼다면 컴파일러는 오류를 내뿜을 것이다.
 
 - mutable 키워드
-밑과 같은 클래스 const 함수는 클래스 내의 멤버 변수를 바꿀 수 없다.
-void DoSomething(int x) const { }
-하지만 클래스 내의 멤버 변수가 mutable int a; 이렇게 mutable이 붙어 선언이 되었다면 클래스 const 함수 내에서 멤버 변수를 바꿀 수 있다.
-이런 애를 쓰는 이유는 이 함수를 사용하는 인터페이스로 보아서는 const가 붙어야 하는데 내부적으로 클래스 멤버 변수를 변경해야 하는 함수면 이를 사용한다.
+예시를 먼저 보자.
+class Something {
+	int some_num;
+public:
+	void DoSomething() const { some_num = 777; }
+};
+이것이 오류가 없는 코드일까? DoSomething 함수는 멤버 const 함수라 멤버 변수를 변경하는 일을 할 수 없기에 위 코드는 오류가 발생하는 코드이다.
+하지만 some_num 변수에 mutable 속성을 붙이면 이게 가능하다. 즉 위 코드에서 int some_num; 이 부분을 mutable int some_num;로 바꾸면 오류가 발생하지 않는다.
+가끔 사용할 경우가 있다고는 하는데 잘 모르겠다...
+
+- virtual 함수
+가상 함수는 학교에서 거의 들어봐서 알겠지만 한번 더 정리한다.
+class Creature {
+public:
+	void Breath() { cout << "에너지로 숨쉬기" << endl; }
+};
+
+class Human : public Creature {
+public:
+	void Breath() { cout << "음식 먹어서 숨쉬기" << endl; }
+};
+위의 상태에서 
+Human* Man = new Human();
+Man->Breath();
+Creature* Cell = Man;
+Cell->Breath();
+이를 수행하면 출력 결과는 다음과 같다.
+---------------
+음식 먹어서 숨쉬기
+에너지로 숨쉬기
+---------------
+현재 객체가 가리키는 포인터 형이 어떤 것이냐에 따라 호출되는 함수가 달라진다.
+
+그렇다면 다음 코드의 출력 결과는 어떨까?
+class Creature {
+public:
+	virtual void Breath() { cout << "에너지로 숨쉬기" << endl; }
+};
+
+class Human : public Creature {
+public:
+	void Breath() { cout << "음식 먹어서 숨쉬기" << endl; }
+};
+Human* Man = new Human();
+Man->Breath();
+Creature* Cell = Man;
+Cell->Breath();
+출력 결과는 다음과 같다.
+---------------
+음식 먹어서 숨쉬기
+음식 먹어서 숨쉬기
+---------------
+virtual 함수는 보다싶이 자식에서 따로 재정의한 함수가 있다면 자신의 포인터형이 무엇이든지 무조건 그 재정의된 함수를 사용한다.
+virtual 함수 사용시 주의할 점이 있다.
+일단 보통 함수 호출보다 virtual이 붙은 함수를 호출하는 시간이 더 오래걸린다. 동적으로 어떤 함수(부모 것인지 자식 것인지...)를 사용할지 검사해야 하기 때문이다.
+클래스 포인터 다룰 때 항상 더 큰 녀석(자식)을 더 작은 녀석(부모)에게 줄 수 있다는 것을 인지하자 (그 반대는 안된다.)
+그니까 예를 들면 다음과 같다.
+Human* Man = new Human();
+Creature* Cell = Man;
+위는 Cell로 Human 클래스의 함수 호출이 가능하다.
+Creature* Cell = new Creature();
+Human* Man = Cell;
+위는 Man으로 Human 클래스의 함수 호출이 불가능하다.
+
+- virtual 상속
+보통 다이아몬드 상속 구조를 해결하기 위해서 사용된다.
+근데 다이아몬드 상속 구조를 걍 왠만하면 쓰지말자. 골치아프다...
+예시는 다음과 같다.
+
 
 - static_cast
 그냥 C언어의 형변환과 같다고 보면 된다. 컴파일 시간에 형변환이 옳은지 아닌지를 판단한다.
@@ -88,25 +161,23 @@ int main()
 주의점이 있는데 Creature 클래스에 virtual void Breath() {}; 를 지우면 Creature 클래스에 대해 dynamic_cast를 할 수 없다.
 클래스 내부에 virtual이 단 하나라도 있어야 가상 테이블이 만들어지고 이를 통해 컴파일러가 Creature 클래스가 다형성을 가진 클래스라는 것을 인지하게 된다.
 
-보통 함수 호출보다 virtual이 붙은 함수 호출하는 시간이 더 오래걸린다.
-클래스 포인터 다룰 때 항상 더 큰 녀석(자식)을 더 작은 녀석(부모)에게 줄 수 있다는 것을 인지하자 (그 반대는 안된다.)
-다이아몬드 상속 문제(다중 상속에서 발생하는 문제)를 해결하는 virtual 상속에 대해 기억하기!
-
 탬플릿 사용시에는 template <class T>보다는 template <typename T> 이용하기
 
-- 함수는 아니지만 함수인 척을 하는 녀석 Funtor
-예시)
+- Funtor
+함수는 아닌데 함수인 척을 하는 녀석을 Funtor라고 한다.
+밑은 예시다.
 struct Comp {
   bool operator()(int a, int b) { return a > b; }
 };
 Comp compare;
 int a = 3, b = 1;
 cout << compare(a, b);
+compare는 실제로 객체지만 함수처럼 사용되고 있다.
 이런 짓이 가능해서 템플릿 프로그래밍에서 비교연산자 재정의해서 쓰기보다 이러한 Funtor를 넘겨 오름차순, 내림차순을 바꾸게 된다.
 
 템플릿 template <typename T, int num = 5> 이런 문법 가능
 
-대표적인 쓰임새 예시)
+밑은 대표적인 예시이다.
 template <typename T>
 struct Compare {
   bool operator()(const T& a, const T& b) const { return a < b; }
