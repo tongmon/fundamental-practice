@@ -1,43 +1,216 @@
-explicit
-암시적 변환 금지 시킴, 암시적 복사 생성자 호출 금지
-예시) 
-long p = 3;
-char K = p; 이건 가능하지만 만약에서 long 형 변환에 explicit이 붙어있다면 컴파일러는 에러를 내뿜는다.
-char K = long(p); 이렇게 해야 에러 없이 진행 가능하다.
-즉 모든 것을 명시적으로 하게 만드려면 함수나 생성자 앞에 explicit을 붙이면 된다.
+- explicit 키워드
+암시적 변환을 금지 시킨다. 암시적 복사 생성자 호출 금지한다. 따라서 보통 클래스의 생성자에 붙게 된다.
+다음은 예시다.
+class Alter_Int {
+	int num;
+public:
+	Alter_Int(int n) { num = n; }
+	int GetNum() { return num; }
+};
 
-mutable
-밑과 같은 클래스 const 함수는 클래스 내의 멤버 변수를 바꿀 수 없다.
-void DoSomething(int x) const { }
-하지만 클래스 내의 멤버 변수가 mutable int a; 이렇게 mutable이 붙어 선언이 되었다면 클래스 const 함수 내에서 멤버 변수를 바꿀 수 있다.
-이런 애를 쓰는 이유는 이 함수를 사용하는 인터페이스로 보아서는 const가 붙어야 하는데 내부적으로 클래스 멤버 변수를 변경해야 하는 함수면 이를 사용한다.
+void print_Num(Alter_Int num) {
+	cout << num.GetNum() << endl;
+}
+이러한 상태에서 print_Num(3); 이를 수행하면 정상적으로 동작한다. 왜냐면 컴파일러는 print_Num(Alter_Int(3))로 암시적으로 바꾸기 때문이다.
+이 암시적인 동작을 막는 것이 바로 explicit 키워드이다. 만약 위의 예시에서 Alter_Int(int n) { num = n; }를 explicit Alter_Int(int n) { num = n; }로 바꾼다면 컴파일러는 오류를 내뿜을 것이다.
 
-형변환
-static_cast<int>(float_variable); <=> (int)(float_variable)
+- mutable 키워드
+예시를 먼저 보자.
+class Something {
+	int some_num;
+public:
+	void DoSomething() const { some_num = 777; }
+};
+이것이 오류가 없는 코드일까? DoSomething 함수는 멤버 const 함수라 멤버 변수를 변경하는 일을 할 수 없기에 위 코드는 오류가 발생하는 코드이다.
+하지만 some_num 변수에 mutable 속성을 붙이면 이게 가능하다. 즉 위 코드에서 int some_num; 이 부분을 mutable int some_num;로 바꾸면 오류가 발생하지 않는다.
+가끔 사용할 경우가 있다고는 하는데 잘 모르겠다...
 
-dyanmic_cast
-상속 관계에 있는 두 포인터 간에 캐스팅을 해줌 (static_cast<> 와 다르게 오류 찾기 쉬워서 씀)
+- virtual 함수
+가상 함수는 학교에서 거의 들어봐서 알겠지만 한번 더 정리한다.
+class Creature {
+public:
+	void Breath() { cout << "에너지로 숨쉬기" << endl; }
+};
 
-보통 함수 호출보다 virtual이 붙은 함수 호출하는 시간이 더 오래걸린다.
+class Human : public Creature {
+public:
+	void Breath() { cout << "음식 먹어서 숨쉬기" << endl; }
+};
+위의 상태에서 
+Human* Man = new Human();
+Man->Breath();
+Creature* Cell = Man;
+Cell->Breath();
+이를 수행하면 출력 결과는 다음과 같다.
+---------------
+음식 먹어서 숨쉬기
+에너지로 숨쉬기
+---------------
+현재 객체가 가리키는 포인터 형이 어떤 것이냐에 따라 호출되는 함수가 달라진다.
+
+그렇다면 다음 코드의 출력 결과는 어떨까?
+class Creature {
+public:
+	virtual void Breath() { cout << "에너지로 숨쉬기" << endl; }
+};
+
+class Human : public Creature {
+public:
+	void Breath() { cout << "음식 먹어서 숨쉬기" << endl; }
+};
+Human* Man = new Human();
+Man->Breath();
+Creature* Cell = Man;
+Cell->Breath();
+출력 결과는 다음과 같다.
+---------------
+음식 먹어서 숨쉬기
+음식 먹어서 숨쉬기
+---------------
+virtual 함수는 보다싶이 자식에서 따로 재정의한 함수가 있다면 자신의 포인터형이 무엇이든지 무조건 그 재정의된 함수를 사용한다.
+virtual 함수 사용시 주의할 점이 있다.
+일단 보통 함수 호출보다 virtual이 붙은 함수를 호출하는 시간이 더 오래걸린다. 동적으로 어떤 함수(부모 것인지 자식 것인지...)를 사용할지 검사해야 하기 때문이다.
 클래스 포인터 다룰 때 항상 더 큰 녀석(자식)을 더 작은 녀석(부모)에게 줄 수 있다는 것을 인지하자 (그 반대는 안된다.)
-다이아몬드 상속 문제(다중 상속에서 발생하는 문제)를 해결하는 virtual 상속에 대해 기억하기!
+그니까 예를 들면 다음과 같다.
+Human* Man = new Human();
+Creature* Cell = Man;
+위는 Cell로 Human 클래스의 함수 호출이 가능하다.
+Creature* Cell = new Creature();
+Human* Man = Cell;
+위는 Man으로 Human 클래스의 함수 호출이 불가능하다.
 
-탬풀릿 사용시에는 template <class T>보다는 template <typename T> 이용하기
+- virtual 상속
+보통 다이아몬드 상속 구조를 해결하기 위해서 사용된다.
+근데 다이아몬드 상속 구조를 걍 왠만하면 쓰지말자. 골치아프다...
+예시는 다음과 같다.
+class Cell {
+public:
+	Cell() { cout << "I have Cell.\n"; }
+};
 
-함수는 아니지만 함수인 척을 하는 녀석 Funtor
-예시)
+class Animal : public Cell {
+public:
+	Animal() { cout << "I am Animal.\n"; }
+};
+
+class Plant : public Cell {
+public:
+	Plant() { cout << "I am Plant.\n"; }
+};
+
+class Groot : public Plant, public Animal  {
+public:
+	Groot() : Plant(), Animal() { cout << "I am Groot.\n"; }
+};
+해당 경우는 Groot 객체를 생성하면 Cell이 두번 생성된다.
+원리는 간단한데 Groot는 식물과 동물을 모두 상속하고 있다. 따라서 Groot를 생성하면 식물과 동물 모두 생성된다.
+식물이 생성될 때 Cell이 생기고 또 동물도 생성될 때 Cell이 생긴다. 결국 Cell이 2개 생기는 것이다.
+이는 불필요한 공간을 차지할 뿐 아니라 초기화가 2번 이루어진다는 점에서 문제가 발생할 수 있다.
+따라서 다음과 같이 Animal과 Plant를 바꾸어주면 Cell이 2번 생기는 현상을 방지할 수 있다.
+class Animal : virtual public Cell {
+public:
+	Animal() { cout << "I am Animal.\n"; }
+};
+
+class Plant : virtual public Cell {
+public:
+	Plant() { cout << "I am Plant.\n"; }
+};
+각각 Cell 객체를 virtual 속성으로 상속받는 것을 알 수 있다.
+
+- static_cast
+그냥 C언어의 형변환과 같다고 보면 된다. 컴파일 시간에 형변환이 옳은지 아닌지를 판단한다.
+예를 들어 static_cast<int>(float_variable); 이 표현은 (int)(float_variable) 이 표현과 동일하다.
+
+- const_cast
+상수성을 없애는 데 사용된다. 포인터, 참조, 우측값 참조에 대해서만 사용이 가능하다.
+또한 const int& 형을 int&로 바꾸는 것은 가능하나 const int& 형을 double&로 바꾸는 것은 불가하다. 즉 데이터형은 같고 const만 띄어내거나 붙일 수 있는 것이다.
+예시는 다음과 같다.
+const double &&PI = 3.14;
+double&& Easy_Pi = const_cast<double&&>(PI);
+Easy_Pi = 3;
+const_cast를 이용하여 PI 값을 const형이 아닌 데이터형으로 받아 자유롭게 변환하여 사용할 수 있다.
+
+- reinterpret_cast
+어떠한 타입도 변환이 가능한 자유로운 형변환이다. 문제는 자유로운 만큼 위험하기에 형변환 하는 두 변수 사이의 정확한 관계가 정리 되었을 경우에만 사용해야 한다.
+예시는 밑과 같다.
+const char* pointer = "this is void";
+long long val = reinterpret_cast<long long>(pointer);
+해당 char 문자열의 주소를 long long으로 받는데 사용한 것이다.
+컴파일러에 따라 reinterpret_cast는 다르게 작동할 수 있기 때문에 왠만하면 안쓰는 것이 좋다.
+
+- dynamic_cast
+런타임에 동적으로 형변환을 결정하는 캐스팅이다. 다형성을 가진 클래스에 대해서만 캐스팅이 가능하다.
+밑은 dynamic_cast의 대표적인 예시이다.
+class Creature { };
+class Human : public Creature { };
+Creature* me = new Human;
+DerivedClass* pSDC = dynamic_cast<DerivedClass*>(pBC);
+이렇게 상속을 받은 클래스를 어떤 경우는 Human 어떤 경우는 Creature로 변환하여 사용하고 싶은 경우 dynamic_cast 캐스팅을 사용하게 된다.
+문제는 이러한 경우 static_cast도 동일한 역할을 할 수 있다.
+단지 dynamic_cast가 가진 차별점은 비용이 좀 더 비싸 시간을 더 잡아먹는 대신에 형변환이 불가능하거나 잘못되는 경우에는 NULL 포인터를 반환하는 것이다.
+즉 형변환이 잘못될 일이 없는 부분에는 처리 비용을 아끼기 위해 static_cast를 사용해야한다.
+dynamic_cast의 특징을 이용한 예시는 밑과 같다.
+class Creature {
+	virtual void Breath() {};
+};
+
+class Human : public Creature {
+public:
+	void Study() {};
+};
+
+class Dog : public Creature {};
+
+class Monster : public Creature {
+public:
+	void Kill_Somthing() {};
+};
+
+int main()
+{
+	std::vector<Creature*> Train;
+
+	Creature* whoisit = new Human();
+	if (whoisit) {
+		Human* me = static_cast<Human*>(whoisit); // 형변환이 잘못될 일이 없다. 따라서 비용이 싼 static_cast를 사용한다.
+		me->Study();
+	}
+
+	Train.push_back(new Human());
+	Train.push_back(new Dog());
+	Train.push_back(new Monster());
+
+	for (auto creature : Train) {
+		Monster* bad_creature = dynamic_cast<Monster*>(creature); // Creature* 형이 항상 Monster*로 할당된 것이 아니기에 형변환이 잘못될 가능성이 있다.
+		if (bad_creature) // 따라서 형변환이 잘못되는 경우를 판단하기 위해 dynamic_cast를 사용하여 던져준 값이 nullptr인지 아닌지를 검사한다.
+		{
+			bad_creature->Kill_Somthing();
+		}
+	}
+}
+위의 예시는 기차에 사람, 개, 몬스터가 담길 수 있는데 몬스터가 담기는 경우를 검사하는 코드이다.
+기차는 생명체 포인터 형으로 되어 있는 std::vector<>로 모든 생명체는 다 담길 수 있다.
+주의점이 있는데 Creature 클래스에 virtual void Breath() {}; 를 지우면 Creature 클래스에 대해 dynamic_cast를 할 수 없다.
+클래스 내부에 virtual이 단 하나라도 있어야 가상 테이블이 만들어지고 이를 통해 컴파일러가 Creature 클래스가 다형성을 가진 클래스라는 것을 인지하게 된다.
+
+탬플릿 사용시에는 template <class T>보다는 template <typename T> 이용하기
+
+- Funtor
+함수는 아닌데 함수인 척을 하는 녀석을 Funtor라고 한다.
+밑은 예시다.
 struct Comp {
   bool operator()(int a, int b) { return a > b; }
 };
 Comp compare;
 int a = 3, b = 1;
 cout << compare(a, b);
+compare는 실제로 객체지만 함수처럼 사용되고 있다.
 이런 짓이 가능해서 템플릿 프로그래밍에서 비교연산자 재정의해서 쓰기보다 이러한 Funtor를 넘겨 오름차순, 내림차순을 바꾸게 된다.
 
 템플릿 template <typename T, int num = 5> 이런 문법 가능
 
-대표적인 쓰임새 예시)
-
+밑은 대표적인 예시이다.
 template <typename T>
 struct Compare {
   bool operator()(const T& a, const T& b) const { return a < b; }
@@ -56,8 +229,6 @@ T Min(T a, T b) {
 
 #define SIZE 10 // C-style
 constexpr int size = 10; // modern C++
-
-C++17의 Fold 기법
 
 템플릿 메타 프로그래밍에서 들어가는 인수는 상수여야 한다.
 
@@ -84,7 +255,7 @@ using func = void (*)(int, int);
 함수 객체(Funtor)에는 절대로 특정 상태를 저장해서 이에 따라 결과가 달라지는 루틴을 짜면 안된다.
 이는 C++ 컴파일러마다 STL 인터페이스는 같지만 구현 방식이 천차만별이기 때문이다.
 
-람다 활용성
+- 람다 활용성
 vec.erase(std::remove_if(vec.begin(), vec.end(), [](int i) -> bool { return i % 2 == 1; })
 위와 같이 "벡터에서 홀수인 원소 지우기"를 수행하는 코드를 간결하게 작성가능하다.
 
@@ -1074,7 +1245,26 @@ void printf_cplus(const std::string& str, ...)
 }
 기본적으로 처음에 주어진 %s, %d와 같은 패턴의 개수들을 세고 해당 개수들을 세면서 어떤 자료형인지, 어디 위치를 교체해야 하는지도 저장한다.
 해당 저장된 배열을 통해 순회하면서 스트링을 교체해준다.
-C++에서는 va_arg의 기본 자료형 밖에 사용하지 못한다는 것과 va_list의 크기를 미리 알지 못한다는 치명적인 단점을 해결할 수 있는 방법이 존재한다.
+
+그렇다면 %s, %d 등의 키워드로 문자열을 바꾸어 반환해주는 함수 format_cplus를 만들어보면 밑과 같다.
+std::string format_cplus(const std::string&& str, ...) {
+	va_list va;
+	__va_start(&va, str);
+	int len = vsnprintf(nullptr, 0, str.c_str(), va);
+	if (len <= 0) return "";
+	char* buf = new char[len + 1];
+	vsnprintf(buf, static_cast<size_t>(len) + 1, str.c_str(), va);
+	va_end(va);
+	string str_ret = buf;
+	delete[]buf;
+	return str_ret;
+}
+생소할 수 있는 함수가 섞여 있는데 vsnprintf() 함수이다. 해당 함수 이름을 뜯어 보면 앞에 v가 붙는데 이는 va_list를 인자로 받는 함수라는 의미를 내포한다.
+그 다음 v를 제외한 snprintf() 함수는 버퍼에 printf() 함수의 기능을 수행한다. 즉 동적 할당된 char *를 넣어주면 해당 공간에 printf()의 결과 값을 담아서 반환해준다.
+결과적으로 vsnprintf()는 va_list를 인자로 받는 버퍼 반환 printf() 함수다.
+해당 함수에서 %s, %d 등의 키워드들은 모두 처리해주고 나머지는 대부분 va_list 초기화 밑 해제 함수와 관련있다. (앞서 구현했던 printf_cplus 함수도 vsnprintf()를 이용하면 매우 간단해진다.)
+va_list의 문제는 char*, char, int와 같은 기본 자료형만을 다룰 수 있다.
+C++에서는 va_arg의 기본 자료형 밖에 사용하지 못한다는 것과 va_list의 크기를 미리 알지 못한다는 단점을 해결할 수 있는 방법이 존재한다.
 
 - 템플릿 가변인자
 말그대로 템플릿을 사용하여 가변인자를 이용하는 방식으로 C++11부터 지원한다.
@@ -1135,12 +1325,54 @@ T sum_all(T num, Ints... nums) {
 여기서 T sum_all(T k) 함수가 없으면 sum_all의 마무리를 지을 수가 없기에 에러가 난다.
 
 위 함수를 더 효과적으로 적을 수 있는데 C++17에서는 fold 기법을 제공한다.
-위의 sum_all(T num, Ints... nums) 함수는 밑과 같이 변할 수 있다.
-template <typename T, typename... Ints>
-T sum_all(T num, Ints... nums) {
-	return (num + ...);
+위의 sum_all 함수는 밑과 같이 적을 수가 있다.
+template <typename... Ints>
+int sum_all(Ints... nums) {
+	return (nums + ...);
 }
 
+위와 같이 num + sum_all(nums...) -> (nums + ...) 이러한 변환만 가능한 것이 아니라 sum_all(nums...) + num -> (... + nums) 이러한 표현도 가능하다.
+만약 sum_all(1,2,3,4); 이렇게 사용이 되었다면 (nums + ...) 해당 경우엔 1 + (2 + (3 + 4)) 이러한 순서로 연산이 진행된다.
+
+template <typename T, typename... Ints>
+int sum_all(T number, Ints... nums) {
+	return (number + ... + nums);
+}
+위와 같은 fold 표현도 가능하다.
+해당 함수가 만약 sum_all(10, 11, 12, 13); 이렇게 사용되었다면 ((10 + 11) + 12) + 13 이와 같은 순서로 연산이 된다.
+(nums + ... + number) 이렇게 반대로 할 수도 있다. 이 경우엔 11 + (12 + (13 + 10)) 이와 같은 순서로 연산이 된다.
+
+fold 표현에서는 ',' 표현도 가능하다.
+예시는 다음과 같다.
+template <typename T, typename... Ints>
+void push_backs(T& arys, Ints... contents) {
+	(arys.push_back(contents), ...);
+}
+위 코드는 push_back() 함수를 확장한 코드로 string str; push_backs(str, 'h', 'e', 'l', 'l', 'o');
+이렇게 하면 string str = "hello"; 와 같은 효과를 지닌다. 
+이처럼 ','는 파라메터 팩에 앞서 나온 식을 모두 수행시키는 효과를 지닌다.
+
+위에서 두 개의 함수로 쪼개져 있던 print() 템플릿 함수를 fold 기법과 람다를 통해 하나로 줄이면 다음과 같다.
+template <typename... Types>
+void print(Types&&... args) {
+	([&]()->void { cout << args << ' '; }(), ...);
+	cout << '\b';
+}
+한가지 유의사항이 있는데 fold 기법은 항상 ( ) 괄호 내부에 정의되어야 한다.
+
+템플릿 파라메터를 이용한 format_cplus 함수는 다음과 같다.
+template <typename... Types>
+std::string format_cplus(const std::string&& str, Types&&...args)
+{
+	int len = snprintf(nullptr, 0, str.c_str(), args...);
+	if (len <= 0) return "";
+	char* buf = new char[len + 1];
+	snprintf(buf, static_cast<size_t>(len) + 1, str.c_str(), args...);
+	string str_ret = buf;
+	delete[]buf;
+	return str_ret;
+}
+이로써 C++에서 가변인자를 다루는 방법을 알아보았다.
 
 - <regex> 라이브러리
 문자열을 탐색할 때 매우 강력한 힘을 내는 정규식을 C++11부터 지원한다.
