@@ -1,0 +1,287 @@
+C++과 극명하게 다르거나 생소한 것들만 정리함
+
+- 콘솔 프로그램에서의 기본 구조
+namespace Intro_Ex1
+{
+    class Program
+    {
+        static void Main(string[] args)
+        {
+            var i = 1;
+            var j = " this is c#";
+            var k = i + j;
+
+            System.Console.WriteLine(k);
+        }
+    }
+}
+위와 같이 namespace로 감싸고 내부에 클래스 선언하고 그 내부에 함수를 정의해서 구현한다.
+C#은 따로 헤더 파일이 없다.
+
+- readonly 
+런타임시 값이 결정되는 키워드다. 클래스 내부 변수에만 사용이 가능하다.
+생성자에서 딱 한번 초기화 할 수 있고 나머지 방법으로는 초기화가 불가능하다는 점에서 const와 다르다.
+밑은 예시이다.
+
+using System;
+
+namespace ConsoleApplication1
+{
+    class CSVar
+    {
+        // 상수
+        const int MAX_VALUE = 1024;
+
+        // readonly 필드 
+        readonly int Max;
+        public CSVar() 
+        {
+           Max = 1;
+        }
+    }
+	
+	class Program
+    {
+        static void Main(string[] args)
+        {
+            CSVar tmpCSvar = new CSVar();
+			tmpCSvar.Max = 1; // Error, Max는 readonly 변수라 불가능한 표현이다.
+        }
+    }
+}
+
+- 일차원 배열
+C++ 스타일 - int ary[] = {1, 2, 3}; int *ary = new int[3];
+C# 스타일 - int[] ary = {1, 2, 3}; int []ary = new int[3];
+
+- 다차원 정적 배열
+C++ 스타일
+int ary[2][2] = { {1,2},{3,4} }; 
+ary[0][0] = 1;
+
+C# 스타일
+int[,] ary = { { 1, 2 }, { 3, 4 } }; // ary[0,0] -> 1, ary[0,1] -> 2, ary[1,0] -> 3, ary[1,1] -> 4
+ary[0, 0] = 1;
+
+- 다차원 동적 배열
+C++ 스타일
+int** ary = new int*[2];
+ary[0] = new int[2];
+ary[1] = new int[2];
+ary[0][0] = 1;
+
+C# 스타일
+int[][] ary = new int[2][];
+ary[0] = new int[2];
+ary[1] = new int[2];
+ary[0][0] = 1;
+
+- 함수에 배열 전달
+C++ 스타일
+int func(int *ary) { return ary[0]; }
+
+C# 스타일
+int func(int[] ary) { return ary[0]; }
+
+- 수정 불가 문자열 string
+C++의 std::string과 유사하다.
+하지만 극명한 차이가 있는데 C#의 string은 한번 값이 정해지면 못바꾼다.
+즉 C++의 const std::string이 C#의 스트링이다.
+C++ string	|	C# string
+length()   -->	Length
+c_str()    -->	ToCharArray()
+
+- 수정 가능 문자열 StringBuilder
+사용하기 위해선 using System.Text;를 C++의 헤더와 같이 선언해줘야 한다.
+StringBuilder sb = new StringBuilder();
+sb.Append("this"); // sb = "this"; 이런 표현은 안되더라...
+sb[0] = 'T';
+
+- enum
+C++과 거의 비슷하다. C#은 다중 플래그를 좀 편하게 지원한다.
+C++ 스타일 (C++에선 enum class를 지향하여 예시도 enum class로 구현함)
+enum class Border : int
+{
+	None = 0,
+	Top = 1,
+	Right = 2,
+	Bottom = 4,
+	Left = 8
+};
+
+int main()
+{
+	int b = (int)Border::Top | (int)Border::Bottom;
+
+	if (b & (int)Border::Top)
+		cout << "Top";
+}
+
+C# 스타일
+class Program
+{
+    enum Border
+    {
+        None = 0,
+        Top = 1,
+        Right = 2,
+        Bottom = 4,
+        Left = 8
+    };
+	
+    static void Main(string[] args)
+    {
+        Border b = Border.Top | Border.Bottom;
+
+        if((b & Border.Top) != 0)
+            System.Console.WriteLine("Top");
+        /*
+		// 밑의 표현도 가능하다.
+        if (b.HasFlag(Border.Top))
+            System.Console.WriteLine("Top");
+        */
+    }
+}
+
+- ? 변수
+C#에서 변수명 앞에 ?가 붙는 경우가 있는데 ?가 붙은 변수는 null일 수도 있는 것이다.
+C++의 std::optional<>과 비슷하다고 보면된다.
+예를 들어 int? k = 1; 이것도 가능하지만 int? k = null; 이것도 가능하다.
+특정 변수에 값이 완전히 없는 상태를 나타내기 위해 사용한다.
+
+- 연산자
+대부분의 연산자들은 C++과 같다.
+추가적으로 C#에는 ?? 연산자가 존재한다.
+어떤 변수가 null인지 아닌지를 판단할 때 사용된다.
+사용법은 다음과 같다. int num = (어떤 ?가 붙은 변수) ?? (반환값);
+어떤 ?가 붙은 변수가 null이 아닌 경우 해당 ?가 붙은 변수를 반환하고 null인 경우 반환값을 반환한다.
+예시는 밑과 같다.
+int? n_1 = 1;
+int num = n_1 ?? 0; // 이 경우 num은 1이다.
+int? n_2 = null;
+num = n_2 ?? 0; // 이 경우 num은 0이다.
+
+- 조건문
+C++과 동일하다.
+
+- 반복문
+고전적인 반복문들 for(;;), while, do while은 C++과 똑같다.
+foreach 문은 약간 다르다.
+C++ 스타일
+int ary[] = { 1,2,3,4 };
+for (auto& num : ary)
+	cout << num;
+	
+C# 스타일
+int[] ary = { 1, 2, 3, 4 };
+foreach (int num in ary)
+    Console.WriteLine(num);
+	
+- yield
+foreach문을 사용하는 경우 itorator 조작이 쉽게 하기 위해서 사용된다.
+그 외에 어떤 상태를 표현하는 경우 사용된다.
+정의만 보면 어떻게 사용하고 머하는 녀석인지 이해하기 어려우니 예시를 들겠다.
+해당 예시를 이해하려면 IEnumerator, IEnumerable에 대한 내용을 대강 알아야 한다.
+IEnumerable 이 녀석은 함수 호출에 대한 반복자(반복기 메서드)라고 생각하면된다.
+다시 말해서 호출할 때마다 반복해서 반환값이 바뀌는 것이 정해진 함수의 반환형은 이 녀석이 되어야 한다.
+IEnumerator 이 녀석은 C++의 itorator와 하는 기능이 비슷하다. 그냥 반복자라고 생각하면 된다.
+예전 C#에서는 새로운 class를 만들때 이러한 반복기 메서드나 반복자를 정의하기 위해서 IEnumerator나 IEnumerable 이 녀석을 상속받아야 했다.
+근데 반환형에 yield를 사용하면 상속받지 않고 그냥 재정의해서 사용할 수 있다.
+
+다음은 어떤 상태를 표현하는 경우에 대한 예시이다.
+class Program
+{
+    enum State
+    {
+        Baby,
+        Kid,
+        Adult,
+        Old
+    }
+    static IEnumerable Aging()
+    {
+        yield return State.Baby; // 첫번째 호출은 여기서 반환한 뒤 종료.
+        yield return State.Kid; // 두번째 호출은 여기서 시작 후 반환하고 종료.
+        yield return State.Adult; // 세번째 호출은 여기서 시작 후 반환하고 종료.
+        yield return State.Old; // 네번째 호출은 여기서 시작 후 반환하고 종료.
+    }
+    static void Main(string[] args)
+    {
+        foreach(var age in Aging()) {
+            /*
+            나이 상태에 따른 처리... 
+            */
+        }
+    }
+}
+Main 함수 내부의 foreach문 안에서 상태가 돌아가게 되는데 Aging() 호출에 따라 Baby에서 Old 순으로 호출이 된다.
+측 Aging() 함수를 3번 호출하는 경우 반환값은 State.Adult가 된다.
+
+다음은 foreach문 사용을 쉽게하는 경우에 대한 예시이다.
+C++에서 자료구조 STL마다 존재하는 itorator는 예를 들면 vector<int>::itorator v_itor; 이렇게 생겼다면 C#에서는 IEnumerator이다.
+IEnumerator 사용하려면 using System.Collections;를 선언해주어야한다.
+C#의 itorator는 자료형을 명확히 써줄 필요가 없다. (C#이 컴파일 시간에 모든 것이 결정되어야 하는 언어가 아니기에...)
+class Program
+{
+    public class MyArray
+    {
+        private int[] m_data;
+
+        public MyArray(int n, int[]? ary = null) {
+            m_data = new int[n];
+            if (ary != null) {
+                for (int i = 0; i < n; i++) {
+                    m_data[i] = ary[i];
+                }
+            }
+        }
+        public IEnumerator GetEnumerator()
+        {
+            int i = 0;
+            while (i < m_data.Length)
+            {
+                yield return m_data[i];
+                i++;
+            }
+        }
+    }
+
+    static void Main(string[] args)
+    {
+        int[] ary = { 1, 2, 3 };
+        MyArray array = new MyArray(3, ary);
+        foreach(var i in array) { 
+            Console.WriteLine(i);
+        }
+    }
+}
+여기 Main 함수 내부의 foreach 함수가 작동할 수 있는 이유는 GetEnumerator() 이 녀석이 재정의되었기 때문이다.
+그리고 IEnumerator 상속없이 GetEnumerator() 이 녀석이 재정이 될 수 있는 이유는 해당 함수 내부 return 앞에 yield 값이 붙어 있기 때문이다.
+
+- 네임스페이스
+그냥 C++과 같은 원리의 namespace이다.
+단지 C#에서는 얘네를 헤더 파일 쓰듯이 사용한다.
+사실 얘네 없이 코드를 쓸 수도 있다. 단지 길어진다...
+예를 들면 using System;를 하면 Console.WriteLine();가 되지만 using System;를 안하면 System.Console.WriteLine();처럼 System을 명시해줘야한다.
+
+- 구조체와 클래스
+C#은 주소값을 직접적으로 제어하지 않기에 값으로 전달하는 경우는 구조체를 사용하고 참조로 전달하는 경우는 클래스를 사용한다.
+C#의 구조체는 상속을 할 수 없는 것이지 어떤 인터페이스는 구성할 수 있다.
+밑은 예시이다.
+struct MyPoint
+{
+    public int X;
+    public int Y;
+
+    public MyPoint(int x, int y)
+    {
+		this.X = x;
+        this.Y = y;
+    }
+
+	public override string ToString()
+    {
+        return string.Format("({0}, {1})", X, Y);
+    }
+}
+string의 ToString()을 새로 정의하여 사용한 것을 볼 수 있다.
