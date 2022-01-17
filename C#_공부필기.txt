@@ -285,3 +285,65 @@ struct MyPoint
     }
 }
 string의 ToString()을 새로 정의하여 사용한 것을 볼 수 있다.
+
+C# 클래스도 C++과 거의 비슷하지만 이벤트 핸들러, set, get이 조금 다르다.
+이벤트 핸들러는 추후에 다룰 것이니 예제에선 제외했다.
+C++ 스타일
+class Creature
+{
+private:
+	std::optional<int> m_Cells;
+	
+public:
+	Creature() { m_Cells = std::nullopt; }
+	
+	std::optional<int> getCell() {
+		return m_Cells;
+	}
+	
+	void putCell(std::optional<int>&& cells) {
+		if (!m_Cells.has_value())
+			m_Cells = cells;
+	}
+	
+	__declspec(property(get = getCell, put = putCell)) std::optional<int> Cell;
+	
+	void PrintCells() 
+	{
+		if (m_Cells.has_value())
+			cout << "This Creature have " << m_Cells.value() << " Cells" << endl;
+		else
+			cout << "There are no Cell in this Creature" << endl;
+	}
+};
+C++에서 보통 __declspec(property(get = getCell, put = putCell)) 이 녀석을 잘 쓰진 않는데 C#에서는 자동으로 이렇게 getter, setter를 만들어주기 때문에 C# 예제와 유사하게 만들기 위해 넣었다.
+이러면 Creature me; me.Cell = 1; cout << me.Cell.value(); 이렇게 Cell을 통해 m_Cells 값을 직접 다룰 수 있다.
+
+C# 스타일
+public class Creature
+{
+    private int? m_Cells;
+
+    Creature() { m_Cells = null; }
+	
+    public int? Cell
+    {
+        get { return m_Cells; }
+        set 
+        {
+            if (m_Cells == null)
+                m_Cells = value;
+        }
+    }
+	
+    public void PrintCells()
+    {
+        if (m_Cells != null)
+            Console.WriteLine("This Creature have " + m_Cells + " Cells");
+        else
+            Console.WriteLine("There are no Cell in this Creature");
+    }
+}
+C#에서 setter를 설정할 때 받는 인수는 value가 된다. 그 외에는 대부분 C++과 비슷하다.
+
+
