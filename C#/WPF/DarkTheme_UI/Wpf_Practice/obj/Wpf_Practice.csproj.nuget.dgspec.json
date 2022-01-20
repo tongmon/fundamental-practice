@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\DP91-HSK\\source\\repos\\Wpf_Practice\\Wpf_Practice\\Wpf_Practice.csproj": {}
+    "C:\\Users\\DP91-HSK\\Documents\\GitHub\\Data-Structure\\C#\\WPF\\DarkTheme_UI\\Wpf_Practice\\Wpf_Practice.csproj": {}
   },
   "projects": {
-    "C:\\Users\\DP91-HSK\\source\\repos\\Wpf_Practice\\Wpf_Practice\\Wpf_Practice.csproj": {
+    "C:\\Users\\DP91-HSK\\Documents\\GitHub\\Data-Structure\\C#\\WPF\\DarkTheme_UI\\Wpf_Practice\\Wpf_Practice.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\DP91-HSK\\source\\repos\\Wpf_Practice\\Wpf_Practice\\Wpf_Practice.csproj",
+        "projectUniqueName": "C:\\Users\\DP91-HSK\\Documents\\GitHub\\Data-Structure\\C#\\WPF\\DarkTheme_UI\\Wpf_Practice\\Wpf_Practice.csproj",
         "projectName": "Wpf_Practice",
-        "projectPath": "C:\\Users\\DP91-HSK\\source\\repos\\Wpf_Practice\\Wpf_Practice\\Wpf_Practice.csproj",
+        "projectPath": "C:\\Users\\DP91-HSK\\Documents\\GitHub\\Data-Structure\\C#\\WPF\\DarkTheme_UI\\Wpf_Practice\\Wpf_Practice.csproj",
         "packagesPath": "C:\\Users\\DP91-HSK\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\DP91-HSK\\source\\repos\\Wpf_Practice\\Wpf_Practice\\obj\\",
+        "outputPath": "C:\\Users\\DP91-HSK\\Documents\\GitHub\\Data-Structure\\C#\\WPF\\DarkTheme_UI\\Wpf_Practice\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\DP91-HSK\\AppData\\Roaming\\NuGet\\NuGet.Config",
