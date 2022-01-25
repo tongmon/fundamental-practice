@@ -43,3 +43,6 @@ C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practi
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\Theme\MenuButtonTheme.baml
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\App.baml
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\Theme\TextboxTheme.baml
+C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\MVVM\View\HomeView.g.cs
+C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\MVVM\View\HomeView.baml
+C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\GeneratedInternalTypeHelper.g.cs
