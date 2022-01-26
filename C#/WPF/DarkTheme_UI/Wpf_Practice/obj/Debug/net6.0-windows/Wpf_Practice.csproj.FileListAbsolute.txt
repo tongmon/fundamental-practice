@@ -46,3 +46,5 @@ C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practi
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\MVVM\View\HomeView.g.cs
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\MVVM\View\HomeView.baml
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\GeneratedInternalTypeHelper.g.cs
+C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\MVVM\View\DiscoveryView.g.cs
+C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\DarkTheme_UI\Wpf_Practice\obj\Debug\net6.0-windows\MVVM\View\DiscoveryView.baml

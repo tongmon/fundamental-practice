@@ -5,11 +5,17 @@ namespace Wpf_Practice.MVVM.ViewModel
 {
     class MainViewModel : ObservableObject
     {
+        public RelayCommand HomeViewCommand { get; set; }
+        public RelayCommand DiscoveryViewCommand { get; set; }
+
+
         public HomeViewModel HomeVm { get; set; }
 
-        private object _currentView;
+        public DiscoveryViewModel DiscoveryVM { get; set; }
 
-        public object CurrentView
+        private object? _currentView;
+
+        public object? CurrentView
         {
             get { return _currentView; }
             set 
@@ -22,7 +28,19 @@ namespace Wpf_Practice.MVVM.ViewModel
         public MainViewModel()
         {
             HomeVm = new HomeViewModel();
+            DiscoveryVM = new DiscoveryViewModel();
+
             CurrentView = HomeVm;
+
+            HomeViewCommand = new RelayCommand(o =>
+            {
+                CurrentView = HomeVm;
+            });
+
+            DiscoveryViewCommand = new RelayCommand(o =>
+            {
+                CurrentView = DiscoveryVM;
+            });
         }
     }
 }

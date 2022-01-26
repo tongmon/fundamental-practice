@@ -6,16 +6,16 @@
         xmlns:local="clr-namespace:Wpf_Practice"
         xmlns:viewModel="clr-namespace:Wpf_Practice.MVVM.ViewModel"
         mc:Ignorable="d"
-        Title="MainWindow" Height="600" Width="920"
-        WindowStyle="None"
-        ResizeMode="NoResize"
+        Height="600" Width="920"
+        WindowStyle="None" 
+        ResizeMode="CanResize" 
         Background="Transparent"
         AllowsTransparency="True">
 
     <Window.DataContext>
         <viewModel:MainViewModel/>
     </Window.DataContext>
-    
+
     <Border Background="#272537"
             CornerRadius="20">
         <Grid>
@@ -41,13 +41,16 @@
                              Height="50"
                              Foreground="White"
                              FontSize="14"
-                             Style="{StaticResource MenuButtonTheme}"/>
+                             Style="{StaticResource MenuButtonTheme}"
+                             IsChecked="True"
+                             Command="{Binding HomeViewCommand}"/>
 
                 <RadioButton Content="Discovery"
                              Height="50"
                              Foreground="White"
                              FontSize="14"
-                             Style="{StaticResource MenuButtonTheme}"/>
+                             Style="{StaticResource MenuButtonTheme}"
+                             Command="{Binding DiscoveryViewCommand}"/>
 
                 <RadioButton Content="Featured"
                              Height="50"

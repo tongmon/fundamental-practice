@@ -14,7 +14,7 @@ namespace Wpf_Practice.Core
         public event PropertyChangedEventHandler? PropertyChanged;
 
         // OnPropertyChanged -> name에 해당하는 이름을 갖는 데이터에 변화가 생길때마다 이벤트를 발생시키는 메서드
-        protected void OnPropertyChanged([CallerMemberName] string name = null)
+        protected void OnPropertyChanged([CallerMemberName] string? name = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
         }
