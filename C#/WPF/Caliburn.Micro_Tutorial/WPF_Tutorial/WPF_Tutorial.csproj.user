@@ -7,12 +7,24 @@
     </ApplicationDefinition>
   </ItemGroup>
   <ItemGroup>
+    <Compile Update="Views\FirstChildView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\SecondChildView.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\ShellView.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
   </ItemGroup>
   <ItemGroup>
     <Page Update="MainWindow.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\FirstChildView.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\SecondChildView.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Views\ShellView.xaml">

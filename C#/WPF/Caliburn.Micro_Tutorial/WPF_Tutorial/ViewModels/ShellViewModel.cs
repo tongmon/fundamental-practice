@@ -1,5 +1,6 @@
 ﻿using Caliburn.Micro;
 using System;
+using System.Diagnostics;
 using WPF_Tutorial.Models;
 
 // 실제 인터페이스에 관한 로직이 들어가는 부분.
@@ -7,7 +8,7 @@ using WPF_Tutorial.Models;
 
 namespace WPF_Tutorial.ViewModels
 {
-    public class ShellViewModel : Screen
+    public class ShellViewModel : Conductor<object>
     {
         private string _firstName = "Tim";
         private string _lastName;
@@ -58,6 +59,24 @@ namespace WPF_Tutorial.ViewModels
                 _selectedPerson = value;
                 NotifyOfPropertyChange(() => SelectedPerson);
             }
+        }
+        public bool CanClearText(string firstName, string lastName)
+        {
+            return !String.IsNullOrWhiteSpace(firstName) || !String.IsNullOrWhiteSpace(lastName);
+        }
+        public void ClearText(string firstName, string lastName)
+        {
+            FirstName = "";
+            LastName = "";
+        }
+        public void LoadPageOne()
+        {
+            ActivateItemAsync(new FirstChildViewModel());
+        }
+
+        public void LoadPageTwo()
+        {
+            ActivateItemAsync(new SecondChildViewModel());
         }
     }
 }

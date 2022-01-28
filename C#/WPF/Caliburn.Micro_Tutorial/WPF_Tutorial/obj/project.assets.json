@@ -3818,11 +3818,11 @@
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\DP91-HSK\\source\\repos\\WPF_Tutorial\\WPF_Tutorial\\WPF_Tutorial.csproj",
+      "projectUniqueName": "C:\\Users\\DP91-HSK\\Documents\\GitHub\\Data-Structure\\C#\\WPF\\Caliburn.Micro_Tutorial\\WPF_Tutorial\\WPF_Tutorial.csproj",
       "projectName": "WPF_Tutorial",
-      "projectPath": "C:\\Users\\DP91-HSK\\source\\repos\\WPF_Tutorial\\WPF_Tutorial\\WPF_Tutorial.csproj",
+      "projectPath": "C:\\Users\\DP91-HSK\\Documents\\GitHub\\Data-Structure\\C#\\WPF\\Caliburn.Micro_Tutorial\\WPF_Tutorial\\WPF_Tutorial.csproj",
       "packagesPath": "C:\\Users\\DP91-HSK\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\DP91-HSK\\source\\repos\\WPF_Tutorial\\WPF_Tutorial\\obj\\",
+      "outputPath": "C:\\Users\\DP91-HSK\\Documents\\GitHub\\Data-Structure\\C#\\WPF\\Caliburn.Micro_Tutorial\\WPF_Tutorial\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
         "C:\\Users\\DP91-HSK\\AppData\\Roaming\\NuGet\\NuGet.Config",

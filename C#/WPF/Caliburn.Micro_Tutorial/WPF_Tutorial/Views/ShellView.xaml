@@ -39,7 +39,19 @@
         <!-- Row 3 -->
         <ComboBox Grid.Row="3" Grid.Column="1" x:Name="People"
                   SelectedItem="{Binding Path=SelectedPerson, Mode=OneWayToSource}"
-                  DisplayMemberPath="FristName"/>
-        <!-- OneWayToSource는 변수에서만 가져와 뷰에 사용할 수 있다는 뜻, 뷰에서 변수에 영향을 못끼침-->
+                  DisplayMemberPath="FirstName"/>
+        <!-- OneWayToSource는 뷰에서 변수에 영향을 끼칠 수는 있지만 그 반대는 불가능한 속성이다. -->       
+        <TextBlock Grid.Row="3" Grid.Column="2" x:Name="SelectedPerson_LastName" TextAlignment="Center"/>
+        <!-- 코드에서 클래스의 속성을 불러오는 경우에는 SelectedPerson.LastName 이렇게 사용하겠지만 xaml에서는 .대신에 _(언더바)를 붙인다. -->
+        
+        <!-- Row 4 -->
+        <Button x:Name="ClearText" Grid.Row="4" Grid.Column="1">Clear Names</Button>
+
+        <!-- Row 5 -->
+        <Button x:Name="LoadPageOne" Grid.Row="5" Grid.Column="1">Load First Page</Button>
+        <Button x:Name="LoadPageTwo" Grid.Row="5" Grid.Column="2">Load Second Page</Button>
+
+        <!-- Row 6 -->
+        <ContentControl Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="5" x:Name="ActiveItem"/>
     </Grid>
 </Window>
