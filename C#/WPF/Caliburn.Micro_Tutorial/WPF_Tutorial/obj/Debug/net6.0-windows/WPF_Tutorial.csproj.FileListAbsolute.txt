@@ -127,14 +127,12 @@ C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\bin\Debug\net6.0-windows\runtimes\win\lib\netstandard2.0\System.Runtime.Caching.dll
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\bin\Debug\net6.0-windows\runtimes\win\lib\netstandard2.0\System.ServiceProcess.ServiceController.dll
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\WPF_Tutorial.csproj.AssemblyReference.cache
-C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\MainWindow.g.cs
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\Views\ShellView.g.cs
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\App.g.cs
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\GeneratedInternalTypeHelper.g.cs
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\WPF_Tutorial_MarkupCompile.cache
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\WPF_Tutorial_MarkupCompile.lref
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\App.baml
-C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\MainWindow.baml
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\Views\ShellView.baml
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\WPF_Tutorial.g.resources
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\obj\Debug\net6.0-windows\WPF_Tutorial.GeneratedMSBuildEditorConfig.editorconfig

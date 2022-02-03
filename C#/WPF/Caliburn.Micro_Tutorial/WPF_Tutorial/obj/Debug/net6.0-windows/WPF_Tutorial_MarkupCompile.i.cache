@@ -10,11 +10,11 @@ none
 false
 TRACE;DEBUG;NET;NET6_0;NETCOREAPP
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\Caliburn.Micro_Tutorial\WPF_Tutorial\App.xaml
-41126082606
+3-280962735
 
-13-1047337607
+13-761985691
 218-394868247
-MainWindow.xaml;Views\FirstChildView.xaml;Views\SecondChildView.xaml;Views\ShellView.xaml;
+Views\FirstChildView.xaml;Views\SecondChildView.xaml;Views\ShellView.xaml;
 
-True
+False
 
