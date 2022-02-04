@@ -6,7 +6,7 @@
         xmlns:local="clr-namespace:TreeView"
         mc:Ignorable="d"
         Loaded="Window_Loaded" 
-        Title="MainWindow" Height="450" Width="800">
+        Title="TreeView" Height="450" Width="800">
 
     <!-- Loaded는 윈도우가 뜨기 전에 실행되는 이벤트로 해당 이벤트에 수행될 함수 이름을 적으면 된다. -->
 

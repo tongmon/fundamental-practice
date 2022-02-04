@@ -5,7 +5,12 @@
       "ProjectGuid": "af05aa53-57ec-4ba6-8698-2a3da41fddef",
       "DisplayName": "TreeView",
       "ColorIndex": 0
+    },
+    "0158ba21-fd84-4b13-8bfb-4e2aa18dcd67": {
+      "ProjectGuid": "0158ba21-fd84-4b13-8bfb-4e2aa18dcd67",
+      "DisplayName": "TreeView_Improved",
+      "ColorIndex": 1
     }
   },
-  "NextColorIndex": 1
+  "NextColorIndex": 2
 }

@@ -17,7 +17,7 @@ using System.Windows.Shapes;
 namespace TreeView
 {
     /// <summary>
-    /// Interaction logic for MainWindow.xaml
+    /// 모든 로직은 여기에 담기게 된다... MVVM 패턴에 비하면 코드 작업이 진행될 수록 복잡해진다.
     /// </summary>
     public partial class MainWindow : Window
     {
