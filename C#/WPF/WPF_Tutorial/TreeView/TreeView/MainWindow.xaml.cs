@@ -79,13 +79,19 @@ namespace TreeView
             #region Get Folders
 
             var dirList = new List<string>();
-            var dirs = Directory.GetDirectories(fullPath);
-            // GetDirectories 함수에서 하위 폴더를 구하지 못했으면 그냥 return 한다.
-            if (dirs.Length <= 0)
-                return;
 
-            // 하위 아이템 추가를 위한 for문
-            dirList.AddRange(dirs);
+            try
+            {
+                var dirs = Directory.GetDirectories(fullPath);
+            
+                // 하위 아이템 추가를 위한 for문
+                dirList.AddRange(dirs);
+            }
+            catch
+            {
+
+            }
+
             foreach (var directory in dirList)
             {
                 // 시스템, 숨김 속성을 가지는 디렉터리들은 생략한다.
@@ -102,15 +108,33 @@ namespace TreeView
 
                 // 폴더 내의 파일이나 다른 폴더가 없다면 확장을 지원할 필요가 없다.
                 var subItemCnt = 0;
-                foreach(var subDir in dirInfo.GetDirectories())
+                try
                 {
-                    if (!subDir.Attributes.HasFlag(FileAttributes.System) && !subDir.Attributes.HasFlag(FileAttributes.Hidden))
-                        subItemCnt++;
-                }                
-                foreach (var subFile in dirInfo.GetFiles())
+                    var subDirList = dirInfo.GetDirectories();
+                    foreach (var subDir in subDirList)
+                    {
+                        if (subItemCnt > 0) break;
+                        if (!subDir.Attributes.HasFlag(FileAttributes.System) && !subDir.Attributes.HasFlag(FileAttributes.Hidden))
+                            subItemCnt++;
+                    }
+                }
+                catch
                 {
-                    if (!subFile.Attributes.HasFlag(FileAttributes.System) && !subFile.Attributes.HasFlag(FileAttributes.Hidden))
+                    
+                }
+
+                try
+                {
+                    var subFileList = dirInfo.GetFiles();
+                    foreach (var subFile in subFileList)
+                    {
+                        if (subItemCnt > 0) break;
                         subItemCnt++;
+                    }
+                }
+                catch
+                {
+
                 }
 
                 // 노드 확장을 위한 더미 아이템 추가
@@ -128,20 +152,20 @@ namespace TreeView
             #region Get Files
 
             var fileList = new List<string>();
-            var files = Directory.GetFiles(fullPath);
-            // GetFiles 함수에서 하위 파일을 구하지 못했으면 그냥 return 한다.
-            if (files.Length <= 0)
-                return;
+            try
+            {
+                var files = Directory.GetFiles(fullPath);
 
-            // 하위 아이템 추가를 위한 for문
-            fileList.AddRange(files);
+                // 하위 아이템 추가를 위한 for문
+                fileList.AddRange(files);
+            }
+            catch 
+            {
+            
+            }
+
             foreach (var file in fileList)
             {
-                // 시스템, 숨김 속성을 가지는 파일들은 생략한다.
-                var fileInfo = new System.IO.FileInfo(file);
-                if (fileInfo.Attributes.HasFlag(FileAttributes.System) && fileInfo.Attributes.HasFlag(FileAttributes.Hidden))
-                    continue;
-
                 // 디렉터리 아이템 생성
                 var subItem = new TreeViewItem()
                 {
