@@ -4,11 +4,12 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace TreeView_Improved.Directory.Data
+namespace TreeView_Improved
 {
     public enum DirectoryItemType
     {
         Drive,
-
+        File,
+        Folder,
     }
 }

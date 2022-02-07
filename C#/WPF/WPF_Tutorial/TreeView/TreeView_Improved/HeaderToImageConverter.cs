@@ -27,7 +27,7 @@ namespace TreeView_Improved
                 return null;
 
             // 드라이브, 파일, 폴더에 따라 이미지를 선택해 준다.
-            var name = MainWindow.GetFileFolderName(path);
+            var name = DirectoryStructure.GetFileFolderName(path);
             var imagePath = "/Images/file.png";
 
             if (string.IsNullOrEmpty(name))

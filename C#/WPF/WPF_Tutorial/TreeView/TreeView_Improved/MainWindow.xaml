@@ -5,7 +5,6 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:TreeView_Improved"
         mc:Ignorable="d"
-        Loaded="Window_Loaded" 
         Title="TreeView_Improved" Height="450" Width="800">
     
     <!-- Loaded는 윈도우가 뜨기 전에 실행되는 이벤트로 해당 이벤트에 수행될 함수 이름을 적으면 된다. -->
