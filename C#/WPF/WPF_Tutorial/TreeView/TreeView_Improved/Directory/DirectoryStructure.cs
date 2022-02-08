@@ -18,7 +18,7 @@ namespace TreeView_Improved
             return Directory.GetLogicalDrives().Select(drive => new DirectoryItem { FullPath = drive, Type = DirectoryItemType.Drive }).ToList();
         }
 
-        public static List<DirectoryItem> GetDirectoryContents(string fullPath)
+        public static List<DirectoryItem> GetDirectoryContents(string? fullPath)
         {
             var items = new List<DirectoryItem>();
             
@@ -59,7 +59,7 @@ namespace TreeView_Improved
         }
 
         #region Helpers
-        public static string? GetFileFolderName(string path)
+        public static string? GetFileFolderName(string? path)
         {
             // 주어진 경로가 없으면 null 반환
             if (string.IsNullOrEmpty(path))

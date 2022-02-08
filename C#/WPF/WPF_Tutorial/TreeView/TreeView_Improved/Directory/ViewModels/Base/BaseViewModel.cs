@@ -20,6 +20,12 @@ namespace TreeView_Improved
         // 무슨 말인지 모르겠다면 코드를 보면서 이해하면 쉽다.
         public event PropertyChangedEventHandler? PropertyChanged;
 
-        
+        protected void Notify(string propName)
+        {
+            if (this.PropertyChanged != null)
+            {
+                PropertyChanged(this, new PropertyChangedEventArgs(propName));
+            }
+        }
     }
 }

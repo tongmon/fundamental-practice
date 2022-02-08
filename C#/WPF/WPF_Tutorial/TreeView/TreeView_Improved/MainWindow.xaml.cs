@@ -26,8 +26,8 @@ namespace TreeView_Improved
         {
             InitializeComponent();
 
-            // DataContext는 UI의 최상단에 위치함
-            this.DataContext = 
+            // DataContext는 최상위 ViewModel이라고 보면 된다.
+            DataContext = new DirectoryStructureViewModel();
         }
         #endregion
 

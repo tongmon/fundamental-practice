@@ -1130,3 +1130,39 @@ BOOL SetObjectInfo(LPHCC lpHCC, const SHAPEOBJECT* lpSO)
 	return TRUE;
 }
 -------------------------------------------------------------------------------------------------
+
+
+
+
+
+
+
+
+(완료)(D-GW-27995)(8.3.17.15(h03)) CLONE - GW-25046 MS IE 종료에 따른 "IE 사용안함"일 경우 대응 마련 필요 건 요청
+
+1. 요구/변경/처리사항
+
+가. 환경
+이제 결재문서 게시하기, 메일쓰기, 관련문서보기 시에 접속한 브라우저로 실행됩니다.
+
+나. 구현내용
+Browser관련 함수들의 로직을 수정하였습니다.
+
+2. 관련모듈
+HDUI.dll
+HsUtil.dll
+HSHttpAPI.dll
+Hduagent.dll
+SaBase32.dll
+sacomm32.dll
+SaGian.dll
+XSAppr.dll
+
+3. 영향도 분석
+
+4. 관련 옵션내용
+
+5. 미구현 및 known bug
+
+6. 개발자 TEST 항목
+문서를 열람하여 메일쓰기, 게시하기, 관련문서보기를 수행하여 로그인한 브라우저로 실행되는지 확인하였습니다.
