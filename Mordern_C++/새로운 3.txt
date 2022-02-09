@@ -1143,7 +1143,8 @@ BOOL SetObjectInfo(LPHCC lpHCC, const SHAPEOBJECT* lpSO)
 1. 요구/변경/처리사항
 
 가. 환경
-이제 결재문서 게시하기, 메일쓰기, 관련문서보기 시에 접속한 브라우저로 실행됩니다.
+이제 결재문서 게시하기, 메일쓰기, 관련문서보기, 완료문서 첨부, 관련문서 추가, 의견입력 시에 접속한 브라우저로 실행됩니다.
+사용자는 현재 그룹웨어로 로그인되어 있는 브라우저에서 팝업을 해제해야 위에 나열된 기능들을 사용이 가능합니다.
 
 나. 구현내용
 Browser관련 함수들의 로직을 수정하였습니다.
@@ -1165,4 +1166,328 @@ XSAppr.dll
 5. 미구현 및 known bug
 
 6. 개발자 TEST 항목
-문서를 열람하여 메일쓰기, 게시하기, 관련문서보기를 수행하여 로그인한 브라우저로 실행되는지 확인하였습니다.
+문서를 열람하여 게시하기, 메일쓰기, 관련문서보기, 완료문서 첨부, 관련문서 추가, 의견 입력을 수행하여 로그인한 브라우저로 실행되는지 확인하였습니다.
+
+
+
+IsWindowVisible
+
+
+GetDesktopWindow
+
+
+
+
+
+
+22/02/08 10:11:23 604.340 [6924] TRACE wordapi.DLL %% - HA_OpenDocument, OpenFlag : replace/readonly/preventcopy/preventsave/preventopen/preventctxmenu/ 
+
+
+
+
+CTRL_SealStamp -> 얘도 문서 편집에 관여함 UseExamEditMode 이 녀석에 관계 없는 옵션들에 의해서 조절됨
+
+
+
+
+
+
+
+
+hox의 <pubShowInfo> 항목에 공람자 정보가 있다.
+
+
+
+
+
+/WordType:3 /appl gian /ServerOpen /IDJHOMS220400036516000 /UID:004133000 /HOST:123.212.190.148:8382 /K:00fFP22eE /INTRA:1 /USERAGENT:edge
+
+
+handydef.h
+Sancgian.cpp
+
+
+
+
+C:\Work\svn.10.2.trunk\BinDebug\XSAppr.exe /WordType:3 /appl gian /AJHOMS201540000093000 /T통합-회신기안 /UID:001005801 /HOST:123.212.190.177:9319 /K:00HEdKG11 /USERAGENT:edge
+
+
+
+
+
+
+
+
+(완료)(D-HSO-12071)(10.2.1.0) CLONE - [한글] 감사결재선에서 감사부서 변경이 안되는 현상
+
+1. 요구/변경/처리사항
+
+가. 환경
+결재정보 > 수신자 Tab에서 수신자표기가 실시간으로 반영되지 않는 현상을 수정하였습니다.
+
+나. 구현내용
+수진자 Tab 문자열을 갱신해주는 MakeRecvDispString() 함수를 적절한 위치에 추가하였습니다.
+
+2. 관련모듈
+Hduagent.dll
+
+3. 영향도 분석
+
+4. 관련 옵션내용
+
+5. 미구현 및 known bug
+
+6. 개발자 TEST 항목
+수신자 목록을 추가, 삭제 하면서 실시간으로 수정된 표기가 반영되는지 확인하였습니다.
+
+
+
+
+
+
+
+
+
+
+
+(완료)(D-GW-27974)(8.3.20.0) CLONE - [우체국시설관리단] 기안문 작성시 지정한 공람자 정보를 임시저장(유상개발)
+
+1. 요구/변경/처리사항
+
+가. 환경
+기안문 작성시에 지정한 공람자 정보를 handydef.ini에서 특정 옵션 값이 켜져 있을 경우 임시저장 문서에서 다시 기안하는 경우에도 불러오게 하였습니다.
+옵션 스펙은 다음과 같습니다.
+-----------------------------------------------------------------
+이름: PubShowSavedInSaveServer
+handydef.ini의 [Sanction] 섹션에 정의
+true인 경우 임시저장 문서에서 다시 기안하는 경우에도 기존에 선택했던 공람자 정보를 불러온다.
+false인 경우 임시저장 문서에서 다시 기안하는 경우에 새로 공람자를 지정해야 한다. (Default 값)
+-----------------------------------------------------------------
+
+나. 구현내용
+수진자 Tab 문자열을 갱신해주는 MakeRecvDispString() 함수를 적절한 위치에 추가하였습니다.
+
+2. 관련모듈
+SaGian.dll
+
+3. 영향도 분석
+
+4. 관련 옵션내용
+
+5. 미구현 및 known bug
+
+6. 개발자 TEST 항목
+문서를 임시저장하고 기안시 지정했던 공람자 정보가 유지되는지 확인하였습니다.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#include <Windows.h> 
+#include <imm.h> 
+#include <iostream> 
+#include <string> 
+#ifdef _DEBUG 
+#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console") 
+#endif LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM); 
+int GetCharWidth(HDC hdc, TCHAR *ch, int len); //문자열 출력 너비 구하는 함수 
+void SetCaret(HWND hWnd); //캐럿을 알맞은 위치에 생성 
+void inputStr(int nPos, wchar_t *str); //캐럿 위치에 글자 입력 
+void backspaceStr(int nPos, int nCount); //캐럿 위치에 글자 삭제 
+HINSTANCE g_hInst; HWND hWndMain; LPCTSTR lpszClass = L"CaretInsert3"; 
+int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow) 
+{ 
+HWND hWnd; 
+MSG Message; 
+WNDCLASS WndClass; 
+g_hInst = hInstance; 
+WndClass.cbClsExtra = 0; 
+WndClass.cbWndExtra = 0; 
+WndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); 
+WndClass.hCursor = LoadCursor(NULL, IDC_IBEAM); 
+WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION); 
+WndClass.hInstance = hInstance; 
+WndClass.lpfnWndProc = (WNDPROC)WndProc; 
+WndClass.lpszClassName = lpszClass; 
+WndClass.lpszMenuName = NULL; 
+WndClass.style = CS_HREDRAW | CS_VREDRAW; 
+RegisterClass(&WndClass); 
+hWnd = CreateWindow(lpszClass, lpszClass, WS_OVERLAPPEDWINDOW, 500, 300, 500, 500, NULL, (HMENU)NULL, hInstance, NULL); 
+ShowWindow(hWnd, nCmdShow); 
+hWndMain = hWnd; 
+while (GetMessage(&Message, 0, 0, 0)) 
+{ 
+TranslateMessage(&Message); 
+DispatchMessage(&Message); 
+} 
+return Message.wParam; 
+} 
+
+std::wstring wstr; //문자열 리스트 
+int off; //캐럿 위치 
+int fontHeight; //글자 높이 
+bool bComp; //조합중인 글자가 있는지 
+LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) 
+{ 
+HDC hdc; 
+PAINTSTRUCT ps; 
+HIMC hImc; //타자 입력기 핸들 
+TEXTMETRIC tm; //텍스트 정보 
+switch (iMessage) 
+{ 
+case WM_CREATE: 
+{ 
+bComp = 0; 
+wstr = L""; 
+off = 0; 
+hdc = GetDC(hWnd); 
+GetTextMetrics(hdc, &tm); //텍스트 정보 받아오기 
+fontHeight = tm.tmHeight; //폰트크기 지정 
+ReleaseDC(hWnd, hdc); 
+return 0; 
+} 
+case WM_CHAR: //2바이트 문자를 제외한 모든 문자를 처리합니다.(알파벳, 띄어쓰기, 엔터, 특문) 
+{ 
+puts("WM_CHAR"); 
+printf("lParam : %x, wParam : %x, bComp : %d, off : %d\n", lParam, wParam, bComp, off); 
+TCHAR tempChar[] = { wParam, 0 }; //입력 받은 문자를 문자열로 처리 
+inputStr(off, tempChar); //off 위치에 문자 입력 
+off++; //off 위치 한칸 뒤로 
+InvalidateRect(hWnd, NULL, TRUE); 
+SetCaret(hWnd); 
+return 0; 
+} 
+case WM_IME_COMPOSITION: //조립중인 한글과 각종 2바이트 문자를 처리합니다. 
+{ 
+puts("WM_IME_COMPOSITION"); 
+hImc = ImmGetContext(hWnd); //타자 입력기 받아오기 
+if (lParam & GCS_COMPSTR) 
+{ //조립중일때 
+printf("lParam : %x, GCS_COMPSTR : %x\n", lParam, GCS_COMPSTR); 
+printf("wParam : %x\n", wParam); 
+int len = ImmGetCompositionString(hImc, GCS_COMPSTR, NULL, 0); //입력 받은 문자가 있는지 세어보기 
+printf("len : %d\n", len); 
+if (len > 0) { //입력 문자 있음 
+TCHAR tempChar[] = { wParam, 0 }; //입력 받은 문자를 문자열로 처리 
+if (bComp) 
+{ //조립중일때 
+wstr[off - 1] = tempChar[0]; //원래 조립되던 글자를 덮어씌움 
+} 
+else 
+{ //아예 새로 입력됬을때 
+inputStr(off, tempChar); //off 위치에 입력 
+off++; //off 한칸 뒤로 
+} 
+bComp = true; 
+} 
+else
+ { //len이 0이 나오는건 조합되던 글자가 backspace로 완전히 지워졌을 때 
+ backspaceStr(off, 1); //캐럿 위치의 글자 지움 
+ bComp = false; off--; 
+ } 
+ } 
+ else if (lParam & GCS_RESULTSTR) 
+ { //조립 완료시
+ bComp = false;
+ wstr[off - 1] = wParam; //원래 조립되던 글자를 덮어씌움
+ } 
+ ImmReleaseContext(hWnd, hImc); //타자 입력기 반환 
+ SetCaret(hWnd); //캐럿 설정 
+ InvalidateRect(hWnd, NULL, TRUE); //화면 다시 그림 
+ printf("off : %d\n", off); 
+ return 0; 
+ } 
+ case WM_KEYDOWN: 
+ switch (wParam) 
+ { 
+ case VK_LEFT: 
+ if (off > 0) 
+ { 
+ off--; 
+ SetCaret(hWnd);
+ } 
+ return 0; 
+ case VK_RIGHT:
+ if (off < wstr.size())
+ { 
+ off++; 
+ SetCaret(hWnd);
+ } 
+ return 0; 
+ case VK_HOME: 
+ off = 0; 
+ SetCaret(hWnd); 
+ return 0; 
+ case VK_END: 
+ off = wstr.size(); 
+ SetCaret(hWnd); 
+ return 0; 
+ } 
+ break; 
+ case WM_PAINT: 
+ hdc = BeginPaint(hWnd, &ps); 
+ TextOut(hdc, 0, 0, wstr.c_str(), wstr.size()); 
+ EndPaint(hWnd, &ps); 
+ return 0; 
+ case WM_SETFOCUS: 
+ SetCaret(hWnd); 
+ return 0; 
+ case WM_KILLFOCUS: 
+ DestroyCaret(); 
+ return 0; 
+ case WM_DESTROY: 
+ PostQuitMessage(0); 
+ return 0; 
+ } 
+ return (DefWindowProc(hWnd, iMessage, wParam, lParam)); 
+ } 
+ int GetCharWidth(HDC hdc, const TCHAR *ch, int len) 
+ { 
+ SIZE sz; 
+ GetTextExtentPoint(hdc, ch, len, &sz); 
+ return sz.cx; 
+ } 
+ void SetCaret(HWND hWnd) 
+ { 
+ HDC hdc = GetDC(hWnd); 
+ SIZE sz; 
+ int toff; //캐럿이 시작되는 위치 
+ int caretWidth; 
+ if (bComp) 
+ { 
+ toff = off - 1; 
+ caretWidth = GetCharWidth(hdc, wstr.substr(toff).c_str(), 1); //글자 크기에 맞춰서 캐럿 두께 설정 
+ } 
+ else 
+ {
+ toff = off; 
+ caretWidth = 1; 
+ } 
+ CreateCaret(hWnd, NULL, caretWidth, fontHeight); //caretWidth 두께, fontHeight 높이로 캐럿 만듬 
+ ShowCaret(hWnd); //캐럿 보이기 
+ GetTextExtentPointW(hdc, wstr.c_str(), toff, &sz); //캐럿 전의 글자들의 크기를 측정 
+ SetCaretPos(sz.cx, 0); //캐럿 위치 설정 
+ ReleaseDC(hWnd, hdc); 
+ } 
+ void inputStr(int nPos, wchar_t *str) 
+ { 
+ int len = lstrlen(str); 
+ if (len == 0) return; 
+ wstr.insert(nPos, str);
+ } 
+ void backspaceStr(int nPos, int nCount) 
+ { 
+ if (nCount == 0) return;
+ if (nPos <= 0) return; 
+ if (nPos - nCount <= 0) return;
+ wstr.erase(nPos - nCount, nCount); 
+ }
