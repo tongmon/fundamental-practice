@@ -24,7 +24,7 @@ namespace TreeView_Improved
         public ICommand ExpandCommand { get; set; }
         public DirectoryItemViewModel(string? fullPath, DirectoryItemType type)
         {
-            PropertyChanged += DirectoryItemViewModel_PropertyChanged;
+            //PropertyChanged += DirectoryItemViewModel_PropertyChanged;
 
             ExpandCommand = new RelayCommand(Expand); // 트리 노드 확장시에 발동되는 함수를 붙여준다.
 

@@ -894,27 +894,6 @@ GW-27998
 
 
 
----------------------------------------------'
-
-안녕하세요. CT 개발팀 이경준입니다.
-
-아래 내용을 한컴에 리포팅 부탁드립니다.
-
-관련티켓 : GW-27998 [한국자산관리공사] 첨부날인 시 관인이 뒤로 밀려서 찍히는 현상 문의
-=============================================================================
-
-첨부된 22_02_03_REPORT.hwp 문서를 보시면 1페이지에는 '핸디소프트 대표이사'라는 이미지가 도장을 찍은 것 처럼 처리되어 있는 것을 볼 수 있습니다.
-2페이지를 보시면 도장 이미지가 잘려 보이는 것을 알 수 있습니다.
-현재 저희 그룹웨어 프로그램에서는 사용자가 클릭한 위치에 도장 이미지를 문서에 박아 넣는 기능이 있습니다.
-해당 기능은 도장 이미지를 테이블 셀에 삽입하고 해당 테이블 셀의 크기를 조정한 뒤에 사용자가 클릭한 마우스 위치로 이동시키는 방식으로 작동합니다.
-1페이지와 2페이지의 존재하는 개체들의 속성은 모두 동일한데 2페이지의 도장 이미지만 잘려보이는 것은 한글 측 오류로 판단됩니다.
-테스트에 사용된 한글 버전은 한글2020 / 11.0.0.5178 입니다.
-확인부탁드립니다.
-
-=============================================================================
-감사합니다.
-
-
 
 
 
@@ -1218,54 +1197,121 @@ C:\Work\svn.10.2.trunk\BinDebug\XSAppr.exe /WordType:3 /appl gian /AJHOMS2015400
 
 
 
-(완료)(D-HSO-12071)(10.2.1.0) CLONE - [한글] 감사결재선에서 감사부서 변경이 안되는 현상
+
+CHyupjoDocDialog.cpp -> 얘 참고해서 텍스트 박스 영역 구한뒤 클릭 검사하는 거 구현해보기
+
+
+
+
+/WordType:3 /appl gian /AJHOMS201540000093000 /T통합-회신기안-사본배포마크 /UID:001005801 /HOST:123.212.190.178:9333 /K:006Xf2qc51 /USERAGENT:edge
+
+
+IDC_BIZ_UNIT_CODE -> 기록물철 선택 버튼
+
+IDD_BIZUNITCD -> 기록물철
+
+IDC_FOLDER -> 폴더 트리
+
+
+m_folder.GetItemRect() -> 사용하면 될 듯
+
+
+143
+맨끝 188
+45
+
+
+PeekMessage(&msg, 0, 0, 0, PM_REMOVE)
+
+PeekMessage( &_msg, NULL, WM_LBUTTONDOWN, WM_MBUTTONDBLCLK, PM_REMOVE )
+
+
+QS_ALLINPUT
+
+QS_INPUT | QS_POSTMESSAGE | QS_TIMER | QS_PAINT | QS_HOTKEY | QS_SENDMESSAGE
+
+
+
+GW-28073 [한국철도공사] 관인 날인 후 문서 수정되는 현상
+
+
+2. GW-27982 [경북대학교병원] 발신기관명/발신명의 옵션 확인 및 개선요청
+
+
+3. GW-27729 [대한지방행정공제회] MIS 연동 양식으로 기안중 기안기의 읽어오기 버튼 비활성화 기능 문
+
+
+
+
+
+
+
+다큐플로의 기관 -> sw개발연구소
+
+경영지원팀의 기관 -> 핸디소프트
+
+
+static int nDefaultExternalSenderNameType = HDGetProfileInt(SECTION_SANC,
+				ENTRY_EXTERNALSENDERNAME_DEFAULTTYPE, REPDEPT_APPROVER);
+
+
+/WordType:3 /appl gian /AJHOMS193430028761000 /T수자원유통서식 /UID:004133000 /HOST:123.212.190.148:8383 /K:00F2v2xyb /INTRA:1 /USERAGENT:edge
+
+
+
+
+if (nDefaultExternalSenderNameType == DEPT_EXTERNAL_DRAFTER_AGENCY) {
+				CSIGNINFOs sInfo = lpHeader->m_SignInfos;
+				CSIGNINFO* pDrafter = sInfo.GetAt(sInfo.GetSize() - 1);
+				HS_ID drafterDeptID = pDrafter->GetDeptID(), hsRepDeptID = nullptr;
+				CString strRepDeptName;
+				DUA_GetRepDeptName(&drafterDeptID, &hsRepDeptID, strRepDeptName.GetBuffer(MAX_PATH));
+
+				CSIGNINFO* pDrafter = sInfo.GetAt(sInfo.GetSize() - 1);
+				HS_ID hsSendDeptID;
+				DUA_GetSenderName(&drafterDeptID, pDrafter->GetSignerType(),
+					uwEnforceType, SENDERNAMETYPE_1, NULL, &hsSendDeptID, hsDrafterDept);
+
+				strRepDeptName.ReleaseBuffer();
+				return strRepDeptName;
+			}
+			
+			
+			
+			
+
+
+
+
+[C++] MFC: How to Disable Window Move Message by user
+void CMainFrame::OnSysComand(UINT nID, LPARAM lParam)
+{
+	if ((nID & 0xFFF0) == SC_MOVE) // <-------------------
+		return;
+	else
+		CFrameWnd::OnSysCommand(nID, lParam); 
+}
+
+
+
+GW-28100 티켓은 GW-25684, GW-27721 혼합 적용하면 됨 근데 결재기랑 뷰어(띄울때)에도 보안 모듈 추가해야 함
+GW-28101 티켓은 if(!IS_BIT(m_uwFormRestriction, FORMRESTRICTION_MAIL)) 이런 녀석들 참고
+
+
+
+
+
+(완료)(D-GW-28101)(8.3.15.09(h03)) CLONE - [대한지방행정공제회] MIS 연동 양식으로 기안중 기안기의 읽어오기 버튼 비활성화 기능 문제
 
 1. 요구/변경/처리사항
 
 가. 환경
-결재정보 > 수신자 Tab에서 수신자표기가 실시간으로 반영되지 않는 현상을 수정하였습니다.
+Handydef.ini의 [FormRestriction]에 양식ID 옵션에 읽어오기 버튼에 대한 권한 값을 추가하였습니다.
+양식ID 옵션 사용법은 전과 동일하며 읽어오기 버튼 권한 스펙은 다음과 같습니다.
+- 0x00000020  읽어오기 (32) -
 
 나. 구현내용
-수진자 Tab 문자열을 갱신해주는 MakeRecvDispString() 함수를 적절한 위치에 추가하였습니다.
-
-2. 관련모듈
-Hduagent.dll
-
-3. 영향도 분석
-
-4. 관련 옵션내용
-
-5. 미구현 및 known bug
-
-6. 개발자 TEST 항목
-수신자 목록을 추가, 삭제 하면서 실시간으로 수정된 표기가 반영되는지 확인하였습니다.
-
-
-
-
-
-
-
-
-
-
-
-(완료)(D-GW-27974)(8.3.20.0) CLONE - [우체국시설관리단] 기안문 작성시 지정한 공람자 정보를 임시저장(유상개발)
-
-1. 요구/변경/처리사항
-
-가. 환경
-기안문 작성시에 지정한 공람자 정보를 handydef.ini에서 특정 옵션 값이 켜져 있을 경우 임시저장 문서에서 다시 기안하는 경우에도 불러오게 하였습니다.
-옵션 스펙은 다음과 같습니다.
------------------------------------------------------------------
-이름: PubShowSavedInSaveServer
-handydef.ini의 [Sanction] 섹션에 정의
-true인 경우 임시저장 문서에서 다시 기안하는 경우에도 기존에 선택했던 공람자 정보를 불러온다.
-false인 경우 임시저장 문서에서 다시 기안하는 경우에 새로 공람자를 지정해야 한다. (Default 값)
------------------------------------------------------------------
-
-나. 구현내용
-수진자 Tab 문자열을 갱신해주는 MakeRecvDispString() 함수를 적절한 위치에 추가하였습니다.
+읽어오기 버튼에 FormRestriction 섹션의 옵션을 읽어 비활성화 여부를 확인하는 로직을 추가하였습니다.
 
 2. 관련모듈
 SaGian.dll
@@ -1274,220 +1320,117 @@ SaGian.dll
 
 4. 관련 옵션내용
 
+5. 미구현 및known bug
+
+6. 개발자 TEST 항목
+특정 서식으로 기안하고 해당 양식 ID로 FormRestriction 섹션에 설정하여 값을 32로 주고 읽어오기 버튼이 활성화되는지 확인하였습니다.
+
+
+
+JHOMS193430028761000 -> 수자원
+
+
+
+우동균(물류팀) -> 강희정(물류팀) -> 박명규(총무과) -> 권태균(칠북 경북대 원장) -> 김용림(본점 경북대 원장)
+
+
+
+SendOrgName.Type.발송종류 -> 발신기관명
+ExternalSenderName.DefaultType -> 발신명의
+
+협조 부서인 경우...
+
+다큐
+발신1 발신1_경영지원팀
+발신2 핸디소프트 대전지사장
+
+sw개발연구소 
+발신1 발신1_제품지원연구소
+발신2 발신2_제품지원연구소
+
+경영지원
+발신1 발신1_경영지원팀
+발신2 발신1_경영지원팀
+
+핸디
+발신1 발신1_핸디소프트(주)
+발신2 발신2_핸디소프트핸디소프트_핸디소프트(주)
+
+핸디소프트(기관)(500000468) -> 연구개발본부(기관)(000024100) -> SW개발연구소(000011303) -> 다큐플로팀(000022725)
+
+경영지원팀(500609344)
+
+
+
+
+
+IDC_APPR_METHOD  m_sancmethod
+
+
+DropDownSancMethod 관련 함수 수정
+
+
+BASE_GetSancTypeText
+
+
+m_lpHCC->GetRuntime()->ulCurrentDocType != SANCTION_DUPLINE
+
+
+수신부서에 서명셀이 없는 경우 확인
+수신 부서에 서명셀이 있으면 "최종결재자의 경우, 확인, 전결이 나오지 않도록" 로직을 탐
+
+COMM_IsCellNameExistByReceiptLevel -> 다중발 수신 서명셀 검사 로직
+
+
+HS_USER_NO_SIGN
+
+if (m_lpHCC->GetRuntime()->ulCurrentDocType == SANCTION_DRAFT 
+				|| (m_lpHCC->GetRuntime()->ulCurrentDocType == SANCTION_DUPLINE && m_bReceiptCellName)) {
+				if (!pSelSI->IsLastSignerType()) // 기안기에서 결재선 설정시 최종결재자는 확인이 뜨면 안된다.
+				{
+
+
+				}
+			}
+
+
+D:\Work\K_HSO\BinDebug\XSAppr.exe /WordType:3 /appl gian 1 /LFC:\Users\DP91-HSK\AppData\Local\Temp\handy0\26612_~2.TMP
+
+
+
+ON_UPDATE_COMMAND_UI(IDC_BUTTON_FAVORITE, OnUpdateFavorite)
+
+afx_msg void OnUpdateFavorite(CCmdUI* pCmdUI);
+
+
+
+
+
+
+수신부서에 서명셀이 없는 경우 확인
+수신 부서에 서명셀이 있으면 "최종결재자의 경우, 확인, 전결이 나오지 않도록" 로직을 탐
+
+
+(완료)(D-HSO-12134)(K.company) CLONE - [K사] 최종결재자 결재방법에 사용하지 않는 항목
+
+1. 요구/변경/처리사항
+
+가. 환경
+수신부서에서 접수시에 수신부서에 대한 서명셀이 없는 경우에 결재 방법이 확인, 참조만 가능하게 하였습니다.
+수신부서에서 접수시에 수신부서에 대한 서명셀이 존재하는 경우에서 결재선을 지정하는 경우, 기안기에서 결재선을 지정하는 경우에 최종결재자의 결재 방법에서 확인, 전결이 나오지 않게 하였습니다.
+
+나. 구현내용
+결재 방법에 관여하는 함수 중 하나인 DropDownSancMethodByNormalUser() 함수의 로직을 수정하였습니다.
+
+2. 관련모듈
+sacomm32.dll
+
+3. 영향도 분석
+
+4. 관련 옵션내용
+
 5. 미구현 및 known bug
 
 6. 개발자 TEST 항목
-문서를 임시저장하고 기안시 지정했던 공람자 정보가 유지되는지 확인하였습니다.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#include <Windows.h> 
-#include <imm.h> 
-#include <iostream> 
-#include <string> 
-#ifdef _DEBUG 
-#pragma comment(linker, "/entry:WinMainCRTStartup /subsystem:console") 
-#endif LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM); 
-int GetCharWidth(HDC hdc, TCHAR *ch, int len); //문자열 출력 너비 구하는 함수 
-void SetCaret(HWND hWnd); //캐럿을 알맞은 위치에 생성 
-void inputStr(int nPos, wchar_t *str); //캐럿 위치에 글자 입력 
-void backspaceStr(int nPos, int nCount); //캐럿 위치에 글자 삭제 
-HINSTANCE g_hInst; HWND hWndMain; LPCTSTR lpszClass = L"CaretInsert3"; 
-int APIENTRY WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpszCmdParam, int nCmdShow) 
-{ 
-HWND hWnd; 
-MSG Message; 
-WNDCLASS WndClass; 
-g_hInst = hInstance; 
-WndClass.cbClsExtra = 0; 
-WndClass.cbWndExtra = 0; 
-WndClass.hbrBackground = (HBRUSH)(COLOR_WINDOW + 1); 
-WndClass.hCursor = LoadCursor(NULL, IDC_IBEAM); 
-WndClass.hIcon = LoadIcon(NULL, IDI_APPLICATION); 
-WndClass.hInstance = hInstance; 
-WndClass.lpfnWndProc = (WNDPROC)WndProc; 
-WndClass.lpszClassName = lpszClass; 
-WndClass.lpszMenuName = NULL; 
-WndClass.style = CS_HREDRAW | CS_VREDRAW; 
-RegisterClass(&WndClass); 
-hWnd = CreateWindow(lpszClass, lpszClass, WS_OVERLAPPEDWINDOW, 500, 300, 500, 500, NULL, (HMENU)NULL, hInstance, NULL); 
-ShowWindow(hWnd, nCmdShow); 
-hWndMain = hWnd; 
-while (GetMessage(&Message, 0, 0, 0)) 
-{ 
-TranslateMessage(&Message); 
-DispatchMessage(&Message); 
-} 
-return Message.wParam; 
-} 
-
-std::wstring wstr; //문자열 리스트 
-int off; //캐럿 위치 
-int fontHeight; //글자 높이 
-bool bComp; //조합중인 글자가 있는지 
-LRESULT CALLBACK WndProc(HWND hWnd, UINT iMessage, WPARAM wParam, LPARAM lParam) 
-{ 
-HDC hdc; 
-PAINTSTRUCT ps; 
-HIMC hImc; //타자 입력기 핸들 
-TEXTMETRIC tm; //텍스트 정보 
-switch (iMessage) 
-{ 
-case WM_CREATE: 
-{ 
-bComp = 0; 
-wstr = L""; 
-off = 0; 
-hdc = GetDC(hWnd); 
-GetTextMetrics(hdc, &tm); //텍스트 정보 받아오기 
-fontHeight = tm.tmHeight; //폰트크기 지정 
-ReleaseDC(hWnd, hdc); 
-return 0; 
-} 
-case WM_CHAR: //2바이트 문자를 제외한 모든 문자를 처리합니다.(알파벳, 띄어쓰기, 엔터, 특문) 
-{ 
-puts("WM_CHAR"); 
-printf("lParam : %x, wParam : %x, bComp : %d, off : %d\n", lParam, wParam, bComp, off); 
-TCHAR tempChar[] = { wParam, 0 }; //입력 받은 문자를 문자열로 처리 
-inputStr(off, tempChar); //off 위치에 문자 입력 
-off++; //off 위치 한칸 뒤로 
-InvalidateRect(hWnd, NULL, TRUE); 
-SetCaret(hWnd); 
-return 0; 
-} 
-case WM_IME_COMPOSITION: //조립중인 한글과 각종 2바이트 문자를 처리합니다. 
-{ 
-puts("WM_IME_COMPOSITION"); 
-hImc = ImmGetContext(hWnd); //타자 입력기 받아오기 
-if (lParam & GCS_COMPSTR) 
-{ //조립중일때 
-printf("lParam : %x, GCS_COMPSTR : %x\n", lParam, GCS_COMPSTR); 
-printf("wParam : %x\n", wParam); 
-int len = ImmGetCompositionString(hImc, GCS_COMPSTR, NULL, 0); //입력 받은 문자가 있는지 세어보기 
-printf("len : %d\n", len); 
-if (len > 0) { //입력 문자 있음 
-TCHAR tempChar[] = { wParam, 0 }; //입력 받은 문자를 문자열로 처리 
-if (bComp) 
-{ //조립중일때 
-wstr[off - 1] = tempChar[0]; //원래 조립되던 글자를 덮어씌움 
-} 
-else 
-{ //아예 새로 입력됬을때 
-inputStr(off, tempChar); //off 위치에 입력 
-off++; //off 한칸 뒤로 
-} 
-bComp = true; 
-} 
-else
- { //len이 0이 나오는건 조합되던 글자가 backspace로 완전히 지워졌을 때 
- backspaceStr(off, 1); //캐럿 위치의 글자 지움 
- bComp = false; off--; 
- } 
- } 
- else if (lParam & GCS_RESULTSTR) 
- { //조립 완료시
- bComp = false;
- wstr[off - 1] = wParam; //원래 조립되던 글자를 덮어씌움
- } 
- ImmReleaseContext(hWnd, hImc); //타자 입력기 반환 
- SetCaret(hWnd); //캐럿 설정 
- InvalidateRect(hWnd, NULL, TRUE); //화면 다시 그림 
- printf("off : %d\n", off); 
- return 0; 
- } 
- case WM_KEYDOWN: 
- switch (wParam) 
- { 
- case VK_LEFT: 
- if (off > 0) 
- { 
- off--; 
- SetCaret(hWnd);
- } 
- return 0; 
- case VK_RIGHT:
- if (off < wstr.size())
- { 
- off++; 
- SetCaret(hWnd);
- } 
- return 0; 
- case VK_HOME: 
- off = 0; 
- SetCaret(hWnd); 
- return 0; 
- case VK_END: 
- off = wstr.size(); 
- SetCaret(hWnd); 
- return 0; 
- } 
- break; 
- case WM_PAINT: 
- hdc = BeginPaint(hWnd, &ps); 
- TextOut(hdc, 0, 0, wstr.c_str(), wstr.size()); 
- EndPaint(hWnd, &ps); 
- return 0; 
- case WM_SETFOCUS: 
- SetCaret(hWnd); 
- return 0; 
- case WM_KILLFOCUS: 
- DestroyCaret(); 
- return 0; 
- case WM_DESTROY: 
- PostQuitMessage(0); 
- return 0; 
- } 
- return (DefWindowProc(hWnd, iMessage, wParam, lParam)); 
- } 
- int GetCharWidth(HDC hdc, const TCHAR *ch, int len) 
- { 
- SIZE sz; 
- GetTextExtentPoint(hdc, ch, len, &sz); 
- return sz.cx; 
- } 
- void SetCaret(HWND hWnd) 
- { 
- HDC hdc = GetDC(hWnd); 
- SIZE sz; 
- int toff; //캐럿이 시작되는 위치 
- int caretWidth; 
- if (bComp) 
- { 
- toff = off - 1; 
- caretWidth = GetCharWidth(hdc, wstr.substr(toff).c_str(), 1); //글자 크기에 맞춰서 캐럿 두께 설정 
- } 
- else 
- {
- toff = off; 
- caretWidth = 1; 
- } 
- CreateCaret(hWnd, NULL, caretWidth, fontHeight); //caretWidth 두께, fontHeight 높이로 캐럿 만듬 
- ShowCaret(hWnd); //캐럿 보이기 
- GetTextExtentPointW(hdc, wstr.c_str(), toff, &sz); //캐럿 전의 글자들의 크기를 측정 
- SetCaretPos(sz.cx, 0); //캐럿 위치 설정 
- ReleaseDC(hWnd, hdc); 
- } 
- void inputStr(int nPos, wchar_t *str) 
- { 
- int len = lstrlen(str); 
- if (len == 0) return; 
- wstr.insert(nPos, str);
- } 
- void backspaceStr(int nPos, int nCount) 
- { 
- if (nCount == 0) return;
- if (nPos <= 0) return; 
- if (nPos - nCount <= 0) return;
- wstr.erase(nPos - nCount, nCount); 
- }
+수신부서 서명셀이 있는 서식, 없는 서식에 대해 수신부서 접수를 하고 결재선을 만들어 최종결재자의 결재 방법이 의도한 대로 나오는지 확인하였습니다.
+기안기에서 결재선을 만들어 최종결재자의 결재 방법이 의도한 대로 나오는지 확인하였습니다.

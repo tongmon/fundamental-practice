@@ -4,7 +4,6 @@ C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\TreeView\T
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\TreeView\TreeView_Improved\bin\Debug\net6.0-windows\TreeView_Improved.dll
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\TreeView\TreeView_Improved\bin\Debug\net6.0-windows\ref\TreeView_Improved.dll
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\TreeView\TreeView_Improved\bin\Debug\net6.0-windows\TreeView_Improved.pdb
-C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\TreeView\TreeView_Improved\obj\Debug\net6.0-windows\TreeView_Improved.csproj.AssemblyReference.cache
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\TreeView\TreeView_Improved\obj\Debug\net6.0-windows\MainWindow.g.cs
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\TreeView\TreeView_Improved\obj\Debug\net6.0-windows\App.g.cs
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\TreeView\TreeView_Improved\obj\Debug\net6.0-windows\TreeView_Improved_MarkupCompile.cache
