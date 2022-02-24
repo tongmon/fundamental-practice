@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -105,11 +106,48 @@ namespace TreeView_Improved
                 Notify("IsExpanded");
             }
         }
+
+        // 폴더 내부에 볼 수 있는 폴더, 파일의 수를 반환
+        private int GetSubItemCount()
+        {
+            var dirInfo = new System.IO.DirectoryInfo(FullPath);
+            int subItemCnt = 0;
+            try
+            {
+                var subDirList = dirInfo.GetDirectories();
+                foreach (var subDir in subDirList)
+                {
+                    if (subItemCnt > 0) break;
+                    if (!subDir.Attributes.HasFlag(FileAttributes.System) && !subDir.Attributes.HasFlag(FileAttributes.Hidden))
+                        subItemCnt++;
+                }
+            }
+            catch
+            {
+
+            }
+
+            try
+            {
+                var subFileList = dirInfo.GetFiles();
+                foreach (var subFile in subFileList)
+                {
+                    if (subItemCnt > 0) break;
+                    subItemCnt++;
+                }
+            }
+            catch
+            {
+
+            }
+            return subItemCnt;
+        }
         // 트리의 자식 노드를 모두 초기화
         private void ClearChildren()
         {
             Children = new ObservableCollection<DirectoryItemViewModel?>();
-            if(Type != DirectoryItemType.File)
+
+            if (Type != DirectoryItemType.File && GetSubItemCount() > 0)
                 Children.Add(null);
         }
         // 트리를 확장
