@@ -12,22 +12,58 @@ namespace TreeView_Improved
     // DirectoryItemViewModel는 트리의 각 노드라고 보면 된다.
     public class DirectoryItemViewModel : BaseViewModel
     {
-        public DirectoryItemType Type { get; set; }
+        private ObservableCollection<DirectoryItemViewModel?>? m_Children;
+        private string? m_Name;
+        private DirectoryItemType m_Type;
+
+        public DirectoryItemType Type 
+        {
+            get
+            {
+                return m_Type;
+            }
+            set
+            {
+                if (m_Type == value)
+                    return;
+                m_Type = value;
+                Notify("Type");
+            }
+        }
         public string? FullPath { get; set; }
         public string? Name 
         { 
-            get { return Type == DirectoryItemType.Drive ? FullPath : DirectoryStructure.GetFileFolderName(FullPath); } 
-            set { Name = value; Notify("Name"); }
+            get 
+            {
+                m_Name = Type == DirectoryItemType.Drive ? FullPath : DirectoryStructure.GetFileFolderName(FullPath); 
+                return m_Name; 
+            } 
+            set 
+            {
+                if (m_Name == value)
+                    return;
+                m_Name = value;
+                Notify("Name");
+            }
         }
         // ObservableCollection 이 녀석은 list인데 list 항목이 제거되거나 추가되는 경우 PropertyChanged 처럼 알림을 줄 수가 있다.
-        public ObservableCollection<DirectoryItemViewModel?>? Children { get; set; }
+        public ObservableCollection<DirectoryItemViewModel?>? Children 
+        {
+            get
+            {
+                return m_Children;
+            }
+            set
+            {
+                if (m_Children == value)
+                    return;
+                m_Children = value;
+                Notify("Children");
+            }
+        }
         public ICommand ExpandCommand { get; set; }
         public DirectoryItemViewModel(string? fullPath, DirectoryItemType type)
         {
-            // 15분~17분 다시보기 
-            // https://www.youtube.com/watch?v=U2ZvZwDZmJU&list=PLrW43fNmjaQVYF4zgsD0oL9Iv6u23PI6M&index=3&t=2739s&ab_channel=AngelSix
-            //PropertyChanged += DirectoryItemViewModel_PropertyChanged;
-
             ExpandCommand = new RelayCommand(Expand); // 트리 노드 확장시에 발동되는 함수를 붙여준다.
 
             FullPath = fullPath;
@@ -56,7 +92,7 @@ namespace TreeView_Improved
         {
             get
             {
-                // ObservableCollection에서 null이 아닌 녀석들이 있다면 true를 반환한다.
+                // ObservableCollection에서 null이 아닌 녀석들의 수를 세어 한명이라도 있다면 true를 반환한다.
                 return Children?.Count(f => f != null) > 0;
             }
             set
@@ -65,6 +101,8 @@ namespace TreeView_Improved
                     Expand();
                 else
                     ClearChildren();
+
+                Notify("IsExpanded");
             }
         }
         // 트리의 자식 노드를 모두 초기화

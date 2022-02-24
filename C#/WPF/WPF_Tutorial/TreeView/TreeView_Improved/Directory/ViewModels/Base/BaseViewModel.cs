@@ -18,7 +18,10 @@ namespace TreeView_Improved
         // PropertyChanged += property_test;로 이벤트 함수를 추가해준 뒤에 특정 바인딩된 변수의 set에
         // PropertyChanged(this, new PropertyChangedEventArgs(특정 바인딩된 변수 이름));를 호출해주면 된다.
         // 무슨 말인지 모르겠다면 코드를 보면서 이해하면 쉽다.
-        public event PropertyChangedEventHandler? PropertyChanged = (sender, e) => { };
+        public event PropertyChangedEventHandler? PropertyChanged = (sender, e) => 
+        { 
+        
+        };
 
         protected void Notify(string propName)
         {

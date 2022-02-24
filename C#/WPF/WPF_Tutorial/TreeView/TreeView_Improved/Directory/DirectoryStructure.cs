@@ -9,6 +9,7 @@ namespace TreeView_Improved
 {
     public class DirectoryStructure
     {
+        // C드라이브, D드라이브 등 찾기...
         public static List<DirectoryItem> GetLogicalDrives()
         {
             // Directory.GetLogicalDrives()는 컴퓨터에 달려있는 드라이브에 대한 정보가 들어간다.
@@ -18,6 +19,7 @@ namespace TreeView_Improved
             return Directory.GetLogicalDrives().Select(drive => new DirectoryItem { FullPath = drive, Type = DirectoryItemType.Drive }).ToList();
         }
 
+        // 특정 폴더, 드라이브의 내부 요소 탐색
         public static List<DirectoryItem> GetDirectoryContents(string? fullPath)
         {
             var items = new List<DirectoryItem>();
@@ -28,8 +30,9 @@ namespace TreeView_Improved
             {
                 var dirs = Directory.GetDirectories(fullPath);
 
-                // 하위 아이템 추가를 위한 for문
-                items.AddRange(dirs.Select(dir => new DirectoryItem { FullPath = dir, Type = DirectoryItemType.Folder }));
+                // 하위 아이템 추가
+                if (dirs.Length > 0)
+                    items.AddRange(dirs.Select(dir => new DirectoryItem { FullPath = dir, Type = DirectoryItemType.Folder }));
             }
             catch
             {
@@ -45,8 +48,9 @@ namespace TreeView_Improved
             {
                 var files = Directory.GetFiles(fullPath);
 
-                // 하위 아이템 추가를 위한 for문
-                items.AddRange(files.Select(file => new DirectoryItem { FullPath = file, Type = DirectoryItemType.File }));
+                // 하위 아이템 추가
+                if (files.Length > 0)
+                    items.AddRange(files.Select(file => new DirectoryItem { FullPath = file, Type = DirectoryItemType.File }));
             }
             catch
             {
