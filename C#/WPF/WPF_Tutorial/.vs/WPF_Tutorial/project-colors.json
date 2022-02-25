@@ -1,0 +1,16 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "17c00f7a-f84c-456a-b6bb-e87581619daf": {
+      "ProjectGuid": "17c00f7a-f84c-456a-b6bb-e87581619daf",
+      "DisplayName": "Word",
+      "ColorIndex": 0
+    },
+    "0158ba21-fd84-4b13-8bfb-4e2aa18dcd67": {
+      "ProjectGuid": "0158ba21-fd84-4b13-8bfb-4e2aa18dcd67",
+      "DisplayName": "TreeView_Improved",
+      "ColorIndex": 1
+    }
+  },
+  "NextColorIndex": 2
+}

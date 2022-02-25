@@ -1,0 +1,26 @@
+{
+  "Version": 1,
+  "ProjectMap": {
+    "af05aa53-57ec-4ba6-8698-2a3da41fddef": {
+      "ProjectGuid": "af05aa53-57ec-4ba6-8698-2a3da41fddef",
+      "DisplayName": "TreeView",
+      "ColorIndex": 0
+    },
+    "0158ba21-fd84-4b13-8bfb-4e2aa18dcd67": {
+      "ProjectGuid": "0158ba21-fd84-4b13-8bfb-4e2aa18dcd67",
+      "DisplayName": "TreeView_Improved",
+      "ColorIndex": 1
+    },
+    "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3": {
+      "ProjectGuid": "a2fe74e1-b743-11d0-ae1a-00a0c90fffc3",
+      "DisplayName": "기타 파일",
+      "ColorIndex": -1
+    },
+    "17c00f7a-f84c-456a-b6bb-e87581619daf": {
+      "ProjectGuid": "17c00f7a-f84c-456a-b6bb-e87581619daf",
+      "DisplayName": "Word",
+      "ColorIndex": 2
+    }
+  },
+  "NextColorIndex": 3
+}

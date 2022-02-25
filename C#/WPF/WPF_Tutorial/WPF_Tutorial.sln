@@ -1,0 +1,37 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.32112.339
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TreeView", "TreeView\TreeView.csproj", "{AF05AA53-57EC-4BA6-8698-2A3DA41FDDEF}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TreeView_Improved", "TreeView_Improved\TreeView_Improved.csproj", "{0158BA21-FD84-4B13-8BFB-4E2AA18DCD67}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Word", "Word\Word.csproj", "{17C00F7A-F84C-456A-B6BB-E87581619DAF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{AF05AA53-57EC-4BA6-8698-2A3DA41FDDEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF05AA53-57EC-4BA6-8698-2A3DA41FDDEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF05AA53-57EC-4BA6-8698-2A3DA41FDDEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF05AA53-57EC-4BA6-8698-2A3DA41FDDEF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0158BA21-FD84-4B13-8BFB-4E2AA18DCD67}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0158BA21-FD84-4B13-8BFB-4E2AA18DCD67}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0158BA21-FD84-4B13-8BFB-4E2AA18DCD67}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0158BA21-FD84-4B13-8BFB-4E2AA18DCD67}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17C00F7A-F84C-456A-B6BB-E87581619DAF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17C00F7A-F84C-456A-B6BB-E87581619DAF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17C00F7A-F84C-456A-B6BB-E87581619DAF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17C00F7A-F84C-456A-B6BB-E87581619DAF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2E0D00FA-33FC-480D-8DBD-6FB33B19C815}
+	EndGlobalSection
+EndGlobal
