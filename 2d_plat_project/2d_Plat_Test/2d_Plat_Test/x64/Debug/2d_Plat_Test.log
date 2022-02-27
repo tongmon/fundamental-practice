@@ -1,0 +1,4 @@
+﻿  main.cpp
+C:\Users\tongm\source\repos\2d_Plat_Test\2d_Plat_Test\main.cpp(12,30): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\tongm\source\repos\2d_Plat_Test\2d_Plat_Test\main.cpp(12,54): warning C4267: '초기화 중': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  2d_Plat_Test.vcxproj -> C:\Users\tongm\source\repos\2d_Plat_Test\x64\Debug\2d_Plat_Test.exe

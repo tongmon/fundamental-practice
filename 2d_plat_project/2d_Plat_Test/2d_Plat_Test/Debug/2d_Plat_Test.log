@@ -1,0 +1,9 @@
+﻿  main.cpp
+C:\Users\tongm\source\repos\2d_Plat_Test\2d_Plat_Test\main.cpp(23,30): warning C4244: '=': 'int32_t'에서 'float'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+C:\Users\tongm\source\repos\2d_Plat_Test\2d_Plat_Test\main.cpp(35,34): warning C4244: '인수': 'float'에서 'const T'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+          with
+          [
+              T=int32_t
+          ]
+main.obj : error LNK2019: "public: __thiscall olc::GFX2D::Transform2D::Transform2D(void)" (??0Transform2D@GFX2D@olc@@QAE@XZ)"public: virtual bool __thiscall Example::OnUserUpdate(float)" (?OnUserUpdate@Example@@UAE_NM@Z) 함수에서 참조되는 확인할 수 없는 외부 기호
+C:\Users\tongm\source\repos\2d_Plat_Test\Debug\2d_Plat_Test.exe : fatal error LNK1120: 1개의 확인할 수 없는 외부 참조입니다.
