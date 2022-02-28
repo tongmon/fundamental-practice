@@ -25,3 +25,4 @@ C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\Word\obj\D
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\Word\obj\Debug\net6.0-windows\Styles\Fonts.baml
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\Word\obj\Debug\net6.0-windows\Styles\Texts.baml
 C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\Word\obj\Debug\net6.0-windows\Styles\Windows.baml
+C:\Users\DP91-HSK\Documents\GitHub\Data-Structure\C#\WPF\WPF_Tutorial\Word\obj\Debug\net6.0-windows\Word.csproj.AssemblyReference.cache
