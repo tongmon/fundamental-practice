@@ -274,20 +274,21 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 		for (int j = 0; j < map.mWidth; j++)
 		{
 			// 벽인 사각형은 노드가 될 수 없다.
-			if (MapInfo[i][j].mType == 1)
+			if (MapInfo[i][j].mType == (int)BlockType::Block)
 				continue;
 
 			// 지면이 존재하면 검사
 			if (i + 1 < map.mHeight && MapInfo[i + 1][j].mType == (int)BlockType::Block) 
 			{
-#pragma region calculate_size_fit
+				// 해당 블록이 노드를 만들 수 있는 위치인지를 검사
+#pragma region calculate_can_make_node
 				// 생명체 크기에 따라 지면 위, 옆으로 몇 블록을 검사해야 하는지 알기 위함.
 				// 생명체는 해당 블록을 밣고 있으며 블록 중간 지점에 위치한다고 가정한다.
 				// 예를 들어 블록 하나의 높이 길이가 3이고 생명체 크기가 7이라면 생명체가 서있는 곳에서부터
 				// (7 / 3)을 올림한 수인 3, 즉 3블록을 위로 검사해야 한다.
 				int hSize = (int)ceil(creature.mHeight / (MapInfo[i][j].mHalf.y * 2)),
 					wSize = (int)ceil(creature.mWidth / (MapInfo[i][j].mHalf.x * 2)),
-					k;
+					x, y;
 				bool is_Fit = true;
 
 				// 너비를 검사해야 하는 블록 개수가 짝수면 홀수로 만들어 준다.
@@ -296,7 +297,7 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				wSize = wSize % 2 ? wSize : wSize + 1;
 
 				// 너비로 먼저 돌고 루프 안에서 높이를 계산한다.
-				for (int x = j - wSize / 2, y; x <= j + wSize / 2; x++)
+				for (x = j - wSize / 2; x <= j + wSize / 2; x++)
 				{
 					// 맵의 좌우를 뚫고 검사를 진행할 수 없다.
 					if (x < 0 || x >= map.mWidth) {
@@ -320,90 +321,66 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 					continue;
 #pragma endregion
 
-#pragma region link_side_node
 				// 바로 양옆 노드를 연결하기 위한 조건 검사
+#pragma region link_side_node
 
+				// 왼쪽 옆 노드 연결 확인
+				// 캐릭터의 왼쪽 끝보다 한 칸 더 옆 블록의 맵 인덱스 획득
+				int left_end = j - wSize / 2 - 1;
+				
+				// 캐릭터 왼쪽 끝 부터 중앙까지 지면이 한 블록이라도 있다면
+				// 왼쪽으로 이동할 수 있는 가능성이 있다.
+				bool can_Move_Left = false;
+				for (x = left_end; x >= 0 && x < j && !can_Move_Left; x++)
+				{
+					if (MapInfo[i + 1][x].mType == (int)BlockType::Block)
+						can_Move_Left = true;
+				}
+
+				// 캐릭터의 왼쪽 끝보다 한 칸 더 옆 블록의 위쪽을 검사해 위쪽에 막히는 블록이 있는지 없는지 검사한다.
+				for (y = i; y >= 0 && y > i - hSize && can_Move_Left; y--)
+					can_Move_Left &= MapInfo[y][left_end].mType == (int)BlockType::Space;
+				can_Move_Left &= y >= 0;
+
+				// 왼쪽에 노드 추가
+				if (can_Move_Left)
+					nodeMap[i][j].AddNode({ left_end,i }, { -creature.mMaxXSpeed,0.f }, (int)NodeState::Walk);
+
+				// 오른쪽 옆 노드 연결 확인
+				// 캐릭터의 오른쪽 끝보다 한 칸 더 옆 블록의 맵 인덱스 획득
+				int right_end = j + wSize / 2 + 1;
+
+				// 캐릭터 오른쪽 끝 부터 중앙까지 지면이 한 블록이라도 있다면
+				// 오른쪽으로 이동할 수 있는 가능성이 있다.
+				bool can_Move_Right = false;
+				for (x = right_end; x < map.mWidth && x > j && !can_Move_Right; x--)
+				{
+					if (MapInfo[i + 1][x].mType == (int)BlockType::Block)
+						can_Move_Right = true;
+				}
+
+				// 캐릭터의 오른쪽 끝보다 한 칸 더 옆 블록의 위쪽을 검사해 위쪽에 막히는 블록이 있는지 없는지 검사한다.
+				for (y = i; y >= 0 && y > i - hSize && can_Move_Right; y--)
+					can_Move_Right &= MapInfo[y][right_end].mType == (int)BlockType::Space;
+				can_Move_Right &= y >= 0;
+
+				// 오른쪽에 노드 추가
+				if (can_Move_Right)
+					nodeMap[i][j].AddNode({ right_end,i }, { creature.mMaxXSpeed,0.f }, (int)NodeState::Walk);
+
+#pragma endregion
+
+				// 떨어질 수 있는 공간에 대한 노드를 연결하기 위한 조건 검사
+#pragma region link_fall_node
+
+
+#pragma endregion
+
+				// 점프해서 갈 수 있는 노드를 연결하기 위한 조건 검사
+#pragma region link_jump_node
 				
 
 #pragma endregion
-
-#pragma region link_jump_node
-				// 점프해서 갈 수 있는 노드를 연결하기 위한 조건 검사
-
-
-
-#pragma endregion
-
-				// 적 캐릭터(오브젝트)가 좌, 우로 움직이는 경우 캐릭터 키에 걸리는 낮은 블록이 있어 그 곳으로 바로 걸어갈 수 없는 경우 계산
-				auto ObjHeightCalculation = [&](bool is_Left)->int {
-					if ((is_Left && j - 1 < 0) || (!is_Left && map.mWidth <= j + 1))
-						return -1;
-					int t = is_Left ? j - 1 : j + 1;
-					is_Fit = true;
-					for (k = i; k >= 0 && k > i - hSize; k--)
-						is_Fit &= MapInfo[k][t].mType != 1;
-					is_Fit = k >= 0 ? is_Fit : false;
-					if (is_Fit) {
-						int p = i + 1;
-						// 내려가는 곳에는 제한없이 이동이 가능할 것임, 낙뎀 같은 페널티가 있다면 for문 조정 필요
-						for (; p < map.mHeight; p++) if (MapInfo[p][t].mType == 1) break;
-
-						// 최초 검사된 바닥 블록 한 칸 위 그리고 한칸 좌측 방향에 노드를 만든다.
-						if (p < map.mHeight)
-							return p - 1;
-						// NodeMap[i][j].AddNode({ t,p - 1 }, { 2e9,2e9 }, (int)Node::NodeState::Walk);
-					}
-					return -1;
-				};
-
-				// 적 캐릭터 크기로 인해 노드가 될 수 있는 곳인지 아닌지 검사
-				auto ObjSizeCalculation = [&](bool is_Left)->void {
-					int posY = ObjHeightCalculation(is_Left);
-					// 적 캐릭터 너비가 길어서 밑으로 떨어질 수 없는 경우 계산
-					if (posY != -1) {
-						bool is_NodePlace = true;
-						if (posY != i) {
-							for (int y = i; y <= posY && is_NodePlace; y++) {
-								int x = is_Left ? j - 1 : j + 1;
-								for (; is_Left && x >= 0 && x > j - 1 - wSize && is_NodePlace; x--) {
-									is_NodePlace &= MapInfo[y][x].mType != 1;
-								}
-								for (; !is_Left && x < map.mWidth && x < j + 1 + wSize && is_NodePlace; x++) {
-									is_NodePlace &= MapInfo[y][x].mType != 1;
-								}
-								if ((is_Left && x > 0) || (!is_Left && x < map.mWidth)) is_NodePlace = false;
-							}
-						}
-						if (is_NodePlace)
-							NodeMap[i][j].AddNode({ is_Left ? j - 1 : j + 1,posY }, { (float)2e9,(float)2e9 }, Node::NodeState::Walk);
-					}
-				};
-
-				// 현재 노드에서 한칸 좌,우측의 경우 판단
-				// 물체의 높이와 너비를 모두 고려해야 함
-				ObjSizeCalculation(true);
-				ObjSizeCalculation(false);
-
-				// 점프 고려
-				// 포물선을 그려 충돌 유무 체크
-				// x축과 y축 초기 속도와 그 간격을 잘 조절하는 것이 관건이다.
-				// 22/02/27 여기까지... 다시 진행
-				float xStartSpeed = 1.f, yStartSpeed = 10.f, xSpeedGap = 5.f, ySpeedGap = 5.f, timeGap = 2.f;
-				float initX = MapInfo[i][j].GetRightBottom().first, initY = MapInfo[i][j].mCenter.second;
-				for (float xSpeed = xStartSpeed; xSpeed <= MaxSpeed.first; xSpeed += xSpeedGap)
-				{
-					for (float ySpeed = yStartSpeed; ySpeed < MaxSpeed.second; ySpeed += ySpeedGap)
-					{
-						float xDist = initX, yDist = initY;
-						for (float fTime = 0; fTime < 1/* 다시 설정 */; fTime += timeGap)
-						{
-							xDist = fTime * xSpeed;
-							yDist = ySpeed * fTime + fTime * fTime / 2.f * Gravity; // 등가속도 운동
-							pair<int, int> mapIndex = Map.GetMapTileAtPoint({ xDist ,yDist });
-							MapInfo[mapIndex.second][mapIndex.first].Overlaps(Square({ xDist + ObjHalfSize.first, yDist }, ObjHalfSize, 1));
-						}
-					}
-				}
 			}
 		}
 	}
