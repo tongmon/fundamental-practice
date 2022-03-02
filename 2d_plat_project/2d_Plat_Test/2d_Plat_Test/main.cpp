@@ -145,7 +145,7 @@ struct Square {
 	Coordinate<float> mCenter; // 사각형의 중심
 	Coordinate<float> mHalf; // 사각형의 반지름
 	int mType; // 해당 사각형이 길인지 벽돌인지 아니면 다른 사물인지 알 수 있는 타입
-	Square() { mCenter = { 0.f,0.f }, mHalf = { 1.f,1.f }; }
+	Square() { mCenter = { 0.f,0.f }, mHalf = { 1.f,1.f }; mType = 0; }
 	Square(const Coordinate<float>& center, const Coordinate<float>& half, const int& type) { mCenter = center, mHalf = half; mType = type; }
 	~Square() {}
 	pair<float, float> GetLeftTop() { return { mCenter.x - mHalf.x, mCenter.y + mHalf.y }; }
@@ -274,21 +274,33 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 		for (int j = 0; j < map.mWidth; j++)
 		{
 			// 벽인 사각형은 노드가 될 수 없다.
-			if (MapInfo[i][j].mType == (int)BlockType::Block)
+			// 바닥이 없는 경우 노드를 만들 수 없다.
+			if (MapInfo[i][j].mType == (int)BlockType::Block || i + 1 >= map.mHeight)
 				continue;
 
-			// 지면이 존재하면 검사
-			if (i + 1 < map.mHeight && MapInfo[i + 1][j].mType == (int)BlockType::Block) 
+			// 생명체 크기에 따라 지면 위, 옆으로 몇 블록을 검사해야 하는지 알기 위함.
+			// 생명체는 해당 블록을 밣고 있으며 블록 중간 지점에 위치한다고 가정한다.
+			// 예를 들어 블록 하나의 높이 길이가 3이고 생명체 크기가 7이라면 생명체가 서있는 곳에서부터
+			// (7 / 3)을 올림한 수인 3, 즉 3블록을 위로 검사해야 한다.
+			int hSize = (int)ceil(creature.mHeight / (MapInfo[i][j].mHalf.y * 2)),
+				wSize = (int)ceil(creature.mWidth / (MapInfo[i][j].mHalf.x * 2)),
+				x, y;
+
+			// 생명체가 서있을 수 있는 지면이 있으면 해당 x 블록 인덱스가 여기에 담김
+			unordered_set<int> ground_Index;
+
+			// 생명체가 서있을 수 있는 지면이 존재하는지 검사
+			for (x = j - wSize / 2; x <= j + wSize / 2; x++)
+			{
+				if (MapInfo[i + 1][x].mType == (int)BlockType::Block)
+					ground_Index.insert(x);
+			}
+
+			// 서 있을 수 있는 지면이 있다면 노드를 생성하기 위한 조건 검사
+			if (!ground_Index.empty())
 			{
 				// 해당 블록이 노드를 만들 수 있는 위치인지를 검사
 #pragma region calculate_can_make_node
-				// 생명체 크기에 따라 지면 위, 옆으로 몇 블록을 검사해야 하는지 알기 위함.
-				// 생명체는 해당 블록을 밣고 있으며 블록 중간 지점에 위치한다고 가정한다.
-				// 예를 들어 블록 하나의 높이 길이가 3이고 생명체 크기가 7이라면 생명체가 서있는 곳에서부터
-				// (7 / 3)을 올림한 수인 3, 즉 3블록을 위로 검사해야 한다.
-				int hSize = (int)ceil(creature.mHeight / (MapInfo[i][j].mHalf.y * 2)),
-					wSize = (int)ceil(creature.mWidth / (MapInfo[i][j].mHalf.x * 2)),
-					x, y;
 				bool is_Fit = true;
 
 				// 너비를 검사해야 하는 블록 개수가 짝수면 홀수로 만들어 준다.
@@ -327,15 +339,18 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				// 왼쪽 옆 노드 연결 확인
 				// 캐릭터의 왼쪽 끝보다 한 칸 더 옆 블록의 맵 인덱스 획득
 				int left_end = j - wSize / 2 - 1;
-				
-				// 캐릭터 왼쪽 끝 부터 중앙까지 지면이 한 블록이라도 있다면
-				// 왼쪽으로 이동할 수 있는 가능성이 있다.
-				bool can_Move_Left = false;
+
+				// 생명체 바닥을 볼 때 오른쪽 끝 블록만 블록이 있는 상태인데 왼쪽으로 이동할 곳 바닥이 존재하지 않으면 왼쪽으로 이동할 수 없다.
+				// 왼쪽으로 갈 곳이 맵 인덱스를 벗어나도 왼쪽으로 이동할 수 없다.
+				bool can_Move_Left = left_end >= 0 && !(ground_Index.size() == 1 && ground_Index.find(j + wSize / 2) != ground_Index.end() && MapInfo[i + 1][left_end].mType == (int)BlockType::Space);
+
+				/*
 				for (x = left_end; x >= 0 && x < j && !can_Move_Left; x++)
 				{
 					if (MapInfo[i + 1][x].mType == (int)BlockType::Block)
 						can_Move_Left = true;
 				}
+				*/
 
 				// 캐릭터의 왼쪽 끝보다 한 칸 더 옆 블록의 위쪽을 검사해 위쪽에 막히는 블록이 있는지 없는지 검사한다.
 				for (y = i; y >= 0 && y > i - hSize && can_Move_Left; y--)
@@ -350,14 +365,17 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				// 캐릭터의 오른쪽 끝보다 한 칸 더 옆 블록의 맵 인덱스 획득
 				int right_end = j + wSize / 2 + 1;
 
-				// 캐릭터 오른쪽 끝 부터 중앙까지 지면이 한 블록이라도 있다면
-				// 오른쪽으로 이동할 수 있는 가능성이 있다.
-				bool can_Move_Right = false;
+				// 생명체 바닥을 볼 때 오른쪽 끝 블록만 블록이 있는 상태인데 왼쪽으로 이동할 곳 바닥이 존재하지 않으면 왼쪽으로 이동할 수 없다.
+				// 왼쪽으로 갈 곳이 맵 인덱스를 벗어나도 왼쪽으로 이동할 수 없다.
+				bool can_Move_Right = right_end < map.mWidth && !(ground_Index.size() == 1 && ground_Index.find(j - wSize / 2) != ground_Index.end() && MapInfo[i + 1][right_end].mType == (int)BlockType::Space);
+
+				/*
 				for (x = right_end; x < map.mWidth && x > j && !can_Move_Right; x--)
 				{
 					if (MapInfo[i + 1][x].mType == (int)BlockType::Block)
 						can_Move_Right = true;
 				}
+				*/
 
 				// 캐릭터의 오른쪽 끝보다 한 칸 더 옆 블록의 위쪽을 검사해 위쪽에 막히는 블록이 있는지 없는지 검사한다.
 				for (y = i; y >= 0 && y > i - hSize && can_Move_Right; y--)
