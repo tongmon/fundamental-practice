@@ -252,7 +252,7 @@ public:
 	float mWidth;
 	float mHeight;
 	float mMaxXSpeed;
-	float mMaxYSpeed;
+	float mJumpSpeed;
 };
 
 // 맵에 대응되는 노드를 만들기 위해 필요한 것
@@ -283,15 +283,17 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 			// 생명체는 해당 블록을 밣고 있으며 블록 중간 지점에 위치한다고 가정한다.
 			// 예를 들어 블록 하나의 높이 길이가 3이고 생명체 크기가 7이라면 생명체가 서있는 곳에서부터
 			// (7 / 3)을 올림한 수인 3, 즉 3블록을 위로 검사해야 한다.
+			// left_Edge, right_Edge 캐릭터에 맞닿아 있는 양쪽 끝 지면 블록의 x 인덱스
 			int hSize = (int)ceil(creature.mHeight / (MapInfo[i][j].mHalf.y * 2)),
 				wSize = (int)ceil(creature.mWidth / (MapInfo[i][j].mHalf.x * 2)),
+				left_Edge = j - wSize / 2, right_Edge = j + wSize / 2,
 				x, y;
 
 			// 생명체가 서있을 수 있는 지면이 있으면 해당 x 블록 인덱스가 여기에 담김
 			unordered_set<int> ground_Index;
 
 			// 생명체가 서있을 수 있는 지면이 존재하는지 검사
-			for (x = j - wSize / 2; x <= j + wSize / 2; x++)
+			for (x = left_Edge; x <= right_Edge; x++)
 			{
 				if (MapInfo[i + 1][x].mType == (int)BlockType::Block)
 					ground_Index.insert(x);
@@ -308,8 +310,6 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				// 예를 들어 4블록을 검사해야 한다면 4블록 크기의 생명체를 해당 블록 정가운데에 세워놓기 위해서는
 				// 결국 5블록을 검사해야 한다.
 				wSize = wSize % 2 ? wSize : wSize + 1;
-
-				int left_Edge = j - wSize / 2, right_Edge = j + wSize / 2;
 
 				// 너비로 먼저 돌고 루프 안에서 높이를 계산한다.
 				for (x = left_Edge; x <= right_Edge; x++)
@@ -341,7 +341,7 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 
 				// 왼쪽 옆 노드 연결 확인
 				// 캐릭터의 왼쪽 끝보다 한 칸 더 옆 블록의 맵 인덱스 획득
-				int left_end = j - wSize / 2 - 1;
+				int left_end = left_Edge - 1;
 
 				// 생명체 바닥을 볼 때 오른쪽 끝 블록만 블록이 있는 상태인데 왼쪽으로 이동할 곳 바닥이 존재하지 않으면 왼쪽으로 이동할 수 없다.
 				// 왼쪽으로 갈 곳이 맵 인덱스를 벗어나도 왼쪽으로 이동할 수 없다.
@@ -366,7 +366,7 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 
 				// 오른쪽 옆 노드 연결 확인
 				// 캐릭터의 오른쪽 끝보다 한 칸 더 옆 블록의 맵 인덱스 획득
-				int right_end = j + wSize / 2 + 1;
+				int right_end = right_Edge + 1;
 
 				// 생명체 바닥을 볼 때 오른쪽 끝 블록만 블록이 있는 상태인데 왼쪽으로 이동할 곳 바닥이 존재하지 않으면 왼쪽으로 이동할 수 없다.
 				// 왼쪽으로 갈 곳이 맵 인덱스를 벗어나도 왼쪽으로 이동할 수 없다.
@@ -441,6 +441,11 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				// 점프해서 갈 수 있는 노드를 연결하기 위한 조건 검사
 #pragma region link_jump_node
 				
+				// 0 ~ 180도를 특정 각도로 끊어서 생명체가 그 방향으로 힘을 주고 뛴다고 가정한다.
+				// 10도씩 끊어서 포물선 레이캐스팅을 할 건지 20도씩 할 건지에 따라 연산 속도가 달라진다.
+				// 각도를 세밀하게 쪼개면서 검사할 수록 연산량이 많아진다.
+				// 생명체가 주는 힘은 mJumpSpeed로 일정하다고 가정한다.
+				// 만약 mJumpSpeed 이하의 힘으로 점프가 가능하다면 연산이 많아진다.
 
 #pragma endregion
 			}
