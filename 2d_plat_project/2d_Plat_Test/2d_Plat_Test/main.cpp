@@ -1,4 +1,5 @@
 #include <bits/stdc++.h>
+#include <unordered_set>
 using namespace std;
 
 // olc 게임엔진 사용 후 배포시 참고 https://community.onelonecoder.com/2020/05/20/how-to-attribute-credit-cite-the-olcpixelgameengine/
@@ -391,7 +392,12 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				// 떨어질 수 있는 공간에 대한 노드를 연결하기 위한 조건 검사
 #pragma region link_fall_node
 
+				// 왼쪽으로 이동할 경우 바닥이 단 한개도 존재하지 않는다면 떨어진다.
+				bool can_Fall_Left = left_end >= 0 && ground_Index.size() == 1 && ground_Index.find(j + wSize / 2) != ground_Index.end() && MapInfo[i + 1][left_end].mType == (int)BlockType::Space;
 
+
+				// 오른쪽으로 이동할 경우 바닥이 단 한개도 존재하지 않는다면 떨어진다.
+				bool can_Fall_Right = right_end < map.mWidth && ground_Index.size() == 1 && ground_Index.find(j - wSize / 2) != ground_Index.end() && MapInfo[i + 1][right_end].mType == (int)BlockType::Space;
 #pragma endregion
 
 				// 점프해서 갈 수 있는 노드를 연결하기 위한 조건 검사
