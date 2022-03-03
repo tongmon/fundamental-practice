@@ -309,8 +309,10 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				// 결국 5블록을 검사해야 한다.
 				wSize = wSize % 2 ? wSize : wSize + 1;
 
+				int left_Edge = j - wSize / 2, right_Edge = j + wSize / 2;
+
 				// 너비로 먼저 돌고 루프 안에서 높이를 계산한다.
-				for (x = j - wSize / 2; x <= j + wSize / 2; x++)
+				for (x = left_Edge; x <= right_Edge; x++)
 				{
 					// 맵의 좌우를 뚫고 검사를 진행할 수 없다.
 					if (x < 0 || x >= map.mWidth) {
@@ -393,11 +395,47 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 #pragma region link_fall_node
 
 				// 왼쪽으로 이동할 경우 바닥이 단 한개도 존재하지 않는다면 떨어진다.
-				bool can_Fall_Left = left_end >= 0 && ground_Index.size() == 1 && ground_Index.find(j + wSize / 2) != ground_Index.end() && MapInfo[i + 1][left_end].mType == (int)BlockType::Space;
+				// can_Move_Left에서 왼쪽 이동 노드를 이미 추가했다면 왼쪽으로 떨어질 노드를 볼 필요가 없다.
+				bool can_Fall_Left = !can_Move_Left && left_end >= 0 && ground_Index.size() == 1 && ground_Index.find(j + wSize / 2) != ground_Index.end() && MapInfo[i + 1][left_end].mType == (int)BlockType::Space;
+				
+				// 바닥 인덱스 초기화
+				int bottom_Index = -1;
 
+				// 생명체가 떨어질 공간을 탐색함
+				for (y = i + 2; can_Fall_Left && bottom_Index < 0; y++) {
+					for (x = left_Edge - 1; x <= right_Edge - 1; x++) {
+						// 탐색 도중 생명체를 가로막는 것이 있다면 바로 윗 y 인덱스가 추락 지점이다.
+						if (MapInfo[y][x].mType == (int)BlockType::Block) {
+							bottom_Index = y - 1;
+							break;
+						}
+					}
+				}
+
+				// 추락 노드 추가
+				if(can_Fall_Left)
+					nodeMap[i][j].AddNode({ left_end,bottom_Index }, { -creature.mMaxXSpeed,0.f }, (int)NodeState::Walk);
 
 				// 오른쪽으로 이동할 경우 바닥이 단 한개도 존재하지 않는다면 떨어진다.
-				bool can_Fall_Right = right_end < map.mWidth && ground_Index.size() == 1 && ground_Index.find(j - wSize / 2) != ground_Index.end() && MapInfo[i + 1][right_end].mType == (int)BlockType::Space;
+				// can_Move_Right에서 오른쪽 이동 노드를 이미 추가했다면 오른쪽으로 떨어질 노드를 볼 필요가 없다.
+				bool can_Fall_Right = !can_Move_Right && right_end < map.mWidth && ground_Index.size() == 1 && ground_Index.find(j - wSize / 2) != ground_Index.end() && MapInfo[i + 1][right_end].mType == (int)BlockType::Space;
+
+				// 바닥 인덱스 초기화
+				bottom_Index = -1;
+
+				// 생명체가 떨어질 공간을 탐색함
+				for (y = i + 2; can_Fall_Right && bottom_Index < 0; y++) {
+					for (x = left_Edge + 1; x <= right_Edge + 1; x++) {
+						// 탐색 도중 생명체를 가로막는 것이 있다면 바로 윗 y 인덱스가 추락 지점이다.
+						if (MapInfo[y][x].mType == (int)BlockType::Block) {
+							bottom_Index = y - 1;
+							break;
+						}
+					}
+				}
+
+				if (can_Fall_Right)
+					nodeMap[i][j].AddNode({ right_end,bottom_Index }, { creature.mMaxXSpeed,0.f }, (int)NodeState::Walk);
 #pragma endregion
 
 				// 점프해서 갈 수 있는 노드를 연결하기 위한 조건 검사
