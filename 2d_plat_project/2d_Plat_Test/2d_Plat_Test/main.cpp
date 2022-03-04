@@ -253,6 +253,7 @@ public:
 	float mHeight;
 	float mMaxXSpeed;
 	float mJumpSpeed;
+	float mGravity;
 };
 
 // 맵에 대응되는 노드를 만들기 위해 필요한 것
@@ -261,7 +262,7 @@ public:
 // 3. 블록 하나 당 크기
 // 
 
-void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creature, float gravity)
+void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creature)
 {
 	// 새로운 노드맵을 만들기 위해 노드맵을 초기화해준다.
 	nodeMap.clear();
@@ -445,7 +446,27 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				// 10도씩 끊어서 포물선 레이캐스팅을 할 건지 20도씩 할 건지에 따라 연산 속도가 달라진다.
 				// 각도를 세밀하게 쪼개면서 검사할 수록 연산량이 많아진다.
 				// 생명체가 주는 힘은 mJumpSpeed로 일정하다고 가정한다.
-				// 만약 mJumpSpeed 이하의 힘으로 점프가 가능하다면 연산이 많아진다.
+				// 만약 mJumpSpeed 이하의 힘으로 점프가 가능하다면 mJumpSpeed 이하의 힘으로 뛰는 경우에 대해 검사해야 하기에 연산이 많아진다.
+
+				// 각도 정의, degree_gap인 20도 마다 포물선을 그려 계산하기로 하고 검사 시작 각도는 20도이다.
+				int degree, degree_gap = 20, radius_start = 20;
+
+				// 각도를 라디안으로 바꿔주는 람다 함수
+				auto deg_to_rad = [](int deg)->float { return (deg * (3.14159265359 / 180.f)); };
+				
+				// 각도 검사
+				for (degree = radius_start; degree <= 180; degree += degree_gap)
+				{
+					float x_speed = cosf(deg_to_rad(degree)); // x축 속도는 등속도 운동
+					float y_speed = sinf(deg_to_rad(degree)); // y축 속도는 중력에 의해 등가속도 운동을 한다.
+
+
+					int tick_gap = 10, tick_start = 10, tick = tick_start;
+					while () {
+
+						tick += tick_gap;
+					}
+				}
 
 #pragma endregion
 			}
