@@ -147,7 +147,7 @@ struct Square {
 	Coordinate<float> mHalf; // 사각형의 반지름
 	int mType; // 해당 사각형이 길인지 벽돌인지 아니면 다른 사물인지 알 수 있는 타입
 	Square() { mCenter = { 0.f,0.f }, mHalf = { 1.f,1.f }; mType = 0; }
-	Square(const Coordinate<float>& center, const Coordinate<float>& half, const int& type) { mCenter = center, mHalf = half; mType = type; }
+	Square(const Coordinate<float>& center, const Coordinate<float>& half, const int& type = 0) { mCenter = center, mHalf = half; mType = type; }
 	~Square() {}
 	pair<float, float> GetLeftTop() { return { mCenter.x - mHalf.x, mCenter.y + mHalf.y }; }
 	pair<float, float> GetRightBottom() { return { mCenter.x + mHalf.x, mCenter.y - mHalf.y }; }
@@ -166,6 +166,7 @@ public:
 	// 맵의 실제 사각형 정보
 	vector<vector<Square>> mMap;
 	Map() { mWidth = mHeight = 0; }
+
 	// startCoordiante -> 맵의 첫 블록 사각형의 중심 좌표
 	// squareSize -> 맵 사각형 크기 (한 변 크기, 정사각형이라고 가정)
 	// mapInfo -> 맵 정보
@@ -184,10 +185,19 @@ public:
 			Y += squareSize;
 		}
 	}
+
 	// 주어진 좌표가 어느 격자에 속하는지 알아내는 함수
-	Coordinate<int> GetMapTileAtPoint(const Coordinate<float>& point) {
+	Coordinate<int> GetMapTileAtPoint(const Coordinate<float>& point)
+	{
 		return { (int)((point.x - mStMapPoint.x + mMap[0][0].mHalf.x) / (mMap[0][0].mHalf.x * 2)),
 		(int)((point.y - mStMapPoint.y + mMap[0][0].mHalf.y) / (mMap[0][0].mHalf.y * 2)) };
+	}
+
+	// 주어진 맵 좌표가 어느 화면 좌표에 속하는지 알아내는 함수
+	Coordinate<float> GetPointAtMapTile(const Coordinate<int>& point)
+	{
+		return { mStMapPoint.x + point.x * mMap[0][0].mHalf.x * 2 + mMap[0][0].mHalf.x,
+		mStMapPoint.y + point.y * mMap[0][0].mHalf.y * 2 + mMap[0][0].mHalf.y };
 	}
 };
 
@@ -252,8 +262,8 @@ public:
 	float mWidth;
 	float mHeight;
 	float mMaxXSpeed;
-	float mJumpSpeed;
-	float mGravity;
+	float mJumpSpeed; // 생명체 점프 속도, 각도와 같이 쓰임
+	float mGravity; // 생명체가 받는 중력 수치
 };
 
 // 맵에 대응되는 노드를 만들기 위해 필요한 것
@@ -262,6 +272,8 @@ public:
 // 3. 블록 하나 당 크기
 // 
 
+// 해당 함수는 x 좌표는 왼쪽에서 오른쪽으로 갈 수록 커지고 y 좌표는 아래에서 위로 갈 수록 커지는 좌표계에서 계산된다.
+// 맵의 격자는 y축만 반대로 맵의 가장 밑바닥은 맵의 y 인덱스가 가장 큰 녀석이 대응된다.
 void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creature)
 {
 	// 새로운 노드맵을 만들기 위해 노드맵을 초기화해준다.
@@ -269,8 +281,11 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 	// 노드맵의 격자 크기를 맵의 격자 크기와 같게 해준다.
 	nodeMap.resize(map.mHeight, vector<Node>(map.mWidth, Node()));
 
-	// 맵의 격자를 순회하면서 격자 간의 관계가 어떻게 형성되어 있는지 검사한다.
+	// 맵의 정보 따오기
 	auto& MapInfo = map.mMap;
+	float block_width = MapInfo[0][0].mHalf.x, block_height = MapInfo[0][0].mHalf.y;
+
+	// 맵의 격자를 순회하면서 격자 간의 관계가 어떻게 형성되어 있는지 검사한다.
 	for (int i = 0; i < map.mHeight; i++)
 	{
 		for (int j = 0; j < map.mWidth; j++)
@@ -285,8 +300,8 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 			// 예를 들어 블록 하나의 높이 길이가 3이고 생명체 크기가 7이라면 생명체가 서있는 곳에서부터
 			// (7 / 3)을 올림한 수인 3, 즉 3블록을 위로 검사해야 한다.
 			// left_Edge, right_Edge 캐릭터에 맞닿아 있는 양쪽 끝 지면 블록의 x 인덱스
-			int hSize = (int)ceil(creature.mHeight / (MapInfo[i][j].mHalf.y * 2)),
-				wSize = (int)ceil(creature.mWidth / (MapInfo[i][j].mHalf.x * 2)),
+			int hSize = (int)ceil(creature.mHeight / (block_height * 2)),
+				wSize = (int)ceil(creature.mWidth / (block_width * 2)),
 				left_Edge = j - wSize / 2, right_Edge = j + wSize / 2,
 				x, y;
 
@@ -459,12 +474,67 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				{
 					float x_speed = cosf(deg_to_rad(degree)); // x축 속도는 등속도 운동
 					float y_speed = sinf(deg_to_rad(degree)); // y축 속도는 중력에 의해 등가속도 운동을 한다.
+					
+					// 생명체의 중심 좌표 획득
+					Coordinate<float> center_xy = map.GetPointAtMapTile({ j,i });
+					center_xy.y = center_xy.y - block_height + creature.mHeight / 2;
 
+					// 생명체의 충돌을 알기 위한 사각형 생성
+					Square creature_sq(center_xy, { creature.mWidth / 2, creature.mHeight / 2 });
 
 					int tick_gap = 10, tick_start = 10, tick = tick_start;
-					while () {
+					bool collision = false;
+					Coordinate<int> collision_block;
+					// 시간(틱)을 증가시키면서 포물선 레이캐스팅 수행
+					while (!collision)
+					{
+						// 생명체의 사각형 중앙 좌표는 점프를 하면서 바뀐다.
+						creature_sq.mCenter = { creature_sq.mCenter.x + x_speed * tick, creature_sq.mCenter.y + y_speed * tick - creature.mGravity * tick };
+						// 캐릭터 중앙과 충돌하는 맵 타일을 구한다.
+						Coordinate<int> maptile_xy = map.GetMapTileAtPoint(creature_sq.mCenter);
+						
+						// BFS 방식으로 생명체와 맵 블록의 충돌을 계산한다.
+						// 큐에는 생명체와 충돌된 맵의 좌표가 들어간다.
+						int X[4] = { 1,-1,0,0 }, Y[4] = { 0,0,1,-1 };
+						queue<Coordinate<int>> bfs_Q;
+						bfs_Q.push(maptile_xy);
+						while (!bfs_Q.empty() && !collision)
+						{
+							Coordinate<int> front = bfs_Q.front();
+							bfs_Q.pop();
+
+							// 맵과 충돌을 하지도 않으면 그쪽 방향으로 더 탐색할 필요도 없다.
+							if (!creature_sq.Overlaps(MapInfo[front.y][front.x]))
+								continue;
+
+							// 맵 블록과 충돌을 했는데 해당 블록이 벽돌이면 충돌을 한 것이다.
+							if(MapInfo[front.y][front.x].mType == (int)BlockType::Block)
+
+
+							for (int u = 0; u < 4 && !collision; u++) {
+								Coordinate<int> cur = { X[u] + front.x, Y[u] + front.y };
+
+								// 생명체와 충돌을 하지도 않으면 그쪽 방향으로 더 탐색할 필요도 없다.
+								if (!creature_sq.Overlaps(MapInfo[cur.y][cur.x]))
+									continue;
+
+								// 맵과 생명체의 히트박스가 겹침으로 큐에 삽입함.
+								bfs_Q.push(cur);
+
+								// 맵 블록과 생명체가 충돌을 했는데 해당 블록이 벽돌이면 포물선 레이캐스팅을 중단한다.
+								if (MapInfo[cur.y][cur.x].mType == (int)BlockType::Block) {
+									collision_block = cur;
+									collision = true;
+								}
+							}
+						}
 
 						tick += tick_gap;
+					}
+
+					// 충돌을 했으면 얘가 착지인지 아니면 어떤 방식으로 점프가 막혔는지 판단한다.
+					if (collision) {
+
 					}
 				}
 
