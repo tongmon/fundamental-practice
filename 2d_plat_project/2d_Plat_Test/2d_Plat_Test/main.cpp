@@ -467,7 +467,7 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				int degree, degree_gap = 20, radius_start = 20;
 
 				// 각도를 라디안으로 바꿔주는 람다 함수
-				auto deg_to_rad = [](int deg)->float { return (deg * (3.14159265359 / 180.f)); };
+				auto deg_to_rad = [](int deg)->float { return (float)(deg * (3.14159265359 / 180.f)); };
 				
 				// 각도 검사
 				for (degree = radius_start; degree <= 180; degree += degree_gap)
@@ -484,32 +484,29 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 
 					int tick_gap = 10, tick_start = 10, tick = tick_start;
 					bool collision = false;
-					Coordinate<int> collision_block;
+
 					// 시간(틱)을 증가시키면서 포물선 레이캐스팅 수행
 					while (!collision)
 					{
 						// 생명체의 사각형 중앙 좌표는 점프를 하면서 바뀐다.
-						creature_sq.mCenter = { creature_sq.mCenter.x + x_speed * tick, creature_sq.mCenter.y + y_speed * tick - creature.mGravity * tick };
+						creature_sq.mCenter = { creature_sq.mCenter.x + x_speed * tick, creature_sq.mCenter.y + (y_speed - creature.mGravity * tick) * tick };
 						// 캐릭터 중앙과 충돌하는 맵 타일을 구한다.
 						Coordinate<int> maptile_xy = map.GetMapTileAtPoint(creature_sq.mCenter);
 						
 						// BFS 방식으로 생명체와 맵 블록의 충돌을 계산한다.
 						// 큐에는 생명체와 충돌된 맵의 좌표가 들어간다.
 						int X[4] = { 1,-1,0,0 }, Y[4] = { 0,0,1,-1 };
+						// 속도로 인해 추후에 바꿔야 함
+						// vector는 메모리 할당 속도가 많이 듦
+						// set은 탐색 속도가 많이 듦
+						// 결과적으로 unordered_set으로 속도 향상 가능한데 해쉬 로직 따로 구현해야 됨.
+						set<Coordinate<int>> visited;
 						queue<Coordinate<int>> bfs_Q;
 						bfs_Q.push(maptile_xy);
 						while (!bfs_Q.empty() && !collision)
 						{
 							Coordinate<int> front = bfs_Q.front();
 							bfs_Q.pop();
-
-							// 맵과 충돌을 하지도 않으면 그쪽 방향으로 더 탐색할 필요도 없다.
-							if (!creature_sq.Overlaps(MapInfo[front.y][front.x]))
-								continue;
-
-							// 맵 블록과 충돌을 했는데 해당 블록이 벽돌이면 충돌을 한 것이다.
-							if(MapInfo[front.y][front.x].mType == (int)BlockType::Block)
-
 
 							for (int u = 0; u < 4 && !collision; u++) {
 								Coordinate<int> cur = { X[u] + front.x, Y[u] + front.y };
@@ -519,22 +516,26 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 									continue;
 
 								// 맵과 생명체의 히트박스가 겹침으로 큐에 삽입함.
-								bfs_Q.push(cur);
+								if (visited.find(cur) == visited.end()) {
+									visited.insert(cur);
+									bfs_Q.push(cur);
 
-								// 맵 블록과 생명체가 충돌을 했는데 해당 블록이 벽돌이면 포물선 레이캐스팅을 중단한다.
-								if (MapInfo[cur.y][cur.x].mType == (int)BlockType::Block) {
-									collision_block = cur;
-									collision = true;
+									// 맵 블록과 생명체가 충돌을 했는데 해당 블록이 벽돌이면 포물선 레이캐스팅을 중단한다.
+									if (MapInfo[cur.y][cur.x].mType == (int)BlockType::Block) {
+										collision = true;
+
+										// 생명체가 어떻게 착지를 했는지 판단한다.
+										// 생명체의 현재 중심 y좌표보다 충돌한 블록의 윗면 y 좌표가 더 낮고
+										// 생명체가 떨어지는 중(y축 속도가 음수)이라면 생명체는 착지다.
+										if (creature_sq.mCenter.y > MapInfo[cur.y][cur.x].mCenter.y + MapInfo[cur.y][cur.x].mHalf.y
+											&& y_speed - creature.mGravity * tick < 0)
+											nodeMap[i][j].AddNode({ , }, { x_speed,y_speed }, (int)NodeState::Jump); // 넣는 좌표를 정확하게 결정해야 함... 추후에 수정 요망
+									}
 								}
 							}
 						}
 
 						tick += tick_gap;
-					}
-
-					// 충돌을 했으면 얘가 착지인지 아니면 어떤 방식으로 점프가 막혔는지 판단한다.
-					if (collision) {
-
 					}
 				}
 
