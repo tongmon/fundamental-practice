@@ -483,10 +483,10 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 					Square creature_sq(center_xy, { creature.mWidth / 2, creature.mHeight / 2 });
 
 					int tick_gap = 10, tick_start = 10, tick = tick_start;
-					bool collision = false;
+					vector <Coordinate<int>> collide_block;
 
 					// 시간(틱)을 증가시키면서 포물선 레이캐스팅 수행
-					while (!collision)
+					while (!collide_block.empty())
 					{
 						// 생명체의 사각형 중앙 좌표는 점프를 하면서 바뀐다.
 						creature_sq.mCenter = { creature_sq.mCenter.x + x_speed * tick, creature_sq.mCenter.y + (y_speed - creature.mGravity * tick) * tick };
@@ -503,12 +503,12 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 						set<Coordinate<int>> visited;
 						queue<Coordinate<int>> bfs_Q;
 						bfs_Q.push(maptile_xy);
-						while (!bfs_Q.empty() && !collision)
+						while (!bfs_Q.empty())
 						{
 							Coordinate<int> front = bfs_Q.front();
 							bfs_Q.pop();
 
-							for (int u = 0; u < 4 && !collision; u++) {
+							for (int u = 0; u < 4; u++) {
 								Coordinate<int> cur = { X[u] + front.x, Y[u] + front.y };
 
 								// 생명체와 충돌을 하지도 않으면 그쪽 방향으로 더 탐색할 필요도 없다.
@@ -520,18 +520,27 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 									visited.insert(cur);
 									bfs_Q.push(cur);
 
-									// 맵 블록과 생명체가 충돌을 했는데 해당 블록이 벽돌이면 포물선 레이캐스팅을 중단한다.
+									// 맵 블록과 생명체가 충돌을 했는데 해당 블록이 벽돌이면 collide_block에 담는다.
 									if (MapInfo[cur.y][cur.x].mType == (int)BlockType::Block) {
-										collision = true;
+										collide_block.push_back(cur);
 
+										/*
 										// 생명체가 어떻게 착지를 했는지 판단한다.
 										// 생명체의 현재 중심 y좌표보다 충돌한 블록의 윗면 y 좌표가 더 낮고
 										// 생명체가 떨어지는 중(y축 속도가 음수)이라면 생명체는 착지다.
 										if (creature_sq.mCenter.y > MapInfo[cur.y][cur.x].mCenter.y + MapInfo[cur.y][cur.x].mHalf.y
 											&& y_speed - creature.mGravity * tick < 0)
 											nodeMap[i][j].AddNode({ , }, { x_speed,y_speed }, (int)NodeState::Jump); // 넣는 좌표를 정확하게 결정해야 함... 추후에 수정 요망
+										*/
 									}
 								}
+							}
+						}
+
+						// 포물선 레이캐스팅으로 생명체와 충돌한 블록 검사
+						for (auto& block : collide_block) {
+							if (creature_sq.mCenter.y > MapInfo[block.y][block.x].mCenter.y + MapInfo[block.y][block.x].mHalf.y) {
+
 							}
 						}
 
