@@ -155,6 +155,10 @@ struct Square {
 		return abs(mCenter.x - A.mCenter.x) <= mHalf.x + A.mHalf.x
 			&& abs(mCenter.y - A.mCenter.y) <= mHalf.y + A.mHalf.y;
 	}
+	float GetTop() { return mCenter.y + mHalf.y; }
+	float GetBottom() { return mCenter.y - mHalf.y; }
+	float GetRight() { return mCenter.x + mHalf.x; }
+	float GetLeft() { return mCenter.x - mHalf.x; }
 };
 
 class Map {
@@ -488,6 +492,8 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 					// 시간(틱)을 증가시키면서 포물선 레이캐스팅 수행
 					while (!collide_block.empty())
 					{
+						// 생명체의 예전 상태 저장
+						Square prev_creature = creature_sq;
 						// 생명체의 사각형 중앙 좌표는 점프를 하면서 바뀐다.
 						creature_sq.mCenter = { creature_sq.mCenter.x + x_speed * tick, creature_sq.mCenter.y + (y_speed - creature.mGravity * tick) * tick };
 						// 캐릭터 중앙과 충돌하는 맵 타일을 구한다.
@@ -496,7 +502,7 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 						// BFS 방식으로 생명체와 맵 블록의 충돌을 계산한다.
 						// 큐에는 생명체와 충돌된 맵의 좌표가 들어간다.
 						int X[4] = { 1,-1,0,0 }, Y[4] = { 0,0,1,-1 };
-						// 속도로 인해 추후에 바꿔야 함
+						// 속도로 인해 visited 변수형을 추후에 바꿔야 함
 						// vector는 메모리 할당 속도가 많이 듦
 						// set은 탐색 속도가 많이 듦
 						// 결과적으로 unordered_set으로 속도 향상 가능한데 해쉬 로직 따로 구현해야 됨.
@@ -521,9 +527,10 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 									bfs_Q.push(cur);
 
 									// 맵 블록과 생명체가 충돌을 했는데 해당 블록이 벽돌이면 collide_block에 담는다.
+									// 여기서 블록이 생명체 옆으로 충돌했는지 위로 충돌했는지 미리 알면 연산 속도 더 빠르게 가능
 									if (MapInfo[cur.y][cur.x].mType == (int)BlockType::Block) {
 										collide_block.push_back(cur);
-
+										
 										/*
 										// 생명체가 어떻게 착지를 했는지 판단한다.
 										// 생명체의 현재 중심 y좌표보다 충돌한 블록의 윗면 y 좌표가 더 낮고
@@ -537,11 +544,29 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 							}
 						}
 
+						bool can_Landing = true;
+
 						// 포물선 레이캐스팅으로 생명체와 충돌한 블록 검사
 						for (auto& block : collide_block) {
-							if (creature_sq.mCenter.y > MapInfo[block.y][block.x].mCenter.y + MapInfo[block.y][block.x].mHalf.y) {
-
+							// 예전 생물체의 y축 속도를 구한다.
+							float prev_y_speed = y_speed - creature.mGravity * (tick - tick_gap);
+							// 생명체가 떨어지는 중이고 예전 상태가 부딫혔던 블록 위라면 아래 조건 중에 한개여야 한다.
+							if (prev_y_speed < 0 && prev_creature.GetBottom() > MapInfo[block.y][block.x].GetTop()) {
+								can_Landing &= (
+									// 블록은 생명체 너비 안에 있다.
+									(prev_creature.GetLeft() <= MapInfo[block.y][block.x].GetLeft() && MapInfo[block.y][block.x].GetRight() <= prev_creature.GetRight()) ||
+									// 블록은 생명체 왼쪽으로 약간 삐져나왔다.
+									(MapInfo[block.y][block.x].GetLeft() < prev_creature.GetLeft() && prev_creature.GetLeft() < MapInfo[block.y][block.x].GetRight()) ||
+									// 블록은 생명체 오른쪽으로 약간 삐져나왔다.
+									(MapInfo[block.y][block.x].GetRight() > prev_creature.GetRight() && prev_creature.GetRight() > MapInfo[block.y][block.x].GetLeft()) ||
+									// 블록이 생명체 너비보다 크다.
+									(MapInfo[block.y][block.x].GetLeft() < prev_creature.GetLeft() && prev_creature.GetRight() < MapInfo[block.y][block.x].GetRight()));
 							}
+						}
+
+						// 착지 조건이 갖춰졌다면 노드를 만들어준다.
+						if (can_Landing) {
+
 						}
 
 						tick += tick_gap;
