@@ -305,9 +305,14 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 			// (7 / 3)을 올림한 수인 3, 즉 3블록을 위로 검사해야 한다.
 			// left_Edge, right_Edge 캐릭터에 맞닿아 있는 양쪽 끝 지면 블록의 x 인덱스
 			int hSize = (int)ceil(creature.mHeight / (block_height * 2)),
-				wSize = (int)ceil(creature.mWidth / (block_width * 2)),
-				left_Edge = j - wSize / 2, right_Edge = j + wSize / 2,
-				x, y;
+				wSize = (int)ceil(creature.mWidth / (block_width * 2));
+
+			// 너비를 검사해야 하는 블록 개수가 짝수면 홀수로 만들어 준다.
+			// 예를 들어 4블록을 검사해야 한다면 4블록 크기의 생명체를 해당 블록 정가운데에 세워놓기 위해서는
+			// 결국 5블록을 검사해야 한다.
+			wSize = wSize % 2 ? wSize : wSize + 1;
+
+			int	left_Edge = j - wSize / 2, right_Edge = j + wSize / 2, x, y;
 
 			// 생명체가 서있을 수 있는 지면이 있으면 해당 x 블록 인덱스가 여기에 담김
 			unordered_set<int> ground_Index;
@@ -324,35 +329,37 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 			{
 				// 해당 블록이 노드를 만들 수 있는 위치인지를 검사
 #pragma region calculate_can_make_node
-				bool is_Fit = true;
-
-				// 너비를 검사해야 하는 블록 개수가 짝수면 홀수로 만들어 준다.
-				// 예를 들어 4블록을 검사해야 한다면 4블록 크기의 생명체를 해당 블록 정가운데에 세워놓기 위해서는
-				// 결국 5블록을 검사해야 한다.
-				wSize = wSize % 2 ? wSize : wSize + 1;
-
-				// 너비로 먼저 돌고 루프 안에서 높이를 계산한다.
-				for (x = left_Edge; x <= right_Edge; x++)
+				// 재사용성을 위해 람다로 구현 (점프 노드 착지 지점 연결하는 경우 다시 사용함)
+				auto is_fit = [&](int x_index, int y_index)->bool 
 				{
-					// 맵의 좌우를 뚫고 검사를 진행할 수 없다.
-					if (x < 0 || x >= map.mWidth) {
-						is_Fit = false;
-						break;
+					bool is_Fit = true;
+					int left = x_index - wSize / 2, right = x_index + wSize / 2;
+
+					// 너비로 먼저 돌고 루프 안에서 높이를 계산한다.
+					for (x = left; x <= right; x++)
+					{
+						// 맵의 좌우를 뚫고 검사를 진행할 수 없다.
+						if (x < 0 || x >= map.mWidth) {
+							is_Fit = false;
+							break;
+						}
+
+						// 높이 검사
+						for (y = y_index; y >= 0 && y > y_index - hSize; y--)
+							is_Fit &= MapInfo[y][x].mType == (int)BlockType::Space;
+
+						// 천장을 뚫고 검사를 진행할 수 없다.
+						if (y < 0) {
+							is_Fit = false;
+							break;
+						}
 					}
 
-					// 높이 검사
-					for (y = i; y >= 0 && y > i - hSize; y--)
-						is_Fit &= MapInfo[y][x].mType == (int)BlockType::Space;
-
-					// 천장을 뚫고 검사를 진행할 수 없다.
-					if(y < 0) {
-						is_Fit = false;
-						break;
-					}
-				}
+					return is_Fit;
+				};
 				
 				// 해당 블록에 오브젝트가 서있을 수 없으니 노드도 찍을 수 없고 그냥 넘김
-				if (!is_Fit)
+				if (!is_fit(j, i))
 					continue;
 #pragma endregion
 
@@ -486,6 +493,8 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 					// 생명체의 충돌을 알기 위한 사각형 생성
 					Square creature_sq(center_xy, { creature.mWidth / 2, creature.mHeight / 2 });
 
+					// tick_gap이 너무 크면 프물선 레이캐스팅 정확도가 낮아진다.
+					// 레이캐스팅 점 간격이 너무 넓어서 충돌 계산을 해야하는 블록을 건너뛰어버리는 불상사가 발생할 수 있다.
 					int tick_gap = 10, tick_start = 10, tick = tick_start;
 					vector <Coordinate<int>> collide_block;
 
@@ -565,8 +574,9 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 						}
 
 						// 착지 조건이 갖춰졌다면 노드를 만들어준다.
-						if (can_Landing) {
+						if (can_Landing && !collide_block.empty()) {
 
+							nodeMap[i][j].AddNode({ , collide_block[0].y - 1 }, { x_speed, y_speed }, (int)NodeState::Jump);
 						}
 
 						tick += tick_gap;
