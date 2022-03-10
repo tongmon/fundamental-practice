@@ -575,6 +575,13 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 
 						// 착지 조건이 갖춰졌다면 노드를 만들어준다.
 						if (can_Landing && !collide_block.empty()) {
+							Coordinate<int> creature_left_block = map.GetMapTileAtPoint({ creature_sq.GetLeft(), creature_sq.GetBottom() });
+							creature_left_block.y -= 1;
+
+							Coordinate<int> creature_right_block = map.GetMapTileAtPoint({ creature_sq.GetRight(), creature_sq.GetBottom() });
+							creature_right_block.y -= 1;
+
+
 
 							nodeMap[i][j].AddNode({ , collide_block[0].y - 1 }, { x_speed, y_speed }, (int)NodeState::Jump);
 						}
