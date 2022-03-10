@@ -581,7 +581,24 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 							Coordinate<int> creature_right_block = map.GetMapTileAtPoint({ creature_sq.GetRight(), creature_sq.GetBottom() });
 							creature_right_block.y -= 1;
 
+							Coordinate<int> creature_center_block = map.GetMapTileAtPoint(creature_sq.mCenter);
 
+							// 첫번째 인자 : 생명체의 중심 x 좌표가 속하는 블록의 x 인덱스와 충돌한 블록과의 거리
+							// 두번째, 세번째 인자: 충돌한 블록의 x, y 인덱스
+							vector<tuple<int, int, int>> coordinate_ary;
+							coordinate_ary.reserve(creature_right_block.x - creature_left_block.x + 1);
+							for (x = creature_left_block.x; x <= creature_right_block.x; x++)
+								coordinate_ary.push_back({ abs(creature_center_block.x - x),x,creature_left_block.y });
+							// 생명체 중심과 가장 가까운 블록부터 조사하게 정렬함
+							sort(coordinate_ary.begin(), coordinate_ary.end());
+
+							for (const auto& coordinate : coordinate_ary) {
+								x = get<1>(coordinate);
+								y = get<2>(coordinate);
+								if (is_fit(x, y)) {
+									// 바닥 검사 추가적으로 해야함... 효율적으로 하는 방식 필요
+								}
+							}
 
 							nodeMap[i][j].AddNode({ , collide_block[0].y - 1 }, { x_speed, y_speed }, (int)NodeState::Jump);
 						}
