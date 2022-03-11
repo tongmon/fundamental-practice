@@ -330,9 +330,24 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 				// 해당 블록이 노드를 만들 수 있는 위치인지를 검사
 #pragma region calculate_can_make_node
 				// 재사용성을 위해 람다로 구현 (점프 노드 착지 지점 연결하는 경우 다시 사용함)
-				auto is_fit = [&](int x_index, int y_index)->bool 
+				// x_index, y_index는 생명체와 맞닿아있는 바닥들 인덱스에서 중점 인덱스의 바로 위 블록의 x, y 인덱스여야 한다...
+				// 말로는 설명이 어렵기 때문에 그림으로 보면
+				//     0   1   2
+				// 0  [-] [-] [-]
+				// 1  [-] [-] [-]
+				// 2   -   -   -
+				// 위에서 [-]는 생명체의 부피이다. 그니까 생명체는 가로 3칸, 세로 2칸의 부피를 가진다.
+				// - 는 바닥을 나타낸다.
+				// 이러한 상황에서 x_index, y_index는 (1, 1)이다.
+				// 짝수는 어떻게 하냐고?
+				//     0   1   2
+				// 0    [-] [-]
+				// 1    [-] [-]
+				// 2   -   -   -
+				// 위와 같이 보면 된다. 이 상황에서 x_index, y_index는 똑같이 (1, 1)이다.
+				auto is_fit = [&](int x_index, int y_index, bool ground_opt = false)->bool 
 				{
-					bool is_Fit = true;
+					bool is_Fit = true, has_ground = true;
 					int left = x_index - wSize / 2, right = x_index + wSize / 2;
 
 					// 너비로 먼저 돌고 루프 안에서 높이를 계산한다.
@@ -353,9 +368,14 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 							is_Fit = false;
 							break;
 						}
+
+						// 바닥 검사 옵션이 켜져있으면 캐릭터 밑의 바닥도 검사함
+						if (ground_opt) {
+							has_ground &= MapInfo[y_index + 1][x].mType == (int)BlockType::Block;
+						}
 					}
 
-					return is_Fit;
+					return ground_opt ? (is_Fit && has_ground) : is_Fit;
 				};
 				
 				// 해당 블록에 오브젝트가 서있을 수 없으니 노드도 찍을 수 없고 그냥 넘김
@@ -511,11 +531,23 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 						// BFS 방식으로 생명체와 맵 블록의 충돌을 계산한다.
 						// 큐에는 생명체와 충돌된 맵의 좌표가 들어간다.
 						int X[4] = { 1,-1,0,0 }, Y[4] = { 0,0,1,-1 };
-						// 속도로 인해 visited 변수형을 추후에 바꿔야 함
-						// vector는 메모리 할당 속도가 많이 듦
-						// set은 탐색 속도가 많이 듦
-						// 결과적으로 unordered_set으로 속도 향상 가능한데 해쉬 로직 따로 구현해야 됨.
-						set<Coordinate<int>> visited;
+						
+						// 속도 때문에 방문 배열은 unordered_set을 사용한다.
+						struct coordinate_hash {
+							size_t operator()(Coordinate<int> A) const {
+								unsigned h = 37;
+								h = (h * 54059) ^ (A.x * 76963);
+								h = (h * 54059) ^ (A.y * 76963);
+								return h;
+							}
+						};
+						struct coordinate_hash_equal {
+							bool operator()(const Coordinate<int>& A, const Coordinate<int>& B) const {
+								return A.x == B.x && A.y == B.y;
+							}
+						};
+						unordered_set<Coordinate<int>, coordinate_hash, coordinate_hash_equal> visited;
+
 						queue<Coordinate<int>> bfs_Q;
 						bfs_Q.push(maptile_xy);
 						while (!bfs_Q.empty())
@@ -537,18 +569,8 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 
 									// 맵 블록과 생명체가 충돌을 했는데 해당 블록이 벽돌이면 collide_block에 담는다.
 									// 여기서 블록이 생명체 옆으로 충돌했는지 위로 충돌했는지 미리 알면 연산 속도 더 빠르게 가능
-									if (MapInfo[cur.y][cur.x].mType == (int)BlockType::Block) {
+									if (MapInfo[cur.y][cur.x].mType == (int)BlockType::Block)
 										collide_block.push_back(cur);
-										
-										/*
-										// 생명체가 어떻게 착지를 했는지 판단한다.
-										// 생명체의 현재 중심 y좌표보다 충돌한 블록의 윗면 y 좌표가 더 낮고
-										// 생명체가 떨어지는 중(y축 속도가 음수)이라면 생명체는 착지다.
-										if (creature_sq.mCenter.y > MapInfo[cur.y][cur.x].mCenter.y + MapInfo[cur.y][cur.x].mHalf.y
-											&& y_speed - creature.mGravity * tick < 0)
-											nodeMap[i][j].AddNode({ , }, { x_speed,y_speed }, (int)NodeState::Jump); // 넣는 좌표를 정확하게 결정해야 함... 추후에 수정 요망
-										*/
-									}
 								}
 							}
 						}
@@ -576,31 +598,29 @@ void NodeMaker(Map& map, vector<vector<Node>>& nodeMap, const Creature && creatu
 						// 착지 조건이 갖춰졌다면 노드를 만들어준다.
 						if (can_Landing && !collide_block.empty()) {
 							Coordinate<int> creature_left_block = map.GetMapTileAtPoint({ creature_sq.GetLeft(), creature_sq.GetBottom() });
-							creature_left_block.y -= 1;
-
-							Coordinate<int> creature_right_block = map.GetMapTileAtPoint({ creature_sq.GetRight(), creature_sq.GetBottom() });
-							creature_right_block.y -= 1;
-
-							Coordinate<int> creature_center_block = map.GetMapTileAtPoint(creature_sq.mCenter);
+							int creature_left_x = creature_left_block.x, creature_y = creature_left_block.y - 1;
+							int creature_right_x = map.GetMapTileAtPoint({ creature_sq.GetRight(), creature_sq.GetBottom() }).x;
+							int creature_center_x = map.GetMapTileAtPoint(creature_sq.mCenter).x;
 
 							// 첫번째 인자 : 생명체의 중심 x 좌표가 속하는 블록의 x 인덱스와 충돌한 블록과의 거리
-							// 두번째, 세번째 인자: 충돌한 블록의 x, y 인덱스
-							vector<tuple<int, int, int>> coordinate_ary;
-							coordinate_ary.reserve(creature_right_block.x - creature_left_block.x + 1);
-							for (x = creature_left_block.x; x <= creature_right_block.x; x++)
-								coordinate_ary.push_back({ abs(creature_center_block.x - x),x,creature_left_block.y });
+							// 두번째 인자 : 충돌한 블록의 x 인덱스
+							vector<pair<int, int>> coordinate_ary;
+							coordinate_ary.reserve(creature_right_x - creature_left_x + 1);
+							for (x = creature_left_x; x <= creature_right_x; x++)
+								coordinate_ary.push_back({ abs(creature_center_x - x), x });
 							// 생명체 중심과 가장 가까운 블록부터 조사하게 정렬함
 							sort(coordinate_ary.begin(), coordinate_ary.end());
 
+							// 좌표 배열을 순회하면서 생명체가 들어갈 수 있는 좌표면 점프 노드 착지 지점에 해당하는 좌표를 확정 짓는다.
 							for (const auto& coordinate : coordinate_ary) {
-								x = get<1>(coordinate);
-								y = get<2>(coordinate);
-								if (is_fit(x, y)) {
-									// 바닥 검사 추가적으로 해야함... 효율적으로 하는 방식 필요
+								if (is_fit(coordinate.second, creature_y, true)) {
+									x = coordinate.second;
+									break;
 								}
 							}
 
-							nodeMap[i][j].AddNode({ , collide_block[0].y - 1 }, { x_speed, y_speed }, (int)NodeState::Jump);
+							// 착지 지점과 가장 가까운 블록의 중심 x, creature_y에 점프 노드를 넣어준다.
+							nodeMap[i][j].AddNode({ x, creature_y }, { x_speed, y_speed }, (int)NodeState::Jump);
 						}
 
 						tick += tick_gap;
