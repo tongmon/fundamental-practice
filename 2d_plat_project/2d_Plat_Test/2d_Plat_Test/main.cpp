@@ -4,30 +4,33 @@
 #define OLC_PGEX_GRAPHICS2D
 #include "olc_Core/olcPGEX_Graphics2D.h"
 
-#define Screen_Width	1280
-#define Screen_Height	720
+#include "object.h"
+
+const int32_t screen_width = 1280;
+const int32_t screen_height = 720;
 
 // olc 게임엔진 사용 후 배포시 참고 https://community.onelonecoder.com/2020/05/20/how-to-attribute-credit-cite-the-olcpixelgameengine/
 // 게임 시작 화면에 olc 로고만 박아주면 되는 듯. 나머지는 무료
 
-class PathFinder_2D : public olc::PixelGameEngine
+class PathFinder2D : public olc::PixelGameEngine
 {
 private:
-	std::unique_ptr<olc::Sprite> spr_brick_tile;
-	std::unique_ptr<olc::Sprite> spr_space_tile;
-	int32_t m_space_tile_size;
-	int32_t m_brick_tile_size;
+	std::unique_ptr<olc::Sprite> spr_brick_tile; // 벽돌 스프라이트
+	std::unique_ptr<olc::Sprite> spr_space_tile; // 빈 공간 스프라이트
+	int32_t m_space_tile_size; // 빈 공간 스프라이트 크기
+	int32_t m_brick_tile_size; // 벽돌 스프라이트 크기
 	float m_Angle;
 
 public:
-	PathFinder_2D()
+	PathFinder2D()
 	{
 		sAppName = "2d draw grid";
 		m_brick_tile_size = m_space_tile_size = 5;
 		m_Angle = 0;
 	}
 
-public:
+	~PathFinder2D() {}
+
 	bool OnUserCreate() override
 	{
 		// 초기화
@@ -39,15 +42,16 @@ public:
 		return true;
 	}
 
+	bool OnUserInput(float fElapsedTime)
+	{
+
+	}
+
 	bool OnUserUpdate(float fElapsedTime) override
 	{
 		// 프레임당 한번 호출
 		Clear(olc::DARK_CYAN);
 		SetPixelMode(olc::Pixel::MASK); // 투명인 픽셀은 그리지 않음
-
-		//for (int i = 0; i < 7; i++)
-			//for (int j = 0; j < 7; j++)
-				//DrawSprite(olc::vi2d(i, j) * m_spriteSize, sprTile.get());
 
 		// 각도 -> 라디안
 		auto AngleToRadian = [](float Angle)->float { return Angle * 3.14159f / 180.f; };
@@ -59,7 +63,7 @@ public:
 				olc::GFX2D::DrawSprite(spr_brick_tile.get(), d2dVar);
 				d2dVar.Translate(spr_brick_tile.get()->width, 0);
 			}
-			d2dVar.Translate(- grid_width * spr_brick_tile.get()->width, spr_brick_tile.get()->height);
+			d2dVar.Translate(-grid_width * spr_brick_tile.get()->width, spr_brick_tile.get()->height);
 		}
 
 		/*
@@ -87,8 +91,8 @@ public:
 
 int main()
 {
-	PathFinder_2D demo;
-	if (demo.Construct(Screen_Width, Screen_Height, 1, 1, false, true))
+	PathFinder2D demo;
+	if (demo.Construct(screen_width, screen_height, 1, 1, false, true))
 		demo.Start();
 
 	return 0;
