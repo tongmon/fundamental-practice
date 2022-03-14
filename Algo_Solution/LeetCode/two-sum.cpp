@@ -29,4 +29,21 @@ public:
         }
         return { 0 };
     }
+
+    // 2022/03/14
+    vector<int> twoSum(vector<int>& nums, int target) {
+        unordered_map<int, pair<int, int>> m;
+        int x = -1, y;
+        for (int i = 0; i < nums.size(); i++)
+            m.find(nums[i]) == m.end() ? m[nums[i]].first = i, m[nums[i]].second = -1 : m[nums[i]].second = i;
+        for (int i = 0; i < nums.size() && x < 0; i++) {
+            if (target == 2 * nums[i]) {
+                if (m.find(nums[i]) != m.end() && m[nums[i]].second >= 0)
+                    x = i, y = m[nums[i]].second;
+            }
+            else if (m.find(target - nums[i]) != m.end())
+                x = i, y = m[target - nums[i]].first;
+        }
+        return { x, y };
+    }
 };
