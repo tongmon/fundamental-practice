@@ -13,7 +13,6 @@ Object::~Object()
 
 }
 
-/*
 void Object::Draw()
 {
 	static olc::GFX2D::Transform2D matrix_2d;
@@ -24,4 +23,3 @@ void Object::Draw()
 
 	olc::GFX2D::DrawSprite(m_sprite.get(), matrix_2d);
 }
-*/
