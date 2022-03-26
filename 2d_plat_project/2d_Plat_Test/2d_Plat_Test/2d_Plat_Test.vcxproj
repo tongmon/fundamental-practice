@@ -144,8 +144,11 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="object.cpp" />
+    <ClCompile Include="olc_Core\olcPixelGameEngine.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="object.h" />
     <ClInclude Include="olc_Core\olcPGEX_Graphics2D.h" />
     <ClInclude Include="olc_Core\olcPGEX_Graphics3D.h" />
     <ClInclude Include="olc_Core\olcPGEX_Network.h" />
@@ -154,6 +157,7 @@
     <ClInclude Include="olc_Core\olcPGEX_Sound.h" />
     <ClInclude Include="olc_Core\olcPGEX_TransformedView.h" />
     <ClInclude Include="olc_Core\olcPixelGameEngine.h" />
+    <ClInclude Include="path_finding.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

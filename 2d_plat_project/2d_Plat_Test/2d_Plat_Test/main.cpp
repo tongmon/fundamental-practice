@@ -1,7 +1,4 @@
-#define OLC_PGE_APPLICATION
 #include "olc_Core/olcPixelGameEngine.h"
-
-#define OLC_PGEX_GRAPHICS2D
 #include "olc_Core/olcPGEX_Graphics2D.h"
 
 #include "object.h"
@@ -56,6 +53,11 @@ public:
 		// 각도 -> 라디안
 		auto AngleToRadian = [](float Angle)->float { return Angle * 3.14159f / 180.f; };
 
+		Object one_brick("Resource/Tile_Brick.png");
+		one_brick.Draw();
+
+		/*
+		// 격자 그리기
 		int grid_width = 10, grid_height = 10;
 		olc::GFX2D::Transform2D d2dVar;
 		for (int i = 0; i < grid_height; i++) {
@@ -65,6 +67,7 @@ public:
 			}
 			d2dVar.Translate(-grid_width * spr_brick_tile.get()->width, spr_brick_tile.get()->height);
 		}
+		*/
 
 		/*
 		// 순서 중요하다. 회전축은 항상 (0,0)으로 생각.

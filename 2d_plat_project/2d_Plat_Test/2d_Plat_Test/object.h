@@ -1,5 +1,4 @@
 #pragma once
-
 #include "olc_Core/olcPixelGameEngine.h"
 #include "olc_Core/olcPGEX_Graphics2D.h"
 

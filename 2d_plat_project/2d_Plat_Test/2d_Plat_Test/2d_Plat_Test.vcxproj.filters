@@ -16,10 +16,19 @@
     <Filter Include="Core">
       <UniqueIdentifier>{34ebfec8-fd33-4e8c-bf95-00c8f1c1455f}</UniqueIdentifier>
     </Filter>
+    <Filter Include="PathFinding">
+      <UniqueIdentifier>{cfceea77-302c-45d2-90f5-7fe13d92759c}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
       <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="object.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="olc_Core\olcPixelGameEngine.cpp">
+      <Filter>Core</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -46,6 +55,12 @@
     </ClInclude>
     <ClInclude Include="olc_Core\olcPixelGameEngine.h">
       <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="path_finding.h">
+      <Filter>PathFinding</Filter>
+    </ClInclude>
+    <ClInclude Include="object.h">
+      <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
