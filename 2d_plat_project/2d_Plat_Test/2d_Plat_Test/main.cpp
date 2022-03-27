@@ -12,30 +12,23 @@ const int32_t screen_height = 720;
 class PathFinder2D : public olc::PixelGameEngine
 {
 private:
-	std::unique_ptr<olc::Sprite> spr_brick_tile; // 벽돌 스프라이트
-	std::unique_ptr<olc::Sprite> spr_space_tile; // 빈 공간 스프라이트
-	int32_t m_space_tile_size; // 빈 공간 스프라이트 크기
-	int32_t m_brick_tile_size; // 벽돌 스프라이트 크기
-	float m_Angle;
+	olc::GFX3D::vec3d vUp = { 0.0f, 1.0f, 0.0f };
+	olc::GFX3D::vec3d vEye = { 0.0f, 0.0f, -3.0f };
+	olc::GFX3D::vec3d vLookDir = { 0.0f, 0.0f, 1.0f };
 
 public:
 	PathFinder2D()
 	{
 		sAppName = "2d draw grid";
-		m_brick_tile_size = m_space_tile_size = 5;
-		m_Angle = 0;
+		
 	}
 
 	~PathFinder2D() {}
 
+	// 초기화
 	bool OnUserCreate() override
 	{
-		// 초기화
-		spr_brick_tile = std::make_unique<olc::Sprite>("Resource/Tile_Brick.png");
-		m_brick_tile_size = spr_brick_tile.get()->width;
-
-		spr_space_tile = std::make_unique<olc::Sprite>("Resource/Tile_Space.png");
-		m_space_tile_size = spr_brick_tile.get()->width;
+		
 		return true;
 	}
 
@@ -44,17 +37,23 @@ public:
 
 	}
 
+	// 프레임당 한번 호출
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		// 프레임당 한번 호출
 		Clear(olc::DARK_CYAN);
-		SetPixelMode(olc::Pixel::MASK); // 투명인 픽셀은 그리지 않음
+		//SetPixelMode(olc::Pixel::MASK); // 투명인 픽셀은 그리지 않음
+		olc::GFX3D::ClearDepth();
+
+		olc::GFX3D::PipeLine pipe;
+		pipe.SetProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.1f, 1000.0f, 0.0f, 0.0f, (float)ScreenWidth(), (float)ScreenHeight());
+		olc::GFX3D::vec3d vLookTarget = olc::GFX3D::Math::Vec_Add(vEye, vLookDir);
+		pipe.SetCamera(vEye, vLookTarget, vUp);
 
 		// 각도 -> 라디안
 		auto AngleToRadian = [](float Angle)->float { return Angle * 3.14159f / 180.f; };
 
-		Object one_brick("Resource/Tile_Brick.png");
-		one_brick.Draw();
+		//Object one_brick("Resource/Tile_Brick.png");
+		//one_brick.Draw(pipe);
 
 		/*
 		// 격자 그리기
@@ -87,7 +86,7 @@ public:
 		olc::GFX2D::DrawSprite(sprTile.get(), d2dVar);
 		*/
 
-		SetPixelMode(olc::Pixel::NORMAL); // 모든 픽셀 그리기
+		//SetPixelMode(olc::Pixel::NORMAL); // 모든 픽셀 그리기
 		return true;
 	}
 };
