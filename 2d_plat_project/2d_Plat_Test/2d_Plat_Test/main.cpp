@@ -12,15 +12,18 @@ const int32_t screen_height = 720;
 class PathFinder2D : public olc::PixelGameEngine
 {
 private:
-	olc::GFX3D::vec3d vUp = { 0.0f, 1.0f, 0.0f };
-	olc::GFX3D::vec3d vEye = { 0.0f, 0.0f, -3.0f };
-	olc::GFX3D::vec3d vLookDir = { 0.0f, 0.0f, 1.0f };
+	olc::GFX3D::vec3d m_up;
+	olc::GFX3D::vec3d m_eye;
+	olc::GFX3D::vec3d m_looktarget;
 
 public:
 	PathFinder2D()
 	{
 		sAppName = "2d draw grid";
 		
+		m_up = { 0.0f, 1.0f, 0.0f };
+		m_eye = { 0.0f, 0.0f, -4.0f };
+		m_looktarget = { 0.0f, 0.0f, 0.0f };
 	}
 
 	~PathFinder2D() {}
@@ -28,7 +31,10 @@ public:
 	// 초기화
 	bool OnUserCreate() override
 	{
-		
+		// 3D뷰 활성화
+		// 2D에서 활동해도 3D가 편함
+		olc::GFX3D::ConfigureDisplay();
+
 		return true;
 	}
 
@@ -46,14 +52,18 @@ public:
 
 		olc::GFX3D::PipeLine pipe;
 		pipe.SetProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.1f, 1000.0f, 0.0f, 0.0f, (float)ScreenWidth(), (float)ScreenHeight());
-		olc::GFX3D::vec3d vLookTarget = olc::GFX3D::Math::Vec_Add(vEye, vLookDir);
-		pipe.SetCamera(vEye, vLookTarget, vUp);
+		pipe.SetCamera(m_eye, m_looktarget, m_up);
+
+		olc::GFX3D::vec3d lightdir = { 1.0f, 1.0f, -1.0f };
+		pipe.SetLightSource(0, olc::GFX3D::LIGHT_AMBIENT, olc::Pixel(100, 100, 100), { 0,0,0 }, lightdir);
+		pipe.SetLightSource(1, olc::GFX3D::LIGHT_DIRECTIONAL, olc::WHITE, { 0,0,0 }, lightdir);
 
 		// 각도 -> 라디안
 		auto AngleToRadian = [](float Angle)->float { return Angle * 3.14159f / 180.f; };
 
-		//Object one_brick("Resource/Tile_Brick.png");
-		//one_brick.Draw(pipe);
+		Object one_brick("Resource/Tile_Brick.png");
+		one_brick.Transform() = { -one_brick.Width() / 100, -one_brick.Height() / 100, 1.f };
+		one_brick.Draw(pipe);
 
 		/*
 		// 격자 그리기
