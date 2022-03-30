@@ -62,8 +62,12 @@ public:
 		auto AngleToRadian = [](float Angle)->float { return Angle * 3.14159f / 180.f; };
 
 		Object one_brick("Resource/Tile_Brick.png");
-		one_brick.Transform() = { -one_brick.Width() / 100, -one_brick.Height() / 100, 1.f };
+		one_brick.Transform() = { -0.5f,-0.5f, 1.f };
 		one_brick.Draw(pipe);
+
+		Object two_brick("Resource/Tile_Space.png");
+		two_brick.Transform() = { 1.f, 1.f, 1.f };
+		two_brick.Draw(pipe);
 
 		/*
 		// 격자 그리기
