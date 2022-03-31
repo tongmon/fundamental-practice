@@ -2,7 +2,8 @@
 
 Object::Object(std::string file_path)
 {
-	m_sprite = std::make_unique<olc::Sprite>(file_path);
+	if (!file_path.empty())
+		m_sprite = std::make_unique<olc::Sprite>(file_path);
 	m_scale = { 1.f, 1.f, 1.f, 1.f };
 	m_transform = { 0.f, 0.f, 0.f, 1.f };
 	m_angle = 0.f;
@@ -32,6 +33,11 @@ void Object::Draw(olc::GFX3D::PipeLine& pipe)
 	pipe.SetTransform(m_translation); // 변환 행렬 설정
 	pipe.SetTexture(m_sprite.get()); // 텍스쳐 설정
 	pipe.Render(m_mesh->tris, olc::GFX3D::RENDER_CULL_CW | olc::GFX3D::RENDER_DEPTH | olc::GFX3D::RENDER_TEXTURED);
+}
+
+void Object::SetSprite(std::string file_path)
+{
+	m_sprite = std::make_unique<olc::Sprite>(file_path);
 }
 
 /*

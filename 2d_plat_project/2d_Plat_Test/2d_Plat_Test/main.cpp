@@ -16,6 +16,9 @@ private:
 	olc::GFX3D::vec3d m_eye;
 	olc::GFX3D::vec3d m_looktarget;
 
+	Object m_tile_brick;
+	Object m_space_brick;
+
 public:
 	PathFinder2D()
 	{
@@ -34,6 +37,9 @@ public:
 		// 3D뷰 활성화
 		// 2D에서 활동해도 3D가 편함
 		olc::GFX3D::ConfigureDisplay();
+
+		m_tile_brick.SetSprite("Resource/Tile_Brick.png");
+		m_space_brick.SetSprite("Resource/Tile_Space.png");
 
 		return true;
 	}
@@ -61,13 +67,7 @@ public:
 		// 각도 -> 라디안
 		auto AngleToRadian = [](float Angle)->float { return Angle * 3.14159f / 180.f; };
 
-		Object one_brick("Resource/Tile_Brick.png");
-		one_brick.Transform() = { -0.5f,-0.5f, 1.f };
-		one_brick.Draw(pipe);
-
-		Object two_brick("Resource/Tile_Space.png");
-		two_brick.Transform() = { 1.f, 1.f, 1.f };
-		two_brick.Draw(pipe);
+		m_space_brick.Draw(pipe);
 
 		/*
 		// 격자 그리기
