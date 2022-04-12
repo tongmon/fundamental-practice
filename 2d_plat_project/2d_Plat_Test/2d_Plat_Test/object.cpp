@@ -25,7 +25,7 @@ void Object::Draw(olc::GFX3D::PipeLine& pipe)
 {
 	olc::GFX3D::mat4x4 mat_scale = olc::GFX3D::Math::Mat_MakeScale(m_scale.x, m_scale.y, m_scale.z); // 크기 
 	olc::GFX3D::mat4x4 mat_translate = olc::GFX3D::Math::Mat_MakeTranslation(m_transform.x, m_transform.y, m_transform.z); // 이동
-	olc::GFX3D::mat4x4 mat_rotation_z = olc::GFX3D::Math::Mat_MakeRotationZ(m_angle); // z축 회전 (2d라 z축 회전만 고려한다.)
+	olc::GFX3D::mat4x4 mat_rotation_z = olc::GFX3D::Math::Mat_MakeRotationZ(AngleToRadian(m_angle)); // z축 회전 (2d라 z축 회전만 고려한다.)
 	m_translation = olc::GFX3D::Math::Mat_MultiplyMatrix(mat_translate, mat_scale);
 	m_translation = olc::GFX3D::Math::Mat_MultiplyMatrix(m_translation, mat_rotation_z);
 	
