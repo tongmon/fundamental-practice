@@ -426,3 +426,14 @@ C# 스타일
 #region some_range
     int i = 0;
 #endregion
+
+- C++의 stl과 유사하게 C#에 존재하는 자료구조
+List<T> - std::vector<T>
+Dictionary<TKey, TValue> - unordered_map<Key, Data>
+HashSet<T> - unordered_set<Key>
+SortedDictionary<TKey, TValue> - std::map<Key, Data>
+SortedList<TKey, TValue> - priority_queue<T>와 비슷하지만 이진 트리 기반이라 좀 더 느림
+SortedSet<T> - std::set<Key>
+Queue<T> - std::queue<T>
+Stack<T> - std::stack<T>
+LinkedList<T> - std::list<T>
