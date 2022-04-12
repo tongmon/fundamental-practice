@@ -54,8 +54,8 @@ public:
 	// 프레임당 한번 호출
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		Clear(olc::DARK_CYAN);
-		//SetPixelMode(olc::Pixel::MASK); // 투명인 픽셀은 그리지 않음
+		Clear(olc::DARK_CYAN); // 백 버퍼 클리어하는 색상 설정
+		//SetPixelMode(olc::Pixel::MASK); // 투명인 픽셀은 그리지 않음, 3d 모드에서 비활성화
 		olc::GFX3D::ClearDepth();
 
 		olc::GFX3D::PipeLine pipe;
@@ -71,7 +71,7 @@ public:
 		
 		static float angle = 0.f;
 		m_space_brick.Transform() = { -0.5, -0.5 };
-		m_space_brick.Angle() = angle--;
+		//m_space_brick.Angle() = angle--;
 
 		m_space_brick.Draw(pipe);
 
