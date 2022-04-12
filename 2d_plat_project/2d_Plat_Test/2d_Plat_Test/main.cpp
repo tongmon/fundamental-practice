@@ -24,8 +24,10 @@ public:
 	{
 		sAppName = "2d draw grid";
 		
+		float eye_z = -3.0f;
+
 		m_up = { 0.0f, 1.0f, 0.0f };
-		m_eye = { 0.0f, 0.0f, -4.0f };
+		m_eye = { 0.0f, 0.0f, eye_z };
 		m_looktarget = { 0.0f, 0.0f, 0.0f };
 	}
 
@@ -60,12 +62,16 @@ public:
 		pipe.SetProjection(90.0f, (float)ScreenHeight() / (float)ScreenWidth(), 0.1f, 1000.0f, 0.0f, 0.0f, (float)ScreenWidth(), (float)ScreenHeight());
 		pipe.SetCamera(m_eye, m_looktarget, m_up);
 
+		/*
+		// 빛 설정... 끄는 것과 아닌 것 차이 확인 요망
 		olc::GFX3D::vec3d lightdir = { 1.0f, 1.0f, -1.0f };
 		pipe.SetLightSource(0, olc::GFX3D::LIGHT_AMBIENT, olc::Pixel(100, 100, 100), { 0,0,0 }, lightdir);
 		pipe.SetLightSource(1, olc::GFX3D::LIGHT_DIRECTIONAL, olc::WHITE, { 0,0,0 }, lightdir);
-
-		// 각도 -> 라디안
-		auto AngleToRadian = [](float Angle)->float { return Angle * 3.14159f / 180.f; };
+		*/
+		
+		static float angle = 0.f;
+		m_space_brick.Transform() = { -0.5, -0.5 };
+		m_space_brick.Angle() = angle--;
 
 		m_space_brick.Draw(pipe);
 
