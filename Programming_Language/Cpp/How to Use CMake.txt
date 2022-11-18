@@ -1,0 +1,80 @@
+- Windows 10 이상에서 VS Code와 함께 CMake를 사용하는 법
+
+# 초반 설치
+
+1. Microsoft Store에 들어가서 Windows Terminal을 설치해준다.
+
+2. Windows Terminal에서 PowerShell 탭을 열고 $PSVersionTable 명령어를 수행한 뒤에 출력된 PSVersion이 3 이상인지 확인한다. (3이하라면 PowerShell을 업데이트해준다. PowerShell 업데이트 방법은 알아서 찾아라)
+
+3. .NET Framework 4.5 버전 이상이 설치되어 있는지 확인한다. (Visual Studio에서 ".NET 테스크톱 개발" 항목을 선택하면 알아서 최신버전의 .NET Framework를 설치해준다.)
+
+4. Windows Terminal을 관리자 모드로 열고 PowerShell 탭을 띄운후에 Get-ExecutionPolicy 명령어를 수행 후에 Restricted인지 확인한다. Restricted이라면 Set-ExecutionPolicy AllSigned 명령어를 추가적으로 수행해준다.
+
+5. Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')) 명령어를 수행해 Chocolatey를 설치해준다.
+
+6. 설치가 끝났으면 Windows Terminal를 관리자 모드로 재시작해주고 PowerShell 탭을 띄우고 choco 명령어를 수행해 Chocolatey가 잘 설치되었는지 확인한다.
+
+7. choco install cmake, choco install git, choco install doxygen.install, choco install python, choco install make, choco install llvm 명령어를 순차적으로 실행해서 CMake 활용에 필요한 프로그램들을 깔아준다. (llvm은 선택이라지만 디스크 용량이 충분하다면 걍 깔자) 여기서 중요한 점은 cmake 시스템 환경변수가 올바르게 등록되었는지를 알아야 한다. CMake를 설치해도 PowerShell 관리자 모드에서 cmake --version 명령어가 제대로 실행되지 않는다면 환경변수가 제대로 설정되지 않은 것이니 시스템 속성 -> 고급 탭 -> 환경 변수 -> 시스템 변수 -> Path 에 cmake.exe가 위치한 폴더 경로를 추가해주자. (보통 "C:\Program Files\CMake\bin" 이거다.)
+
+8. VS Code를 설치하고 확장에서 franneck94 유저가 만들어 놓은 "C/C++ Extension Pack", "Coding Tools Extension Pack"을 설치하고 VS Code를 재시작해준다.
+
+9. 설치된 항목 중에 중요한 것은 C/C++, Doxygen Documentation Generator, Cmake Tools 인데 Cmake Tools 이 녀석이 사용되는 상태인지 확인을 해보고 사용안되는 것으로 되어 있다면 사용 상태로 바꿔놓는다.
+
+# VS Code에서 CMake 활성화
+
+1. 진행할 프로젝트 폴더를 VS Code로 열고 CMakeLists.txt 파일을 추가해준다. 반드시 이름을 대소문자까지 모두 동일하게 만들어야 한다.  그 다음 cpp 파일 아무거나 만들어 준다.
+
+2. "보기" -> "명령 팔레트"에 들어가 "CMake:Configure"를 선택한다. 
+
+3. VS Code 하단에 위치하는 파란색 바에 활성화된 kit의 종류를 선택하는 부분이 있는데 이를 눌러서 cpp를 빌드할 적절한 컴파일러를 선택한다. 그리고 밑의 두가지 방식 중 하나를 선택하면 되는데 버튼 하나 눌러서 되는 인터페이스 방식이 더 편해보이지만 복잡해지면 명령어 방식이 편하게 느껴질 수가 있다.
+
+[VS Code 내부 터미널을 통한 사용법]
+4.1 터미널에서 mkdir build로 현재 프로젝트 내부에 build라는 이름의 폴더를 만든다. 이미 build 폴더가 있으면 하지 않아도 된다.
+
+4.2 cd build 명령어로 build 폴더로 이동하고 cmake .. 명령어로 CMakeLists.txt가 위치한 부분을 타겟으로 cmake 세팅을 해준다.
+
+4.3 cmake --build . 명령어로 현재 build 폴더에 실행 파일을 생성한다.
+
+[VS Code 인터페이스를 이용한 사용법]
+5.1 VS Code 하단에 위치하는 파란색 바에 톱니바퀴 아이콘을 눌러서 빌드하면 된다.
+
+# CMakeLists.txt 문법
+
+CMakeLists.txt에서 주석은 #으로 달아준다. [ex. #이건 CMake 파일이다!!]
+
+cmake_minimum_required -> CMake의 최소 사용 버전을 설정해준다. [ex. cmake_minimum_required(VERSION 3.16)]
+
+project -> 현재 프로젝트의 속성과 관련된 정보를 적는다. 예를 들어 project(CppProjectTemplate VERSION 1.0.0 LANGUAGES C CXX) 이렇게 적혔다면 프로젝트 이름은 CppProjectTemplate이고 해당 프로젝트의 버전은 1.0.0이며 프로젝트에서 쓰이는 언어는 C 또는 CXX(C++)이다.
+
+add_executable -> 실행 파일을 만드는데 사용되는 모든 파일들(.cpp만)을 적는다. 꼭 앞에 실행 파일의 이름을 적어주어야 한다. [ex. add_executable(MyExecutable main.cpp) 이렇게 하면 MyExecutable.exe를 만들겠다는 것이다.]
+
+add_library -> 라이브러리를 만들기 위한 명령이다. 현재 프로젝트에 종속될 라이브러리와 관련된 파일들(.cpp만)을 적는다. 꼭 앞에 생성될 라이브러리 이름과 링크 방식을 적어야 한다. 예를 들어 add_library(MyLibrary STATIC my_lib.cpp) 이렇게 적었다면 정적 링크(STATIC)할 MyLibrary 이름을 가진 라이브러리를 생성하는데 필요한 파일은 my_lib.cpp라는 것이다.
+
+target_link_libraries -> 실행 파일이 원활하게 실행될 수 있게 관련된 라이브러리를 링크 시키기 위한 명령이다. 예를 들어 target_link_libraries(MyExecutable PUBLIC MyLibrary)를 하면 MyExecutable 실행 파일에 MyLibrary 라이브러리가 PUBLIC으로 링크된다.
+
+target_include_directories -> 헤더 파일을 정의하기 손쉽게 하기 위해 사용하는 명령이다. 예를 들어 밑과 같은 경로에 파일들이 위치한다고 하자.
+- HelloWorld
+	- app
+		- main.cpp
+	- src
+		- my_lib.cpp
+		- my_lib.h
+이 상황에서 main.cpp가 my_lib.h를 include하고 싶을 땐 #include "../src/my_lib.h" 이렇게 선언해야 하는데 이게 여간 귀찮은 게 아니다.
+이를 해결해 주려면 
+
+# CMake 명령어 문법
+
+## 세팅 옵션
+
+-S 옵션은 프로젝트의 root directory 경로가 위치해야 한다. (보통 CMakeLists.txt 위치하는 곳, 프로젝트 폴더 최상위 경로)
+
+-B 옵션은 빌드 후 생성되는 파일들이 위치할 폴더 경로가 적혀야 한다.
+
+예를 들어 C:/VS_CODE_PROJECTS/HelloWorld/CMakeLists.txt 이렇게 위치하고 있다면 cmake -S C:/VS_CODE_PROJECTS/HelloWorld -B C:/VS_CODE_PROJECTS/HelloWorld/build 명령어를 수행해 cmake 프로젝트를 세팅해주면 된다.
+
+## 빌드 옵션
+
+--build 옵션은 프로젝트를 빌드할 때 수행하는 명령어다. "--build 특정경로"로 사용하면 된다.
+
+--target 옵션은 특정 타겟을 정해서 해당 타겟만 빌드할 수 있다. 예를 들어 CMakeLists.txt에 MyLibrary라는 라이브러리가 정의되어 있다면 cmake --build . --target MyLibrary를 하면 MyLibrary와 그 라이브러리에 종속된 모듈들만 빌드된다.
+
