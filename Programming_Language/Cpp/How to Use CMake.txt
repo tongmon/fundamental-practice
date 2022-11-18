@@ -56,11 +56,14 @@ target_include_directories -> 헤더 파일을 정의하기 손쉽게 하기 위
 - HelloWorld
 	- app
 		- main.cpp
+		- CMakeLists.txt
 	- src
 		- my_lib.cpp
 		- my_lib.h
+		- CMakeLists.txt
 이 상황에서 main.cpp가 my_lib.h를 include하고 싶을 땐 #include "../src/my_lib.h" 이렇게 선언해야 하는데 이게 여간 귀찮은 게 아니다.
-이를 해결해 주려면 
+이를 해결해 주려면 src 폴더 내부 CMakeLists.txt에 target_include_directories(<해당 명령 전에 미리 생성된 실행 파일 or 라이브러리> PUBLIC "./")를 선언해주면 main.cpp에서 #include "my_lib.h" 만으로 my_lib.h를 참조할 수 있다. 
+CMake는 항상 프로젝트 최상위 폴더부터 CMakeLists.txt를 읽어가면서 명령 순서대로 하위 폴더를 탐색하며 빌드를 수행한다는 것을 명심하자.
 
 # CMake 명령어 문법
 
