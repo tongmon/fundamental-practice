@@ -91,7 +91,7 @@ message -> message("문자열")로 사용한다. 빌드 시점이 아니라 CMak
 
 CMAKE_CXX_STANDARD -> C++ 표준 버전 정의 [ex. set(CMAKE_CXX_STANDARD 17)]
 
-CMAKE_CXX_STANDARD_REQUIRED -> C++ 표준 버전 정의된 것을 필수로 요구할 것이냐 아니냐. 만약 프로젝트 빌드 유저의 환경이 C++ 17을 지원하지 않는 경우 CMAKE_CXX_STANDARD_REQUIRED 변수가 OFF로 되어 있으면 CMAKE_CXX_STANDARD가 17로 정의되어 있더라도 프로젝트 빌드 유저 환경에 맞는 다른 C++ 버전이 채택되어 그걸로 빌드된다. [ex. set(CMAKE_CXX_STANDARD_REQUIRED ON)]
+CMAKE_CXX_STANDARD_REQUIRED -> C++ 표준 버전 정의된 것을 필수로 요구할 것이냐 아니냐. 만약 프로젝트 빌드 유저의 환경이 C++17을 지원하지 않는 경우 CMAKE_CXX_STANDARD_REQUIRED 변수가 OFF로 되어 있으면 CMAKE_CXX_STANDARD가 17로 정의되어 있더라도 프로젝트 빌드 유저 환경에 맞는 다른 C++ 버전이 채택되어 그걸로 빌드된다. [ex. set(CMAKE_CXX_STANDARD_REQUIRED ON)]
 
 CMAKE_CXX_EXTENSIONS -> 특정 컴파일러 확장 기능을 사용하냐 안하냐를 결정한다. msvc만의 기능이 있고 gcc만의 기능이 있는데 이러한 특수한 기능을 사용할 것이냐를 물어보는 것이다. 크로스 플랫폼 빌드가 빌요한 프로젝트에서는 걍 사용하지 말자. [ex. set(CMAKE_CXX_EXTENSIONS OFF)]
 
@@ -106,7 +106,9 @@ CMAKE_CXX_EXTENSIONS -> 특정 컴파일러 확장 기능을 사용하냐 안하
 
 -B 옵션은 빌드 후 생성되는 파일들이 위치할 폴더 경로가 적혀야 한다.
 
-예를 들어 C:/VS_CODE_PROJECTS/HelloWorld/CMakeLists.txt 이렇게 위치하고 있다면 cmake -S C:/VS_CODE_PROJECTS/HelloWorld -B C:/VS_CODE_PROJECTS/HelloWorld/build 명령어를 수행해 cmake 프로젝트를 세팅해주면 된다.
+예를 들어 C:/VS_CODE_PROJECTS/HelloWorld/CMakeLists.txt 이렇게 위치하고 있다면 "cmake -S C:/VS_CODE_PROJECTS/HelloWorld -B C:/VS_CODE_PROJECTS/HelloWorld/build "명령어를 수행해 cmake 프로젝트를 세팅해주면 된다.
+
+-D 옵션은 CMakeLists.txt에 정의된 변수를 커맨드 라인으로 세팅할 때 사용된다. 예를 들어 CMake 환경 세팅을 진행할 때 C++14 버전으로 빌드 설정을 하고싶다면 "cmake .. -DCMAKE_CXX_STANDARD=14" 이러한 명령어를 입력하면 된다. 주의할 점은 -D와 특정 변수명 사이에 띄어쓰기가 없이 붙여써야 한다는 것이다.
 
 ## 빌드 옵션
 
