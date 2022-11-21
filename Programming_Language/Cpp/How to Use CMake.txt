@@ -87,6 +87,8 @@ if(조건) -> if문이 존재한다. if문을 사용했으면 endif()로 꼭 닫
 
 message -> message("문자열")로 사용한다. 빌드 시점이 아니라 CMake 세팅 시점에 출력된다. 그니까 "cmake .." 이러한 명령을 수행할 때 볼 수 있다.
 
+configure_file ->
+
 # CMakeLists.txt 사전변수
 
 CMAKE_CXX_STANDARD -> C++ 표준 버전 정의 [ex. set(CMAKE_CXX_STANDARD 17)]
@@ -95,6 +97,8 @@ CMAKE_CXX_STANDARD_REQUIRED -> C++ 표준 버전 정의된 것을 필수로 요�
 
 CMAKE_CXX_EXTENSIONS -> 특정 컴파일러 확장 기능을 사용하냐 안하냐를 결정한다. msvc만의 기능이 있고 gcc만의 기능이 있는데 이러한 특수한 기능을 사용할 것이냐를 물어보는 것이다. 크로스 플랫폼 빌드가 빌요한 프로젝트에서는 걍 사용하지 말자. [ex. set(CMAKE_CXX_EXTENSIONS OFF)]
 
+CMAKE_BINARY_DIR -> 빌드 산출물이 생성되는 위치의 경로
+
 # CMake 명령어 문법
 
 자세한 명령어 내용은 https://runebook.dev/ko/docs/cmake/ 이곳에서 찾아보자.
@@ -102,7 +106,7 @@ CMAKE_CXX_EXTENSIONS -> 특정 컴파일러 확장 기능을 사용하냐 안하
 
 ## 세팅 옵션
 
--S 옵션은 프로젝트의 root directory 경로가 위치해야 한다. (보통 CMakeLists.txt 위치하는 곳, 프로젝트 폴더 최상위 경로)
+-S 옵션은 프로젝트의 root directory 경로가 위치해야 한다. (보통 첫 CMakeLists.txt가 위치하는 곳, 프로젝트 폴더 최상위 경로)
 
 -B 옵션은 빌드 후 생성되는 파일들이 위치할 폴더 경로가 적혀야 한다.
 
@@ -110,10 +114,9 @@ CMAKE_CXX_EXTENSIONS -> 특정 컴파일러 확장 기능을 사용하냐 안하
 
 -D 옵션은 CMakeLists.txt에 정의된 변수를 커맨드 라인으로 세팅할 때 사용된다. 예를 들어 CMake 환경 세팅을 진행할 때 C++14 버전으로 빌드 설정을 하고싶다면 "cmake .. -DCMAKE_CXX_STANDARD=14" 이러한 명령어를 입력하면 된다. 주의할 점은 -D와 특정 변수명 사이에 띄어쓰기가 없이 붙여써야 한다는 것이다.
 
--G 옵션은 CMake 파일들을 생성하는 생성기를 세팅하는데 사용된다. 생성기라는 것이 뭐냐하면 일단 CMake 자체는 .cpp, .h 파일들 간의 종속 관계 구조를 나타낼 뿐이지 컴파일하거나 링크를 수행하거나 빌드 구성파일을 생성해주는 기능이 없다. 따라서 컴파일과 링크를 담당하는 생성기가 지정되어야 이러한 생성기와 CMake가 같이 일을 해서 빌드 산출물이 생성되는 것이다.
-이러한 생성기에는 MSYS Makefiles, Ninja,  Unix Makefiles, Visual Studio 15 2017, Visual Studio 17 2022... 등등 매우 많으니 빌드 시스템에서 갖추고 있는 적당한 생성자를 따로 지정해주고 싶을 때 
-예를 들어 cmake -S .. -B . -G "Visual Studio 16 2019" 이렇게 하면 CMake관련 빌드 설정 파일들이 Visual Studio 2019를 통해 생성된다. 
-https://stackoverflow.com/questions/25941536/what-is-a-cmake-generator
+-G 옵션은 CMake가 빌드 구성 파일을 만들 수 있도록 도와주는 생성기를 지정하는 곳에 쓰인다. 그러면 생성기가 뭐냐고 물어볼 수 있는데 CMake는 혼자서 링크 종속성에 대한 정보를 컴파일러에게 전달하지 못한다. 이유는 링크 종속성을 전달하는 방식이 플랫폼마다 다르기 때문인데 Mac과 같은 Unix 기반에서는 Unix Makefiles가 생성기 역할을 해주고 Windows에서는 Visual Studio가 이 역할을 해준다. 물론 Ninja와 같이 크로스 플랫폼 생성기도 있지만 프로젝트가 돌아가는 컴퓨터에 Ninja가 깔려있을 것이라는 보장이 없지 않은가? 따라서 자신이 빌드할 때 특정한 생성기를 이용하여 빌드하고 싶다면 -G 옵션을 사용하면 된다.
+예를 들어 cmake -S .. -B . -G "Visual Studio 16 2019" 이렇게 하면 CMake관련 빌드 구성 파일들이 Visual Studio 2019를 통해 생성된다. 
+생성기에 대한 자세한 답변은 https://stackoverflow.com/questions/25941536/what-is-a-cmake-generator 요기에 잘 설명되어 있다.
 
 ## 빌드 옵션
 
