@@ -110,6 +110,11 @@ CMAKE_CXX_EXTENSIONS -> 특정 컴파일러 확장 기능을 사용하냐 안하
 
 -D 옵션은 CMakeLists.txt에 정의된 변수를 커맨드 라인으로 세팅할 때 사용된다. 예를 들어 CMake 환경 세팅을 진행할 때 C++14 버전으로 빌드 설정을 하고싶다면 "cmake .. -DCMAKE_CXX_STANDARD=14" 이러한 명령어를 입력하면 된다. 주의할 점은 -D와 특정 변수명 사이에 띄어쓰기가 없이 붙여써야 한다는 것이다.
 
+-G 옵션은 CMake 파일들을 생성하는 생성기를 세팅하는데 사용된다. 생성기라는 것이 뭐냐하면 일단 CMake 자체는 .cpp, .h 파일들 간의 종속 관계 구조를 나타낼 뿐이지 컴파일하거나 링크를 수행하거나 빌드 구성파일을 생성해주는 기능이 없다. 따라서 컴파일과 링크를 담당하는 생성기가 지정되어야 이러한 생성기와 CMake가 같이 일을 해서 빌드 산출물이 생성되는 것이다.
+이러한 생성기에는 MSYS Makefiles, Ninja,  Unix Makefiles, Visual Studio 15 2017, Visual Studio 17 2022... 등등 매우 많으니 빌드 시스템에서 갖추고 있는 적당한 생성자를 따로 지정해주고 싶을 때 
+예를 들어 cmake -S .. -B . -G "Visual Studio 16 2019" 이렇게 하면 CMake관련 빌드 설정 파일들이 Visual Studio 2019를 통해 생성된다. 
+https://stackoverflow.com/questions/25941536/what-is-a-cmake-generator
+
 ## 빌드 옵션
 
 --build 옵션은 프로젝트를 빌드할 때 수행하는 명령어다. "--build 특정경로"로 사용하면 된다.
