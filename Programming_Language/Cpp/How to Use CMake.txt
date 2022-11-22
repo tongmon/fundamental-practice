@@ -82,7 +82,7 @@ add_subdirectory -> 하위 폴더에 빌드 관련 CMakeLists.txt가 있는 경�
 set -> cmake에서 변수를 지정할 때 사용된다. 예를 들어 set(LIBRARY_NAME "MyLibrary") 라고 하면 C++로 따지면 std::string LIBRARY_NAME = "MyLibrary"; 이거랑 똑같은 것이다. 만약에 set(LIBRARY_NAME MyLibrary) 이렇게 "를 때고 변수 지정을 한다면 CMake가 적절한 변수 형태를 유추해서 저장을 한다. 이 경우에는 MyLibrary가 문자열이니 문자형으로 저장을 할 것이다.
 배열형도 가능한데 set(LIBRARY_SOURCES "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc") 이렇게 해주면 LIBRARY_SOURCES 이 녀석은 배열이다.
 set은 단순히 변수를 저장할 때도 쓰이지만 CMake 자체에 내장되어 있는 변수들의 값을 바꿀 때도 사용된다. 예를 들어 프로젝트에서 C++ 17을 사용하고 싶다면 set(CMAKE_CXX_STANDARD 17) 이렇게 해주면 된다.
-변수명을 지을 때 주의할 점은 모두 대문자로 지어야 한다는 것이다. 변수명을 사용할 때는 ${LIBRARY_NAME} 이렇게 사용한다. [ex. target_include_directories(${LIBRARY_NAME} PUBLIC "./")]
+변수명을 지을 때 주의할 점은 모두 대문자로 지어야 한다는 것이다. 변수명을 사용할 때는 ${LIBRARY_NAME} 이렇게 사용한다. 보통 add_library(MyLibrary "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc")를 add_library(MyLibrary ${LIBRARY_SOURCES}) 이렇게 줄이는 곳에 많이 쓰인다.
 
 option -> CMake에서 bool형 변수를 생성할 때 사용된다. 변수명, 변수 설명, 디폴트 값 순으로 정의한다. [option(COMPILE_EXECUTABLE "This is COMPILE_EXECUTABLE hint!" OFF)]
 
