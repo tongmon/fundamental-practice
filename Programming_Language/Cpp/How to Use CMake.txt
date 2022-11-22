@@ -89,7 +89,37 @@ if(조건) -> if문이 존재한다. if문을 사용했으면 endif()로 꼭 닫
 
 message -> message("문자열")로 사용한다. 빌드 시점이 아니라 CMake 세팅 시점에 출력된다. 그니까 "cmake .." 이러한 명령을 수행할 때 볼 수 있다.
 
-configure_file ->
+configure_file -> 빌드 시점에 동적으로 헤더 파일을 만들어 줄 때 사용된다. 살짝 설명이 길어질텐데 어떻게 사용하냐면 일단 밑과 같은 config.h.in 파일이 존재한다고 하자. (확장자가 .h,.cpp가 아니면 뭐든 의미없다. 근데 앵간하면 .in으로 사용하자.)
+//--------------------------------------------------------------------------------
+#pragma once
+
+#include <cstdint>
+#include <string_view>
+
+static constexpr std::string_view project_name = "@PROJECT_NAME@";
+static constexpr std::string_view project_version = "@PROJECT_VERSION@";
+
+static constexpr std::int32_t project_version_major{@PROJECT_VERSION_MAJOR@};
+static constexpr std::int32_t project_version_minor{@PROJECT_VERSION_MINOR@};
+static constexpr std::int32_t project_version_patch{@PROJECT_VERSION_PATCH@};
+//--------------------------------------------------------------------------------
+해당 .in 파일이 있는 곳 CMakeLists.txt 파일에 configure_file("config.h.in" "${CMAKE_BINARY_DIR}/configured_files/include/config.h" ESCAPE_QUOTES) 해당 명령어가 있으면 빌드 시점에 CMake가 "빌드_경로/configure_file/include/" 경로에 config.h.in에서 .in을 떼고 config.h을 만들어 주는데 특이한 점은 @로 감싸고 있는 문자열을 CMake가 가지고 있던 값으로 모두 치환해준다. (ESCAPE_QUOTES 옵션은 "@PROJECT_NAME@" 이 녀석을 치환할 때 실제로 \"치환 값\" 이렇게 "를 \"로 안전하게 바꿔 .h 파일을 생성하도록 한다.)
+예를 들어 최상위 CMakeLists.txt에 project(CppProjectTemplate VERSION 1.2.3 LANGUAGES C CXX) 이러한 내용이 있다면 @PROJECT_NAME@ -> CppProjectTemplate, @PROJECT_VERSION@ -> 1.2.3 등으로 치환된다.
+즉 생성된 config.h 모양은 밑과 같다.
+//--------------------------------------------------------------------------------
+#pragma once
+
+#include <cstdint>
+#include <string_view>
+
+static constexpr std::string_view project_name = "CppProjectTemplate";
+static constexpr std::string_view project_version = "1.2.3";
+
+static constexpr std::int32_t project_version_major{1};
+static constexpr std::int32_t project_version_minor{2};
+static constexpr std::int32_t project_version_patch{3};
+//--------------------------------------------------------------------------------
+해당 생성된 헤더 파일을 가지고 소스 파일에서 project_name 변수를 사용할 수 있다. (빌드 시점에서 동적으로 생성되는 헤더 파일이기에 config.h 헤더가 존재하지 않고 project_name 변수도 없다고 VS Code의 Intellisense에서 오류라고 판단할 수 있는데 막상 빌드해보면 오류 표시가 없어지면서 빌드가 잘 된다.)
 
 # CMakeLists.txt 사전변수
 
