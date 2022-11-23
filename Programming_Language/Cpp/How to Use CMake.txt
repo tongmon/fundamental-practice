@@ -157,3 +157,5 @@ CMAKE_BINARY_DIR -> 빌드 산출물이 생성되는 위치의 경로
 
 --target 옵션은 특정 타겟을 정해서 해당 타겟만 빌드할 수 있다. 예를 들어 CMakeLists.txt에 MyLibrary라는 라이브러리가 정의되어 있다면 cmake --build . --target MyLibrary를 하면 MyLibrary와 그 라이브러리에 종속된 모듈들만 빌드된다.
 
+git init
+git submodule add https://github.com/nlohmann/json external/json
