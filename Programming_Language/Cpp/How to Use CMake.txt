@@ -86,7 +86,7 @@ set은 단순히 변수를 저장할 때도 쓰이지만 CMake 자체에 내장�
 
 option -> CMake에서 bool형 변수를 생성할 때 사용된다. 변수명, 변수 설명, 디폴트 값 순으로 정의한다. [option(COMPILE_EXECUTABLE "This is COMPILE_EXECUTABLE hint!" OFF)]
 
-if(조건) -> if문이 존재한다. if문을 사용했으면 endif()로 꼭 닫아줘야 한다. else문, else if문은 else(), elseif()로 사용한다.
+if(조건) -> CMake에도 if문이 존재한다. if문을 사용했으면 endif()로 꼭 닫아줘야 한다. else문, else if문은 else(), elseif()로 사용한다.
 
 message -> message("문자열")로 사용한다. 빌드 시점이 아니라 CMake 세팅 시점에 출력된다. 그니까 "cmake .." 이러한 명령을 수행할 때 볼 수 있다.
 
@@ -157,5 +157,43 @@ CMAKE_BINARY_DIR -> 빌드 산출물이 생성되는 위치의 경로
 
 --target 옵션은 특정 타겟을 정해서 해당 타겟만 빌드할 수 있다. 예를 들어 CMakeLists.txt에 MyLibrary라는 라이브러리가 정의되어 있다면 cmake --build . --target MyLibrary를 하면 MyLibrary와 그 라이브러리에 종속된 모듈들만 빌드된다.
 
-git init
-git submodule add https://github.com/nlohmann/json external/json
+# CMake에서 External Library 추가하는 방법
+
+해당 방법은 여러가지가 존재한다. git, vcpkg, conan 등등... 각각의 방법에 대해 예시를 들어 절차적으로 설명하겠다.
+
+## CMake와 Git을 통해 외부 라이브러리 추가
+
+1. 자신이 진행할 프로젝트를 VS Code로 연다.
+
+2. 프로젝트 최상위 위치에서 외부 라이브러리들이 담길 external 폴더를 만든다. (다른 이름으로 해도 되지만 그냥 여기서는 external로 한다.)
+
+3. 프로젝트 터미널에서 git init 명령어를 실행하여 프로젝트에 git을 활성화한다. (해당 명령어를 수행할 때 위치는 프로젝트 최상위 폴더여야 한다.)
+
+4. https://github.com/nlohmann/json 라이브러리를 추가하려고 한다. 프로젝트 터미널에서 git submodule add https://github.com/nlohmann/json external/json 명령어를 한다. (해당 명령어를 수행할 때 위치는 프로젝트 최상위 폴더여야 한다.) 만약 수행이 안된다면 VS Code를 재실행하고 해당 명령어를 수행한다.
+명령어에서 external/json 부분이 있는데 해당 경로에서 json 폴더명은 사용자가 원하는 이름으로 해도 되지만 여기서는 json으로 한다.
+
+5. 프로젝트 최상위 위치에서 cmake라는 폴더를 만든다. 해당 폴더는 이제 CMake에서 쓰일 커스텀 함수 구현부 파일이 들어갈 것이다.
+
+6. cmake 폴더 내에 AddGitSubmodule.cmake 파일을 만든다. 해당 파일의 내용은 밑과 같아야 한다.
+function(add_git_submodule dir)
+    find_package(Git REQUIRED)
+
+    if (NOT EXISTS ${dir}/CMakeLists.txt)
+        execute_process(COMMAND ${GIT_EXECUTABLE}
+            submodule update --init --recursive -- ${dir}
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR})
+    endif()
+
+    add_subdirectory(${dir})
+endfunction(add_git_submodule)
+해당 내용을 분석해보면 function([함수 이름] [함수 인자]), endfunction([함수 이름]) 이고 find_package에서 Git 패키지와 관련된 데이터들을 추가해준다. 그니까 find_package(Git REQUIRED)를 했다면 Git의 실행파일 경로가 저장되어 있는 GIT_EXECUTABLE 와 같은 매크로들을 이제 사용할 수 있다.
+if문 부분 로직을 보면 만약 dir 경로에 CMakeLists.txt 파일이 존재하지 않으면 execute_process 명령을 통해 명령어를 실행하는데 해당 명령어는 "submodule update --init --recursive -- ${dir}" 이다. 그리고 프로젝트의 최상위 위치는 WORKING_DIRECTORY 인자로 넘겨야 하는데 해당 인자는 최상위 위치가 정의되어 있는 PROJECT_SOURCE_DIR 매크로로 넘겨준다. 즉 dir 경로에 CMakeLists.txt 파일이 존재하지 않으면 ${dir}에 위치한 레포지토리를 업데이트하라는 것이다.
+그리고 해당 레포지토리 폴더를 프로젝트의 최상위 CMakeLists.txt 파일과 연결해줘야 하기에 add_subdirectory(${dir}) 명령을 수행한다.
+
+7. 프로젝트의 최상위 CMakeLists.txt 파일에 가서 밑의 명령들을 추가해준다.
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
+include(AddGitSubmodule)
+add_git_submodule(external/json)
+각 명령에 대해 설명해보자면 CMAKE_MODULE_PATH 매크로는 CMake 커스텀 함수 파일들이 위치하는 경로를 담고 있어야 하는데 지금 커스텀 함수 파일인 AddGitSubmodule.cmake가 존재하는 곳이 "${PROJECT_SOURCE_DIR}/cmake/"이기에 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/") 이렇게 세팅해준다.
+커스텀 함수 파일 이름이 AddGitSubmodule.cmake이기에 해당 파일에 정의되어 있는 커스텀 함수를 CMake에서 사용해주기 위해 include(AddGitSubmodule)로
+
