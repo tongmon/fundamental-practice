@@ -44,6 +44,9 @@
 
 7. Debug, Realse 빌드 전환은 VS Code 하단에 위치하는 파란색 바에 CMake: [Debug]: Ready 이렇게 쓰여있는 곳이 있을텐데 이를 눌러서 변경해주면 된다.
 
+8. 만약 모든 CMake 관련 파일에도 오류가 없고 코드 자체에도 오류가 없는데 빌드가 계속해서 안된다면 프로젝트 폴더 경로에 한글이나 띄어쓰기가 포함되어 있는지 확인해보자.
+MSVC 컴파일러는 한글, 띄어쓰기가 프로젝트 경로에 포함되어 있어도 빌드가 잘되지만 GCC나 Clang 컴파일러는 안된다. 자신이 GCC, Clang 컴파일러 사용자라면 프로젝트 폴더 위치를 옮겨서 빌드하자.
+
 # CMakeLists.txt 문법
 
 CMakeLists.txt에서 주석은 #으로 달아준다. [ex. #이건 CMake 파일이다!!]
@@ -78,6 +81,7 @@ main.cpp는 MyExecutable이라는 실행 파일을 빌드하는 곳에 쓰이고
 
 add_subdirectory -> 하위 폴더에 빌드 관련 CMakeLists.txt가 있는 경우 이를 인식하도록 상위 폴더의 CMakeLists.txt에 add_subdirectory를 해주어야 한다. CMake가 파일을 타고 타고 내려갈 때 꼭 필요한 명령이기 때문에 파일이 따로 없고 폴더만 포함하는 폴더에도 CMakeLists.txt 파일을 만들어 줘야 한다. 그리고 더 중요한 것은 add_subdirectory 명령의 순서이다.
 만약 app 폴더 내부에 있는 파일들이 MyExecutable이라는 실행 파일을 만드는데 해당 실행 파일이 MyLibrary라는 라이브러리를 요구한다고 해보자. 근데 MyLibrary는 src 폴더 내부에 있는 파일들을 통해 생성된다. 이 경우 app 폴더와 src 폴더를 모두 가지고 있는 상위 폴더에서는 MyLibrary가 먼저 만들어져야 한다는 것을 알고 add_subdirectory(src) 후에 add_subdirectory(app) 를 해줘야 한다.
+이미 add_subdirectory로 추가했던 폴더를 중복해서 또 추가하면 오류가 나니 주의해야한다.
 
 set -> cmake에서 변수를 지정할 때 사용된다. 예를 들어 set(LIBRARY_NAME "MyLibrary") 라고 하면 C++로 따지면 std::string LIBRARY_NAME = "MyLibrary"; 이거랑 똑같은 것이다. 만약에 set(LIBRARY_NAME MyLibrary) 이렇게 "를 때고 변수 지정을 한다면 CMake가 적절한 변수 형태를 유추해서 저장을 한다. 이 경우에는 MyLibrary가 문자열이니 문자형으로 저장을 할 것이다.
 배열형도 가능한데 set(LIBRARY_SOURCES "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc") 이렇게 해주면 LIBRARY_SOURCES 이 녀석은 배열이다.
@@ -157,6 +161,20 @@ CMAKE_BINARY_DIR -> 빌드 산출물이 생성되는 위치의 경로
 
 --target 옵션은 특정 타겟을 정해서 해당 타겟만 빌드할 수 있다. 예를 들어 CMakeLists.txt에 MyLibrary라는 라이브러리가 정의되어 있다면 cmake --build . --target MyLibrary를 하면 MyLibrary와 그 라이브러리에 종속된 모듈들만 빌드된다.
 
+# CMake에서 Makefile 활용법
+보통 명령어를 축약해서 사용할 때 활용한다.
+예를 들어 터미널에서 CMake를 빌드할 때마다 mkdir build, cd build, cmake -S .. -B . -G "Ninja" 이런거 계속 치기 귀찮기 때문에 Makefile에 미리 정의해놓고 쓰게 된다.
+윈도우, 리눅스, MAC 모두 명령어가 살짝 다르기 때문에 빌드 환경에 따라 다른 명령어를 사용해야 한다.
+밑은 윈도우 환경에서 예시이고 파일이름은 꼭 Makefile이여야 하며 프로젝트 최상위 폴더에 위치하는 것이 좋다.
+VS Code에서 터미널이 PowerShell인지 cmd인지 확인해보자. PowerShell에서 수행되는 명령어가 cmd에서는 안되는 경우가 종종 있기에 PowerShell에서 명령어를 수행하는 것이 좋다.
+rebuild:
+	powershell New-Item build -ItemType Directory -ea 0
+	rmdir /s /q build
+	mkdir build
+	cmake -S . -B build
+	cmake --build build
+위와 같은 내용의 Makefile이 있다면 터미널에서 단지 make rebuild 명령만 수행해도 "rmdir /s /q build && mkdir build && cmake -S . -B build && cmake --build build" 이러한 명령이 수행된다.
+
 # CMake에서 External Library 추가하는 방법
 
 해당 방법은 여러가지가 존재한다. git, vcpkg, conan 등등... 각각의 방법에 대해 예시를 들어 절차적으로 설명하겠다.
@@ -195,5 +213,8 @@ set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 include(AddGitSubmodule)
 add_git_submodule(external/json)
 각 명령에 대해 설명해보자면 CMAKE_MODULE_PATH 매크로는 CMake 커스텀 함수 파일들이 위치하는 경로를 담고 있어야 하는데 지금 커스텀 함수 파일인 AddGitSubmodule.cmake가 존재하는 곳이 "${PROJECT_SOURCE_DIR}/cmake/"이기에 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/") 이렇게 세팅해준다.
-커스텀 함수 파일 이름이 AddGitSubmodule.cmake이기에 해당 파일에 정의되어 있는 커스텀 함수를 CMake에서 사용해주기 위해 include(AddGitSubmodule)로
+커스텀 함수 파일 이름이 AddGitSubmodule.cmake이기에 해당 파일에 정의되어 있는 커스텀 함수를 CMake에서 사용해주기 위해 include(AddGitSubmodule)로 AddGitSubmodule.cmake 파일을 포함시켜준다.
+외부 라이브러리 경로는 최상위 프로젝트 폴더부터 "external/json"에 존재하니 AddGitSubmodule 파일에서 정의한 함수인 add_git_submodule(external/json)를 하여 해당 라이브러리의 CMakeLists.txt와 프로젝트 최상위 CMakeLists.txt를 연동해준다.
+
+8. 마지막으로 해당 외부 라이브러리를 사용하는 모듈에 적절하게 외부 라이브러리 종속성을 추가해준다. 지금 추가하려는 라이브러리 이름은 nlohmann_json(라이브러리 이름은 특정 라이브러리 내의 CMakeLists.txt에 project() 속에 쓰여있다.)이니 예를 들어 target_link_libraries(${EXECUTABLE_NAME} PUBLIC ${LIBRARY_NAME} nlohmann_json) 요렇게 넣어주면 된다.
 
