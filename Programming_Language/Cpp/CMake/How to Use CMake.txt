@@ -170,12 +170,14 @@ CMake 세팅을 할 때는 파일 경로는 적는 일이 잦은데 경로 구�
 
 --target 옵션은 특정 타겟을 정해서 해당 타겟만 빌드할 수 있다. 예를 들어 CMakeLists.txt에 MyLibrary라는 라이브러리가 정의되어 있다면 cmake --build . --target MyLibrary를 하면 MyLibrary와 그 라이브러리에 종속된 모듈들만 빌드된다.
 
+-j 옵션은 빌드 속도를 가속하기 위한 병렬 처리를 세팅하기 위해 필요하다. -j 12이면 테스크를 12개 유지하면서 빌드를 한다는 것이다. (CPU가 겁나 돌아가는 소리를 들을 수 있을 것이다...)
+
 # CMake에서 Makefile 활용법
 보통 명령어를 축약해서 사용할 때 활용한다.
 예를 들어 터미널에서 CMake를 빌드할 때마다 mkdir build, cd build, cmake -S .. -B . -G "Ninja" 이런거 계속 치기 귀찮기 때문에 Makefile에 미리 정의해놓고 쓰게 된다.
 윈도우, 리눅스, MAC 모두 명령어가 살짝 다르기 때문에 빌드 환경에 따라 다른 명령어를 사용해야 한다.
 밑은 윈도우 환경에서 예시이고 파일이름은 꼭 Makefile이여야 하며 프로젝트 최상위 폴더에 위치하는 것이 좋다.
-VS Code에서 터미널이 PowerShell인지 cmd인지 확인해보자. PowerShell에서 수행되는 명령어가 cmd에서는 안되는 경우가 종종 있기에 PowerShell에서 명령어를 수행하는 것이 좋다.
+VS Code에서 터미널이 PowerShell인지 cmd인지 확인해보자. CMD에서 진행하는 명령어들이 Linux하고 비슷해서 좋다.
 rebuild:
 	mkdir build | rmdir /s /q build
 	mkdir build
@@ -239,40 +241,43 @@ GIT_TAG를 주의해야 하는데 태그 주소를 보고 적어야 한다. (htt
 
 3. FetchContent_Declare 바로 밑에  FetchContent_MakeAvailable(<라이브러리 이름>)을 적는다.
 
-# 정의해놓으면 편한 Windows용 Makefiles(컴파일러 경로는 자신의 환경에 알맞게 설정해줘야 한다.)
+4. 마지막으로 해당 외부 라이브러리를 사용하는 모듈에 적절하게 외부 라이브러리 종속성을 추가해준다.
 
-### 항상 최상위 CMakeLists.txt가 있는 위치에서 make 명령어를 수행할 것! ###
+5. 해당 방법의 장점은 특정 라이브러리만 빌드 타겟으로 정해 그것만 빌드할 수 있다는 것이다. 단점은 재빌드를 수행할 때 외부 라이브러리들까지 모두 빌드하기 때문에 빌드 시간이 오래걸린다.
 
-.PHONY: debug release
+## Conan과 CMake를 사용하여 외부 라이브러리 추가
 
-target=all
-c_compiler=C:/msys64/mingw64/bin/gcc.exe
-cxx_compiler=C:/msys64/mingw64/bin/g++.exe
-generator=Unix Makefiles
-build_path=./build/
-windows_build_path=$(subst /,\,$(build_path))
+1. 일단 패키지 관리툴인 Conan을 설치해야 한다. 이미 설치했다면 3번 항목부터 봐라.
 
-release:
-	mkdir $(windows_build_path)\Release | cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$(c_compiler) -DCMAKE_CXX_COMPILER=$(cxx_compiler) -S . -B $(build_path)/Release -G "$(generator)" --graphviz=$(build_path)/Release/graph_info/graph.dot
-	dot -Tpng $(build_path)/Release/graph_info/graph.dot -o $(build_path)/graph_release.png
-	cmake --build $(build_path)/Release --target $(target)
+2. PowerShell에 들어가 pip install conan을 하여 설치한다.
 
-debug:
-	mkdir $(windows_build_path)\Debug | cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=$(c_compiler) -DCMAKE_CXX_COMPILER=$(cxx_compiler) -S . -B $(build_path)/Debug -G "$(generator)" --graphviz=$(build_path)/Debug/graph_info/graph.dot
-	dot -Tpng $(build_path)/Debug/graph_info/graph.dot -o $(build_path)/graph_debug.png
-	cmake --build $(build_path)/Debug --target $(target)
+3. https://conan.io/center/ 에서 사용하고 싶은 라이브러리 이름을 검색한다. 여기선 예시로 catch2 라이브러리로 하겠다.
 
-release_re:
-	rmdir /s /q $(windows_build_path)\Release | mkdir $(windows_build_path)\Release
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE=Release -DCMAKE_C_COMPILER=$(c_compiler) -DCMAKE_CXX_COMPILER=$(cxx_compiler) -S . -B $(build_path)/Release -G "$(generator)" --graphviz=$(build_path)/Release/graph_info/graph.dot
-	dot -Tpng $(build_path)/Release/graph_info/graph.dot -o $(build_path)/graph_release.png
-	cmake --build $(build_path)/Release --target $(target)
+4. 검색하면 "catch2/특정 버전" 옆에 클립보드로 복사하는 버튼이 있을 텐데 이걸 누른다.
 
-debug_re:
-	rmdir /s /q $(windows_build_path)\Debug | mkdir $(windows_build_path)\Debug
-	cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=$(c_compiler) -DCMAKE_CXX_COMPILER=$(cxx_compiler) -S . -B $(build_path)/Debug -G "$(generator)" --graphviz=$(build_path)/Debug/graph_info/graph.dot
-	dot -Tpng $(build_path)/Debug/graph_info/graph.dot -o $(build_path)/graph_debug.png
-	cmake --build $(build_path)/Debug --target $(target)
+5. 프로젝트의 최상위 CMakeLists.txt가 위치한 곳에 conanfile.txt를 만들고 밑과 같은 내용을 담는다.
+[requires]
 
-예를들어 터미널에서 make debug target=SDL2 generator="Visual Studio 17 2022" 를 하면 SDL2만 VS2022 생성기를 통해 Debug 모드로 빌드된다.
+[generators]
+cmake
 
+6. conanfile.txt의 [requires] 밑에 아까 클립보드로 복사한 라이브러리 내용을 붙여넣는다. (ex. catch2/3.2.0)
+
+7. 터미널에서 "conan install <conanfile.txt가 있는 경로 위치> -if <conanbuildinfo.cmake가 만들어질 경로>" 명령어를 수행한다. 이러면 conan이 설치되어 있는 곳에 연동할 라이브러리 dll들이 설치되고 해당 경로가 프로젝트와 연동된다. (ex. conan install . -if ./build)
+
+8. 최상위 CMakeLists.txt에 include(<conanbuildinfo.cmake가 위치한 경로>)와 conan_basic_setup()을 추가해준다.
+
+9. 그리고 해당 라이브러리가 쓰이는 곳 CMakeLists.txt에 target_link_libraries 함수가 있을 텐데 여기에 ${CONAN_대문자로된라이브러리이름}를 추가해준다. (ex. ${CONAN_CATCH2})
+
+
+
+target_link_directories([프로젝트명]
+	PRIVATE
+	${CMAKE_SOURCE_DIR}/external/zlib
+)
+
+
+target_link_libraries([프로젝트명] 
+ 	PRIVATE
+ 	zlibd
+)
