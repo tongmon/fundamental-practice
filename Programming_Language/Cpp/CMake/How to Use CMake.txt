@@ -263,13 +263,81 @@ cmake
 
 6. conanfile.txt의 [requires] 밑에 아까 클립보드로 복사한 라이브러리 내용을 붙여넣는다. (ex. catch2/3.2.0)
 
-7. 터미널에서 "conan install <conanfile.txt가 있는 경로 위치> -if <conanbuildinfo.cmake가 만들어질 경로>" 명령어를 수행한다. 이러면 conan이 설치되어 있는 곳에 연동할 라이브러리 dll들이 설치되고 해당 경로가 프로젝트와 연동된다. (ex. conan install . -if ./build)
+6.1 이건 선택사항인데 conanfile.txt 파일에 추가적으로 밑과 같이 설정하면
+[imports]
+bin, *.dll -> ./build/debug/bin
+lib, *.lib -> ./build/debug/lib
+빌드 후 종속성에 있는 모든 dll은 conanfile.txt 파일 경로를 기준으로 "./build/debug/bin" 경로에,  모든 lib는 "./build/debug/lib" 경로에 위치한다.
+그리고 conan의 디폴트 링크 방식은 static 방식이기에 따로 dll을 생성하지 않는다. 이를 수정하려면 conanfile.txt에 밑과 같이
+[options]
+catch2:shared=True
+이렇게 추가해줘야 한다. (여기선 예시로 catch2 라이브러리를 사용했지만 형식은 "패키지이름:shared=True" 아니면 "패키지이름:shared=False"이다.)
+더 자세한 내용은 https://docs.conan.io/en/latest/using_packages/conanfile_txt.html 이곳에 쓰여있다.
 
-8. 최상위 CMakeLists.txt에 include(<conanbuildinfo.cmake가 위치한 경로>)와 conan_basic_setup()을 추가해준다.
+7. conan이 설치된 폴더에 들어가야 한다. (보통 "C:\Users\<사용자 데스크탑 이름>\.conan"에 위치한다.) 설치 폴더에 profiles라는 폴더가 있고 그 내부에 default 파일이 있을 것이다. 해당 녀석에 수정이 필요할 수도 있는데 보통 밑과 같이 되어있을 것이다.
+[settings]
+os=Windows
+os_build=Windows
+arch=x86_64
+arch_build=x86_64
+compiler=Visual Studio
+compiler.version=17
+build_type=Release
+[options]
+[build_requires]
+[env]
+만약 자신이 VS Code에서 빌드할 때 컴파일러를 Visual Studio의 MSVC를 사용하면 상관이 없지만 gcc나 clang을 사용한다면 바꿔줘야 한다.
+Windows, Mac, Linux에서 모두 사용할 수 있는 gcc를 사용하는 경우에 대해서만 예시를 들면 밑과 같이 바뀌어야 한다.
+[settings]
+os=Windows
+os_build=Windows
+arch=x86_64
+arch_build=x86_64
+compiler=gcc
+compiler.version=12
+compiler.libcxx=libstdc++11
+build_type=Release
+[env]
+CC=C:/msys64/mingw64/bin/gcc.exe
+CXX=C:/msys64/mingw64/bin/g++.exe
+[options]
+[build_requires]
+물론 compiler.version, CC, CXX에 대한 값은 빌드 환경마다 달라지기 때문에 적절하게 바꿔서 넣어줘야 한다.
 
-9. 그리고 해당 라이브러리가 쓰이는 곳 CMakeLists.txt에 target_link_libraries 함수가 있을 텐데 여기에 ${CONAN_대문자로된라이브러리이름}를 추가해준다. (ex. ${CONAN_CATCH2})
+8. VS Code에서 원활한 Intellisense를 사용하기 위해 .vscode/c_cpp_properties.json의 includePath에 "~/.conan/data/**" 경로를 추가해야 특정 라이브러리가 제공하는 헤더를 include할 때 편집기에서 빨간 밑줄이 안 그어진다. (사실 빨간 줄만 그어질 뿐이지 실제로 에러는 아니기에 빌드, 실행은 잘 된다.)
 
+9. 터미널에서 "conan install <conanfile.txt가 있는 경로 위치> -if <conanbuildinfo.cmake가 만들어질 경로>" 명령어를 수행한다. 이러면 conan이 설치되어 있는 곳에 연동할 라이브러리 dll들이 설치되고 해당 경로가 프로젝트와 연동된다. (ex. conan install . -if ./build)
 
+10. 최상위 CMakeLists.txt에 include(<conanbuildinfo.cmake가 위치한 폴더>/conanbuildinfo.cmake)와 conan_basic_setup()을 추가해준다.
+
+11. 그리고 해당 라이브러리가 쓰이는 곳 CMakeLists.txt에 target_link_libraries 함수가 있을 텐데 여기에 ${CONAN_대문자로된라이브러리이름}를 추가해주면 된다. (ex. target_link_libraries(${EXECUTABLE_NAME} PUBLIC ${CONAN_CATCH2}))
+
+## vcpkg와 CMake를 사용하여 외부 라이브러리 추가
+
+1. vcpkg를 먼저 설치해야 한다. 관리자 모드로 터미널이나 PowerShell을 연다.
+
+2. vcpkg 설치를 원하는 위치로 cd 명령을 수행해 이동하고 git clone https://github.com/microsoft/vcpkg 명령을 수행한다.
+
+3. 다음에 .\vcpkg\bootstrap-vcpkg.bat 명령을 수행하여 vcpkg를 설치한다.
+
+4. .\vcpkg integrate install 와 .\vcpkg integrate powershell 명령을 수행하고 터미널이나 PowerShell 창을 재시작한다.
+
+5. 자신의 프로젝트로 가서 .vscode/settings.json에 밑의 내용을 추가한다.
+"cmake.configureSettings": {
+  "CMAKE_TOOLCHAIN_FILE": "<vcpkg가 설치된 폴더 경로>/scripts/buildsystems/vcpkg.cmake"
+}
+추가하면 다음과 같은 모습이 될 것이다.
+{
+  "C_Cpp_Runner.cCompilerPath": "gcc",
+  "C_Cpp_Runner.cppCompilerPath": "g++",
+  ....
+  ....
+  "cmake.configureSettings": {
+	"CMAKE_TOOLCHAIN_FILE": "<vcpkg가 설치된 폴더 경로>/scripts/buildsystems/vcpkg.cmake"
+  }
+}
+
+6. 
 
 target_link_directories([프로젝트명]
 	PRIVATE

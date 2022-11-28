@@ -52,11 +52,8 @@ void Erathos() {
 bool is_Prime(int Num) {
     if (Num <= 1)
         return 0;
-    if (!(Num % 2)) {
-        if (Num == 2)
-            return 1;
-        return 0;
-    }
+    if (!(Num % 2))
+		return Num == 2;
     for (int i = 3; i <= sqrt(Num); i+=2) {
         if (!(Num % i))
             return 0;
@@ -68,7 +65,6 @@ bool is_Prime(int Num) {
 // 플로이드 와샬, 징검다리 via는 항상 제일 밖의 루프
 for (int i = 1; i <= N; i++)
 	for (int j = 1; j <= N; j++)
-		for (int k = 1; k <= N; k++) {
+		for (int k = 1; k <= N; k++) 
 			if (k != j)
 				Dir[j][k] = min(Dir[j][k], Dir[j][i] + Dir[i][k]);
-		}
