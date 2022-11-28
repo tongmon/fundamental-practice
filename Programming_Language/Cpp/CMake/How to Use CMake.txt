@@ -339,6 +339,60 @@ CXX=C:/msys64/mingw64/bin/g++.exe
 
 6. 
 
+
+# CMake와 Doxygen 같이 사용하기
+
+1. 당연히 Doxygen은 설치가 되어 있어야 한다.
+
+2. 설명을 추가할 함수 위에서 /**Enter키를 차례대로 누르면 Doxygen 주석 형식이 갖춰진다.
+
+3. @brief는 함수 설명, @param은 함수의 파라메터에 대한 설명, @return은 함수의 반환 값에 대한 설명
+
+4. 프로젝트 최상위에서 docs라는 폴더를 만들자. (이름이 꼭 docs일 필요는 없다.)
+
+5. docs 폴더 내부에 Doxyfile 이라는 파일을 만들고 내부 내용을 다음과 같이 채워준다.
+
+#---------------------------------------------------------------------------
+# Project related configuration options
+#---------------------------------------------------------------------------
+DOXYFILE_ENCODING      = UTF-8
+PROJECT_NAME           = "C++ Project Template"
+PROJECT_NUMBER         = 1.0.0
+PROJECT_BRIEF          = "C++ Project Template"
+PROJECT_LOGO           =
+OUTPUT_DIRECTORY       = ./
+OUTPUT_LANGUAGE        = English
+MARKDOWN_SUPPORT       = YES
+
+#---------------------------------------------------------------------------
+# Build related configuration options
+#---------------------------------------------------------------------------
+EXTRACT_ALL             = YES
+RECURSIVE               = YES
+GENERATE_HTML           = YES
+GENERATE_LATEX          = NO
+
+#---------------------------------------------------------------------------
+# Configuration options related to the input files
+#---------------------------------------------------------------------------
+
+INPUT                  = ../src
+INPUT_ENCODING         = UTF-8
+FILE_PATTERNS          = *.c \
+                         *.cc \
+                         *.cxx \
+                         *.cpp \
+                         *.h \
+                         *.hh \
+                         *.hpp \
+                         *.hxx
+
+각 옵션들이 하는 기능은 뜻을 읽어보면 직관적으로 알 수 있다. 사용자의 프로젝트에 따라 옵션을 알맞게 수정하면 된다. 
+가장 중요한 옵션은 INPUT인데 여기에 Doxygen 주석 설명이 달려있는 코드 위치들을 적어야 한다.
+Doxygen 결과 파일인 index.html이 생성되는 위치가 적혀있는 OUTPUT_DIRECTORY 옵션도 중요하다.
+
+6. Doxyfile이 있는 곳에서 터미널로 doxygen 명령을 수행하면 OUTPUT_DIRECTORY 옵션에 정의된 위치에 결과 파일이 생성되고 생성 파일 중에 index.html 파일을 웹으로 열어보면 주석 정보가 문서화되어 정리된 페이지를 볼 수 있다.
+
 target_link_directories([프로젝트명]
 	PRIVATE
 	${CMAKE_SOURCE_DIR}/external/zlib
