@@ -49,6 +49,10 @@
 8. 만약 모든 CMake 관련 파일에도 오류가 없고 코드 자체에도 오류가 없는데 빌드가 계속해서 안된다면 프로젝트 폴더 경로에 한글이나 띄어쓰기가 포함되어 있는지 확인해보자.
 MSVC 컴파일러는 한글, 띄어쓰기가 프로젝트 경로에 포함되어 있어도 빌드가 잘되지만 GCC나 Clang 컴파일러는 안된다. 자신이 GCC, Clang 컴파일러 사용자라면 프로젝트 폴더 위치를 옮겨서 빌드하자.
 
+9. 만약 settings.json, c_cpp_properties.json와 같은 중요 파일들이 없다면 VS Code에서 프로젝트 폴더 지정을 해주었는지 확인해보자. VS Code 하단에 위치하는 파란색 바에서 프로젝트 폴더를 지정해주면 .vscode 폴더 내에 빌드 세팅 파일들이 추가된다.
+
+10. VS Code에서 디버깅을 하려면 실행 exe 경로를 지정해주어야 한다. ./vscode/settings.json의 "configurations" 내의 "program"에 실행 exe 경로를 넣어주자.
+
 # CMakeLists.txt 문법
 
 CMakeLists.txt에서 주석은 #으로 달아준다. [ex. #이건 CMake 파일이다!!]
@@ -314,7 +318,7 @@ CXX=C:/msys64/mingw64/bin/g++.exe
 
 10. 최상위 CMakeLists.txt에 include(<conanbuildinfo.cmake가 위치한 폴더>/conanbuildinfo.cmake)와 conan_basic_setup()을 추가해준다.
 
-11. 그리고 해당 라이브러리가 쓰이는 곳 CMakeLists.txt에 target_link_libraries 함수가 있을 텐데 여기에 ${CONAN_대문자로된라이브러리이름}를 추가해주면 된다. (ex. target_link_libraries(${EXECUTABLE_NAME} PUBLIC ${CONAN_CATCH2}))
+11. 그리고 해당 라이브러리가 쓰이는 곳 CMakeLists.txt에 target_link_libraries 함수가 있을 텐데 여기에 "${CONAN_대문자로된라이브러리이름} or CONAN_PKG::라이브러리이름"을 추가해주면 된다. 단 ${CONAN_대문자로된라이브러리이름}를 이용하여 라이브러리를 추가하면 해당 라이브러리에 한하여 graphviz가 작동 안한다. (ex. target_link_libraries(${EXECUTABLE_NAME} PUBLIC ${CONAN_CATCH2}))
 
 ## vcpkg와 CMake를 사용하여 외부 라이브러리 추가
 
@@ -381,9 +385,9 @@ CXX=C:/msys64/mingw64/bin/g++.exe
 "overrides"는 "dependencies"에 정의된 라이브러리의 버전을 고정시킨다. 라이브러리의 "version>="이 이미 정의되어 있어도 해당 라이브러리의 "overrides" 버전 정보가 존재한다면 "overrides"의 버전이 우선적으로 적용된다.
 "platform"은 라이브러리를 특정 플랫폼에서만 사용할 때 정의한다. "!windows", "windows & linux", "(windows & arm64) | (linux & x64)" 등 여러 방식으로 사용할 수 있고 OS 계열에는 windows, uwp, linux, osx, android, emscripten가 있고 아키텍쳐 계열에는 x86, x64, wasm32, arm64, arm가 있다.
 
-8. 라이브러리를 사용할 CMakeLists.txt에서 find_package(<라이브러리 이름> REQUIRED)을 해준다.
+8. 라이브러리를 사용할 CMakeLists.txt에서 find_package(<라이브러리 이름> REQUIRED)을 해준다. (find_package에도 다양한 옵션이 있으니 찾아보자.)
 
-9. 라이브러리가 쓰이는 곳 CMakeLists.txt에 target_link_libraries 함수가 있을 텐데 여기에 라이브러리 이름을 추가해주면 된다. (ex. target_link_libraries(${EXECUTABLE_NAME} PUBLIC boost))
+9. 라이브러리가 쓰이는 곳 CMakeLists.txt에 target_link_libraries 함수가 있을 텐데 여기에 라이브러리 이름을 추가해주면 된다. (ex. target_link_libraries(${EXECUTABLE_NAME} PUBLIC Boost::boost))
 
 10. 만약 8번 9번에서 라이브러리 이름이 잘못되었거나 8번에서 CONFIG REQUIRED인데 그냥 REQUIRED로 적었거나 하면 오류가 나면서 터미널에 어떻게 고쳐야 하는지 출력되니 그걸 따라서 CMakeLists.txt 내용을 바꾸면 된다.
 
@@ -456,3 +460,15 @@ target_link_libraries([프로젝트명]
  	PRIVATE
  	zlibd
 )
+
+
+
+[Window Title]
+Visual Studio Code
+
+[Content]
+launch: program 'd:\CourceDocuments\vcpkg_test\build\Debug\outDebug' does not exist
+
+[‘launch.json’ 열기] [취소]
+
+${workspaceFolder}/compiledfilename
