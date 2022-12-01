@@ -374,15 +374,25 @@ CXX=C:/msys64/mingw64/bin/g++.exe
 	}
   ]
 }
+
 "$schema"는 Json 작성할 때 자동완성을 도와주는 스키마를 정의한다. 정의 안해도 되지만 하면 vcpkg.json 작성할 때 편하다.
+
 "name"은 프로젝트 이름인데 주의점은 프로젝트 이름은 모두 영문 소문자만 가능하고 '.', 공백 등 글자가 아닌 것들은 모두 '-'로 대체해주어야 한다. 예를 들어 SDL.Sample이면 sdl-sample이 되어야 한다.
+
 "version"은 프로젝트 버전이다.
+
 "dependencies"은 프로젝트가 사용하는 라이브러리 리스트이다. 위에서는 zlib, fmt 라이브러리를 프로젝트에서 사용한다고 되어있다. vcpkg.json의 "dependencies"를 작성하기 전에 꼭 터미널로 vcpkg가 설치된 경로로 이동한 뒤 ".\vcpkg.exe search <사용할 라이브러리 이름>" 명령을 수행해 해당 라이브러리를 vcpkg가 지원하는지 확인하자.
-"builtin-baseline"은 밑에서 서술할 "version>=", "overrides" 등을 사용할 때 정의해 놓아야 한다. 해당 값은 vcpkg가 설치되어 있는 폴더로 들어가 "git rev-parse HEAD" 명령어를 수행하면 출력되는 값으로 설정하면 된다. vcpkg를 업데이트할 때마다 갱신해줘야 한다.
+
+"builtin-baseline"은 밑에서 서술할 "version>=", "overrides" 등을 사용할 때 정의해 놓아야 한다. 해당 값은 vcpkg가 설치되어 있는 폴더로 들어가 "git rev-parse HEAD" 명령어를 수행하면 출력되는 값으로 설정하면 된다. vcpkg를 업데이트할 때마다 갱신해줘야 한다. "builtin-baseline"를 추가하는 또 다른 방법은 프로젝트 최상위 폴더 위치의 터미널에서 vcpkg x-update-baseline --add-initial-baseline를 수행하는 것이다. 해당 명령어는 baseline 업데이트는 물론 baseline 항목이 vcpkg.json에 없다면 새로 추가도 해준다. (물론 사전에 vcpkg.json 파일에 프로젝트 최상위 폴더에 존재해야한다.)
+
 "version>="은 사용할 라이브러리의 최하위 버전을 정의한다. vcpkg는 최하위 버전이 존재하면 해당 버전을 우선순위로 받는다. 위 예시에서는 zlib의 최하위 버전은 "1.2.11"라고 되어있다. 정의한 버전이 존재하지 않을 경우 버전 리스트들이 터미널에 출력되면서 오류가 난다.
+
 "default-features"는 기본적으로 true이지만 가끔 false를 사용할 때가 있는데 이 경우 특정 "features"를 이용하기 위해서이다.
+
 "features"는 라이브러리의 디폴트 값을 사용하지 않고 특정 기능을 사용할 때 정의하게 된다. 위 예시에서는 arrow 라이브러리에 "features"가 json으로 되어있다. 이것이 무슨 의미인지 확인하기 위해서 .\vcpkg.exe search arrow를 해보면 여러가지 arrow 라이브러리들이 출력되는데 arrow[csv] 얘는 csv를 지원하는 arrow, arrow[filesystem] 얘는 파일 시스템을 지원하는 arrow, arrow[json] 얘는 json을 지원하는 arrow 등 많은데 여기서 json과 filesystem을 지원하는 arrow 라이브러리만 가져오기 위해서 vcpkg.json 파일에  "features": [ "json", "filesystem" ] 라고 선언한 것이다.
+
 "overrides"는 "dependencies"에 정의된 라이브러리의 버전을 고정시킨다. 라이브러리의 "version>="이 이미 정의되어 있어도 해당 라이브러리의 "overrides" 버전 정보가 존재한다면 "overrides"의 버전이 우선적으로 적용된다.
+
 "platform"은 라이브러리를 특정 플랫폼에서만 사용할 때 정의한다. "!windows", "windows & linux", "(windows & arm64) | (linux & x64)" 등 여러 방식으로 사용할 수 있고 OS 계열에는 windows, uwp, linux, osx, android, emscripten가 있고 아키텍쳐 계열에는 x86, x64, wasm32, arm64, arm가 있다.
 
 8. 라이브러리를 사용할 CMakeLists.txt에서 find_package(<라이브러리 이름> REQUIRED)을 해준다. (find_package에도 다양한 옵션이 있으니 찾아보자.)
