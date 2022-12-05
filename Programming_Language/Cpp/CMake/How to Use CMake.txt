@@ -44,7 +44,7 @@
 
 6. 빌드에 오류가 있다면 과거 빌드에 사용된 컴파일러 버전이 달라서 발생한 문제일 가능성이 크니 build 폴더를 완전히 삭제하고 다시 빌드해보면 된다.
 
-7. Debug, Realse 빌드 전환은 VS Code 하단에 위치하는 파란색 바에 CMake: [Debug]: Ready 이렇게 쓰여있는 곳이 있을텐데 이를 눌러서 변경해주면 된다.
+7. Debug, Release 빌드 전환은 VS Code 하단에 위치하는 파란색 바에 CMake: [Debug]: Ready 이렇게 쓰여있는 곳이 있을텐데 이를 눌러서 변경해주면 된다.
 
 8. 만약 모든 CMake 관련 파일에도 오류가 없고 코드 자체에도 오류가 없는데 빌드가 계속해서 안된다면 프로젝트 폴더 경로에 한글이나 띄어쓰기가 포함되어 있는지 확인해보자.
 MSVC 컴파일러는 한글, 띄어쓰기가 프로젝트 경로에 포함되어 있어도 빌드가 잘되지만 GCC나 Clang 컴파일러는 안된다. 자신이 GCC, Clang 컴파일러 사용자라면 프로젝트 폴더 위치를 옮겨서 빌드하자.
@@ -63,27 +63,39 @@ project -> 현재 프로젝트의 속성과 관련된 정보를 적는다. 예�
 
 add_executable -> 실행 파일을 만드는데 사용되는 모든 파일들(.cpp만)을 적는다. 꼭 앞에 실행 파일의 이름을 적어주어야 한다. [ex. add_executable(MyExecutable main.cpp) 이렇게 하면 MyExecutable.exe를 만들겠다는 것이다.]
 
+라이브러리 생성 관련 CMake 함수를 올바르게 사용하려면 3가지 옵션에 대한 설명을 알아야 한다.
+
+STATIC 옵션 -> 
+
+SHARED 옵션 -> 
+
+MODULE 옵션 -> 
+
 add_library -> 라이브러리를 만들기 위한 명령이다. 현재 프로젝트에 종속될 라이브러리와 관련된 파일들(.cpp만)을 적는다. 꼭 앞에 생성될 라이브러리 이름과 링크 방식을 적어야 한다. 예를 들어 add_library(MyLibrary STATIC my_lib.cpp) 이렇게 적었다면 정적 링크(STATIC)할 MyLibrary 이름을 가진 라이브러리를 생성하는데 필요한 파일은 my_lib.cpp라는 것이다.
 
-target_link_libraries -> 실행 파일이 원활하게 실행될 수 있게 관련된 라이브러리를 링크 시키기 위한 명령이다. 예를 들어 target_link_libraries(MyExecutable PUBLIC MyLibrary)를 하면 MyExecutable 실행 파일에 MyLibrary 라이브러리가 PUBLIC으로 링크된다.
+라이브러리 링크 관련 CMake 함수를 올바르게 사용하려면 3가지 옵션에 대한 설명을 알아야 한다. 클래스 상속 관계와 유사하다.
 
-target_include_directories -> 헤더 파일을 정의하기 손쉽게 하기 위해 사용하는 명령이다. 예를 들어 밑과 같은 경로에 파일들이 위치한다고 하자.
-- HelloWorld
-	- CMakeLists.txt
-	- app
-		- main.cpp
-		- CMakeLists.txt
-	- src
-		- my_lib.cpp
-		- my_lib.h
-		- CMakeLists.txt
-일단 CMake를 원활하게 사용하려면 무조건 각 폴더마다 CMakeLists.txt 파일이 존재해야 한다.
-CMake는 항상 프로젝트 최상위 폴더부터 CMakeLists.txt를 읽어가면서 명령 순서대로 하위 폴더를 탐색하며 빌드를 수행한다는 것을 명심하자.
-my_lib.h, my_lib.cpp는 MyLibrary라는 라이브러리를 빌드하는 곳에 쓰인다고 하자. 
-main.cpp는 MyExecutable이라는 실행 파일을 빌드하는 곳에 쓰이고 MyExecutable은 MyLibrary를 실행에 필요로 한다고 하자.
-이 상황에서 main.cpp가 my_lib.h를 include하고 싶을 땐 #include "../src/my_lib.h" 이렇게 선언해야 하는데 이게 여간 귀찮은 게 아니다.
-이를 해결해 주려면 src 폴더 내부 CMakeLists.txt에 target_include_directories(<해당 명령 전에 미리 생성된 실행 파일 or 라이브러리, 즉 여기서는 MyLibrary> PUBLIC "./")를 선언해주면 main.cpp에서 #include "my_lib.h" 혹은 #include <my_lib.h> 만으로 my_lib.h를 참조할 수 있다.
-더 정확하게 작동 원리를 말하자면 app 폴더 내 CMakeLists.txt에 target_link_libraries(MyExecutable PUBLIC MyLibrary) 이게 있다고 하면 해당 app 폴더 내의 파일들은 MyLibrary가 종속된 MyExecutable 실행 파일을 만드는 곳에 쓰이는 것이다. 이때 src 폴더 내 CMakeLists.txt에 target_include_directories(MyLibrary PUBLIC "./") 이게 있다고 하면 app 폴더 내 모든 cpp, h 파일에 헤더 참조를 할 때 "어떠한_긴_경로.../HelloWorld/src/" 경로가 추가되어 #include <my_lib.h> 이러한 문구가 가능해진다. "어떠한_긴_경로.../HelloWorld/src/" 경로가 추가될 수 있었던 이유는 target_include_directories(MyLibrary PUBLIC "./") 명령이 쓰인 CMakeLists.txt 파일의 위치가 "어떠한_긴_경로.../HelloWorld/src/" 였고 target_include_directories에 쓰인 경로가 "./"로 현재 위치인 "어떠한_긴_경로.../HelloWorld/src/"를 나타내고 있으며 app 폴더 내 CMakeLists.txt에 target_link_libraries 명령에서 MyLibrary가 종속되어 있어서 가능한 것이다. 즉 target_include_directories(MyLibrary PUBLIC "./") 명령으로 인해 MyLibrary를 종속하고 있는 곳이라면 모두 헤더 참조를 할 때 #include <my_lib.h> 이렇게 쓸 수 있는 것이다.
+PUBLIC 옵션 -> PUBLIC으로 종속된 라이브러리는 상위 어디든 사용이 가능하다. 이게 무슨 말이냐면 MyLib1이 MyLib2를 필요로 하여 PUBLIC으로 종속한다고 하자. MyLib0이 MyLib1을 필요로 할 때 PUBLIC, PRIVATE, INTERFACE 어떤 유형으로 종속하던 MyLib0에서는 추가적으로 MyLib2를 종속할 필요없이 MyLib1만 종속하면 MyLib2를 사용할 수 있다.
+
+PRIVATE 옵션 -> PRIVATE으로 종속된 라이브러리는 PRIVATE로 종속하는 경우에만 사용이 가능하다. 이게 무슨 말이냐면 MyLib1이 MyLib2를 필요로 하여 PRIVATE으로 종속한다고 하자. MyLib0이 MyLib1을 PRIVATE로 종속해야만 MyLib0에서 추가적인 MyLib2 종속없이 MyLib1만 종속하여 MyLib2를 사용할 수 있다. 만약 MyLib0가 MyLib1을 PUBLIC으로 종속한다면 MyLib1는 사용이 가능하지만 MyLib2는 사용하지 못한다. MyLib2를 사용하려면 따로 MyLib0에 새로운 링크를 걸어주어야 한다.
+
+INTERFACE 옵션 -> 헤더 파일로만 구성된 라이브러리를 종속할 때 사용된다. 그 외에는 PUBLIC으로 작동할 때랑 똑같다.
+
+link_libraries -> 링크할 라이브러리 파일 목록을 정의한다 CMakeList에서 빌드된 라이브러리의 경우 확장자 떼고 사용해도 된다. [ex. link_libraries(MyLib.lib MyLib2)]
+
+link_directories -> 링크할 라이브러리 포함 폴더 위치를 정의한다. [ex. link_directories(../lib ../lib2)]
+
+include_directories -> 헤더파일 포함 폴더 위치를 정의한다. [ex. include_directories(../include ../include2)]
+
+target_link_libraries -> 실행 파일이 원활하게 실행될 수 있게 관련된 라이브러리를 링크 시키기 위한 명령이다. 예를 들어 target_link_libraries(MyExecutable PUBLIC MyLibrary)를 하면 MyExecutable 실행 파일에 MyLibrary 라이브러리가 PUBLIC으로 링크된다. (여기 나오는 PUBLIC 옵션은 추후에 설명한다.)
+
+target_link_directories -> 종속 라이브러리들을 정의하기 손쉽게 하기 위해 사용하는 명령이다. 어떤 라이브러리를 생성하는 add_library(MyLibrary 어쩌구저쩌구...)가 있다고 하자. 여기서 target_link_directories(MyLibrary PUBLIC "C:/CMakeProject/lib")도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 link_directories("C:/CMakeProject/lib")를 한 효과를 지닌다.
+
+target_include_directories -> 헤더 파일을 정의하기 손쉽게 하기 위해 사용하는 명령이다. 어떤 라이브러리를 생성하는 add_library(MyLibrary 어쩌구저쩌구...)가 있다고 하자. 여기서 target_include_directories(MyLibrary PUBLIC "C:/CMakeProject/include")도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 include_directories("C:/CMakeProject/include")를 한 효과를 지닌다.
+
+add_dependencies -> 직접적으로 의존성을 정의한다. (target_link_libraries로도 충분하기 때문에 잘 안쓴다. 정 써야한다면 exe간의 의존성을 정의할 때나 CMake 내부에서 의존성 파악이 어려운 파일들에 사용할 수는 있다.) [ex. add_dependencies(<Target_이름> <의존_대상> <의존_대상> ...)]
+
+install -> 
 
 add_subdirectory -> 하위 폴더에 빌드 관련 CMakeLists.txt가 있는 경우 이를 인식하도록 상위 폴더의 CMakeLists.txt에 add_subdirectory를 해주어야 한다. CMake가 파일을 타고 타고 내려갈 때 꼭 필요한 명령이기 때문에 파일이 따로 없고 폴더만 포함하는 폴더에도 CMakeLists.txt 파일을 만들어 줘야 한다. 그리고 더 중요한 것은 add_subdirectory 명령의 순서이다.
 만약 app 폴더 내부에 있는 파일들이 MyExecutable이라는 실행 파일을 만드는데 해당 실행 파일이 MyLibrary라는 라이브러리를 요구한다고 해보자. 근데 MyLibrary는 src 폴더 내부에 있는 파일들을 통해 생성된다. 이 경우 app 폴더와 src 폴더를 모두 가지고 있는 상위 폴더에서는 MyLibrary가 먼저 만들어져야 한다는 것을 알고 add_subdirectory(src) 후에 add_subdirectory(app) 를 해줘야 한다.
@@ -94,13 +106,16 @@ set -> cmake에서 변수를 지정할 때 사용된다. 예를 들어 set(LIBRA
 set은 단순히 변수를 저장할 때도 쓰이지만 CMake 자체에 내장되어 있는 변수들의 값을 바꿀 때도 사용된다. 예를 들어 프로젝트에서 C++ 17을 사용하고 싶다면 set(CMAKE_CXX_STANDARD 17) 이렇게 해주면 된다.
 변수명을 지을 때 주의할 점은 모두 대문자로 지어야 한다는 것이다. 변수명을 사용할 때는 ${LIBRARY_NAME} 이렇게 사용한다. 보통 add_library(MyLibrary "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc")를 add_library(MyLibrary ${LIBRARY_SOURCES}) 이렇게 줄이는 곳에 많이 쓰인다.
 
-option -> CMake에서 bool형 변수를 생성할 때 사용된다. 변수명, 변수 설명, 디폴트 값 순으로 정의한다. [option(COMPILE_EXECUTABLE "This is COMPILE_EXECUTABLE hint!" OFF)]
+option -> CMake에서 bool형 변수를 생성할 때 사용된다. 변수명, 변수 설명, 디폴트 값 순으로 정의한다. [ex. option(COMPILE_EXECUTABLE "This is COMPILE_EXECUTABLE hint!" OFF)]
+
+add_definitions -> 전처리기에 매크로를 전달할 때 사용된다. 매크로를 정의만 할거면 -D<매크로이름> 이렇게 쓰고 값까지 지정하려면 -D<매크로>=값 이렇게 사용한다.
+[ex. add_definitions(-DTHIS_IS_MACRO -DSET_THE_VALUE=2)]
 
 if(조건) -> CMake에도 if문이 존재한다. if문을 사용했으면 endif()로 꼭 닫아줘야 한다. else문, else if문은 else(), elseif()로 사용한다.
 
 message -> message("문자열")로 사용한다. 빌드 시점이 아니라 CMake 세팅 시점에 출력된다. 그니까 "cmake .." 이러한 명령을 수행할 때 볼 수 있다.
 
-configure_file -> 빌드 시점에 동적으로 헤더 파일을 만들어 줄 때 사용된다. 살짝 설명이 길어질텐데 어떻게 사용하냐면 일단 밑과 같은 config.h.in 파일이 존재한다고 하자. (확장자가 .h,.cpp가 아니면 뭐든 의미없다. 근데 앵간하면 .in으로 사용하자.)
+configure_file -> 빌드 시점에 동적으로 헤더 파일을 만들어 줄 때 사용된다. 살짝 설명이 길어질텐데 어떻게 사용하냐면 일단 밑과 같은 config.h.in 파일이 존재한다고 하자. (확장자는 .h,.cpp를 제외하고 뭐를 사용하던 상관없다. 근데 앵간하면 .in으로 사용하자.)
 //--------------------------------------------------------------------------------
 #pragma once
 
@@ -132,6 +147,8 @@ static constexpr std::int32_t project_version_patch{3};
 //--------------------------------------------------------------------------------
 해당 생성된 헤더 파일을 가지고 소스 파일에서 project_name 변수를 사용할 수 있다. (빌드 시점에서 동적으로 생성되는 헤더 파일이기에 config.h 헤더가 존재하지 않고 project_name 변수도 없다고 VS Code의 Intellisense에서 오류라고 판단할 수 있는데 막상 빌드해보면 오류 표시가 없어지면서 빌드가 잘 된다.)
 
+add_compile_options -> 컴파일 옵션 추가 [ex. add_compile_options(-g -Wall)]
+
 # CMakeLists.txt 사전변수
 
 CMAKE_CXX_STANDARD -> C++ 표준 버전 정의 [ex. set(CMAKE_CXX_STANDARD 17)]
@@ -141,6 +158,16 @@ CMAKE_CXX_STANDARD_REQUIRED -> C++ 표준 버전 정의된 것을 필수로 요�
 CMAKE_CXX_EXTENSIONS -> 특정 컴파일러 확장 기능을 사용하냐 안하냐를 결정한다. msvc만의 기능이 있고 gcc만의 기능이 있는데 이러한 특수한 기능을 사용할 것이냐를 물어보는 것이다. 크로스 플랫폼 빌드가 빌요한 프로젝트에서는 걍 사용하지 말자. [ex. set(CMAKE_CXX_EXTENSIONS OFF)]
 
 CMAKE_BINARY_DIR -> 빌드 산출물이 생성되는 위치의 경로
+
+CMAKE_BUILD_TYPE -> 빌드 타입 (Debug, Release)
+
+CMAKE_INSTALL_PREFIX -> 최종 생성물을 복사하여 저장할 경로가 저장되어 있는 변수
+
+RUNTIME_OUTPUT_DIRECTORY -> 빌드 완료한 실행 바이너리를 저장할 디렉토리가 저장되어 있는 변수
+
+LIBRARY_OUTPUT_DIRECTORY -> 빌드 완료한 라이브러리를 저장할 디렉토리가 저장되어 있는 변수
+
+ARCHIVE_OUTPUT_DIRECTORY -> 빌드 완료한 Static 라이브러리를 저장할 디렉토리가 저장되어 있는 변수(Archive를 다른 말로 Static 라이브러리라고도 한다.)
 
 # CMake 명령어 문법
 
@@ -460,6 +487,10 @@ Doxygen 결과 파일인 index.html이 생성되는 위치가 적혀있는 OUTPU
 
 6. Doxyfile이 있는 곳에서 터미널로 doxygen 명령을 수행하면 OUTPUT_DIRECTORY 옵션에 정의된 위치에 결과 파일이 생성되고 생성 파일 중에 index.html 파일을 웹으로 열어보면 주석 정보가 문서화되어 정리된 페이지를 볼 수 있다.
 
+
+
+
+
 target_link_directories([프로젝트명]
 	PRIVATE
 	${CMAKE_SOURCE_DIR}/external/zlib
@@ -470,15 +501,3 @@ target_link_libraries([프로젝트명]
  	PRIVATE
  	zlibd
 )
-
-
-
-[Window Title]
-Visual Studio Code
-
-[Content]
-launch: program 'd:\CourceDocuments\vcpkg_test\build\Debug\outDebug' does not exist
-
-[‘launch.json’ 열기] [취소]
-
-${workspaceFolder}/compiledfilename

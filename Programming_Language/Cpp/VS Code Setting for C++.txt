@@ -1,0 +1,51 @@
+C++ 빌드를 위한 VS Code 세팅
+
+아래는 유용한 플러그인 이름이 나열된다. 설명에 설치 선택이라는 말이 없으면 깔아주는 것이 좋다. (플러그인 이름 by 작성자)
+
+1. C/C++ by Microsoft
+VS Code에서 C++ 사용하고 싶으면 그냥 깔자. Intellisense, debugging 등 필수적인 요소들을 제공한다.
+
+2. Better C++ Syntax by Jeff Hykin
+VS Code 에디터에서 C++ 코드를 하이라이팅(에러 표시, 매크로 변수 색 표시 등...)하는 것을 도와준다. (글자 색이 잘 눈에 띄기 위해서 Dark+ 테마에서 잘 작동한다고 되어 있다.)
+
+3. Better Comments by Aaron Bond
+주석 표시 색상을 알맞게 바꿔준다. 예를 들어 "// !" 처럼 느낌표가 붙는 주석은 빨간색, "// ?" 는 진한 파란색, "// TODO: " 는 주황색 등... (json 파일로 커스터마이징이 가능하니 더 많은 정보는 플러그인 설명 참조)
+
+4. CMake by twxs
+VSCode에서 CMake로 C++을 빌드하고 싶다면 깔자. (물론 컴퓨터에 이미 CMake가 깔려있어야 한다.)
+
+5. CodeLLDB by Vadim Chugunov
+C++ 디버깅할 때 유용하다.
+
+6. CodeSnap by adpyke
+코드 내용을 스크린샷 찍을 때 유용하다. 코드 부분을 마우스로 긁어 원하는 만큼 선택하고 우측클릭하고 CodeSnap을 누르면 된다.
+
+7. Doxygen by Baptist BENOIST
+코드 문서 자동화 Doxygen 프로그램의 .dox 파일을 하이라이팅 해준다.
+
+8. Doxygen Documentation Generator by Christoph Schlosser
+Doxygen 문서를 만드는 데 필요한 주석 형식을 간단히 만들어 준다. (기본적으로 /** + 엔터를 치면 Doxygen 주석 형식이 갖춰진다.)
+
+9. EditorConfig for VS Code by EditorConfig
+.editorconfig 파일에서 프로젝트에 존재하는 파일들을 작성할 때 utf-8로 작성할 것인지, 특정 cpp 파일에서 탭을 공백 몇개로 지정할 것인지 적어서 세팅할 수 있게 해준다. (.editorconfig 파일은 프로젝트 폴더 최상위에 위치해야하며 우측 클릭으로 Generate .editorconfig를 하여 만들 수도 있다.)
+
+10. Error Lens by Alexander
+VS Code 코드 에디터에서 코드 에러 띄우는 기능을 개선해준다.
+
+11. Hex Editor by Microsoft
+제목 그대로 VS Code에서 16진수 편집이 가능해진다. (설치 선택)
+
+12. Partial Diff by Ryuichi Inagaki
+코드 각 부분의 문자열 비교를 할 때 용이하다.
+
+13. Path Intellisense by Christian Kohler
+해당 플러그인을 설치하면 코드에서 파일 경로를 치는 경우 자동완성 기능이 제공된다.
+
+14. CMake Tools by Microsoft
+CMake 관련된 작업을 할 때 유용하다. makefile로 명령어를 묶어 실행해 빌드하는 스타일이라면 꺼놓는 것이 좋다. (설치 선택)
+
+15. C++ Helper by amir
+함수 선언부에 우클릭을 하면 함수 정의부를 만들 수 있는 옵션이 뜬다. 클릭 몇 번으로 함수 정의부를 만들어 주고 ifndef __HEADER_GUARD__ 와 같은 헤더 가드도 생성해준다.
+
+16. C/C++ Include Guard by Akira Miyakoda
+헤더 파일을 생성할 때 자동으로 헤더 가드를 붙여준다. (설치 선택)
