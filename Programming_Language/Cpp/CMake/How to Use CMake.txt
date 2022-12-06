@@ -87,15 +87,15 @@ link_directories -> 링크할 라이브러리 포함 폴더 위치를 정의한�
 
 include_directories -> 헤더파일 포함 폴더 위치를 정의한다. [ex. include_directories(../include ../include2)]
 
-target_link_libraries -> 실행 파일이 원활하게 실행될 수 있게 관련된 라이브러리를 링크 시키기 위한 명령이다. 예를 들어 target_link_libraries(MyExecutable PUBLIC MyLibrary)를 하면 MyExecutable 실행 파일에 MyLibrary 라이브러리가 PUBLIC으로 링크된다. (여기 나오는 PUBLIC 옵션은 추후에 설명한다.)
+위의 타겟이 따로 지정되지 않은 경우 설정하는 3개의 CMake 함수들 말고 밑에 target이 정해져 있는 3개의 CMake 함수들이 Modern CMake에서 추천된다.
+
+target_link_libraries -> 실행 파일이 원활하게 실행될 수 있게 관련된 라이브러리를 링크 시키기 위한 명령이다. 예를 들어 target_link_libraries(MyExecutable PUBLIC MyLibrary)를 하면 MyExecutable 실행 파일에 MyLibrary 라이브러리가 PUBLIC으로 링크된다.
 
 target_link_directories -> 종속 라이브러리들을 정의하기 손쉽게 하기 위해 사용하는 명령이다. 어떤 라이브러리를 생성하는 add_library(MyLibrary 어쩌구저쩌구...)가 있다고 하자. 여기서 target_link_directories(MyLibrary PUBLIC "C:/CMakeProject/lib")도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 link_directories("C:/CMakeProject/lib")를 한 효과를 지닌다.
 
 target_include_directories -> 헤더 파일을 정의하기 손쉽게 하기 위해 사용하는 명령이다. 어떤 라이브러리를 생성하는 add_library(MyLibrary 어쩌구저쩌구...)가 있다고 하자. 여기서 target_include_directories(MyLibrary PUBLIC "C:/CMakeProject/include")도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 include_directories("C:/CMakeProject/include")를 한 효과를 지닌다.
 
 add_dependencies -> 직접적으로 의존성을 정의한다. (target_link_libraries로도 충분하기 때문에 잘 안쓴다. 정 써야한다면 exe간의 의존성을 정의할 때나 CMake 내부에서 의존성 파악이 어려운 파일들에 사용할 수는 있다.) [ex. add_dependencies(<Target_이름> <의존_대상> <의존_대상> ...)]
-
-install -> 
 
 add_subdirectory -> 하위 폴더에 빌드 관련 CMakeLists.txt가 있는 경우 이를 인식하도록 상위 폴더의 CMakeLists.txt에 add_subdirectory를 해주어야 한다. CMake가 파일을 타고 타고 내려갈 때 꼭 필요한 명령이기 때문에 파일이 따로 없고 폴더만 포함하는 폴더에도 CMakeLists.txt 파일을 만들어 줘야 한다. 그리고 더 중요한 것은 add_subdirectory 명령의 순서이다.
 만약 app 폴더 내부에 있는 파일들이 MyExecutable이라는 실행 파일을 만드는데 해당 실행 파일이 MyLibrary라는 라이브러리를 요구한다고 해보자. 근데 MyLibrary는 src 폴더 내부에 있는 파일들을 통해 생성된다. 이 경우 app 폴더와 src 폴더를 모두 가지고 있는 상위 폴더에서는 MyLibrary가 먼저 만들어져야 한다는 것을 알고 add_subdirectory(src) 후에 add_subdirectory(app) 를 해줘야 한다.
@@ -149,6 +149,8 @@ static constexpr std::int32_t project_version_patch{3};
 
 add_compile_options -> 컴파일 옵션 추가 [ex. add_compile_options(-g -Wall)]
 
+file -> 파일 이름을 변수로 저장할 때 사용된다. 예를 들어 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./SourceFile/*.cpp) 이렇게 하면 SourceFile 폴더 내부를 돌면서 확장자가 cpp인 파일들을 SRC_FILES 리스트 변수에 추가한다. GLOB_RECURSE 옵션도 지정되었으니 SourceFile 파일 하위 폴더까지 돌면서 조사한다. CONFIGURE_DEPENDS이 설정되면 SourceFile 폴더 내부에 새로운 파일이 추가, 삭제된 경우에 CMake 빌드 명령어만 수행해도 CMake 세팅이 자동으로 된다.
+
 # CMakeLists.txt 사전변수
 
 CMAKE_CXX_STANDARD -> C++ 표준 버전 정의 [ex. set(CMAKE_CXX_STANDARD 17)]
@@ -157,7 +159,11 @@ CMAKE_CXX_STANDARD_REQUIRED -> C++ 표준 버전 정의된 것을 필수로 요�
 
 CMAKE_CXX_EXTENSIONS -> 특정 컴파일러 확장 기능을 사용하냐 안하냐를 결정한다. msvc만의 기능이 있고 gcc만의 기능이 있는데 이러한 특수한 기능을 사용할 것이냐를 물어보는 것이다. 크로스 플랫폼 빌드가 빌요한 프로젝트에서는 걍 사용하지 말자. [ex. set(CMAKE_CXX_EXTENSIONS OFF)]
 
-CMAKE_BINARY_DIR -> 빌드 산출물이 생성되는 위치의 경로
+CMAKE_SOURCE_DIR -> 프로젝트 최상위 경로, set()으로도 바뀌지 않음
+
+CMAKE_BINARY_DIR -> 빌드 산출물이 생성되는 위치의 최상위 경로, set()으로도 바뀌지 않음
+
+CMAKE_CURRENT_SOURCE_DIR -> 현재 처리하고 있는 CMakeLists.txt의 경로, 타겟 CMakeLists.txt가 바뀔 때마다 계속 변동 됨.
 
 CMAKE_BUILD_TYPE -> 빌드 타입 (Debug, Release)
 

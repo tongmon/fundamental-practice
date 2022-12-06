@@ -293,7 +293,7 @@ using func = void (*)(int, int);
 
 - 람다 활용성
 vec.erase(std::remove_if(vec.begin(), vec.end(), [](int i) -> bool { return i % 2 == 1; })
-위와 같이 "벡터에서 홀수인 원소 지우기"를 수행하는 코드를 간결하게 작성가능하다.
+위와 같이 "벡터에서 홀수인 원소 지우기"를 수행하는 코드를 간결하게 작성가능하다. (std::for_each()로도 비슷하게 순회할 수 있다.)
 
 lvalue(좌측값) rvalue(우측값)에 대한 정의
 좌측값 = 대입 시에 왼쪽 혹은 오른쪽에 오는 식, ex) int p; int a = p; -> a, p 모두 좌측값
