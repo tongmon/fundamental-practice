@@ -9,33 +9,33 @@
 
 밑은 단일 책임 원칙 위배 예시
 class NotePad {
-	Editor m_Edit;	
+    Editor m_Edit;
 };
 
 class Editor {
-public:
-	void DoEdit();
-	void SaveToDisk();
-	void SaveToCloud();
-	void SaveToCustomServer();
+   public:
+    void DoEdit();
+    void SaveToDisk();
+    void SaveToCloud();
+    void SaveToCustomServer();
 };
 
 밑은 단인 책임 원칙을 준수하는 예시
 class NotePad {
-	Editor m_Edit;
-	Saver m_Saver;
+    Editor m_Edit;
+    Saver m_Saver;
 };
 
 class Editor {
-public:
-	void DoEdit();
+   public:
+    void DoEdit();
 };
 
 class Saver {
-public:
-	void SaveToDisk(Editor& edit);
-	void SaveToCloud(Editor& edit);
-	void SaveToCustomServer(Editor& edit);
+   public:
+    void SaveToDisk(Editor& edit);
+    void SaveToCloud(Editor& edit);
+    void SaveToCustomServer(Editor& edit);
 };
 
 2. 열림 닫힘 원칙 (OCP)
@@ -46,52 +46,53 @@ enum class Color { Red, Green, Blue };
 enum class Size { Small, Medium, Large };
 
 class Product {
-public:
-	Color color;
-	Size size;
+   public:
+    Color color;
+    Size size;
 };
 
 여기서 고객은 색상으로 물건을 나누길 원한다. 그러면 함수는 밑과 같은 형태를 취할 것이다.
 std::vector<Product> filter_by_color(const std::vector<Product>& items, Color color) {
-	std::vector<Product> ret_items;
-	std::for_each(items.begin(), items.end(),
-		[&](const auto& item)->void {
-			if (item.color == color)
-			ret_items.push_back(item);
-		});
-	return ret_items;
+    std::vector<Product> ret_items;
+    std::for_each(items.begin(), items.end(),
+                  [&](const auto& item) -> void {
+                      if (item.color == color)
+                          ret_items.push_back(item);
+                  });
+    return ret_items;
 }
 
 그런데 고객이 크기에 따라 물건을 나누길 원한다. 함수를 추가해야 한다.
 std::vector<Product> filter_by_size(const std::vector<Product>& items, Size size) {
-	std::vector<Product> ret_items;
-	std::for_each(items.begin(), items.end(),
-		[&](const auto& item)->void {
-			if (item.size == size)
-			ret_items.push_back(item);
-		});
-	return ret_items;
+    std::vector<Product> ret_items;
+    std::for_each(items.begin(), items.end(),
+                  [&](const auto& item) -> void {
+                      if (item.size == size)
+                          ret_items.push_back(item);
+                  });
+    return ret_items;
 }
 
 그런데 고객이 크기와 색상을 동시에 따져 물건을 나누길 원한다. 또 함수를 추가해야 한다...
-std::vector<Product> filter_by_size(const std::vector<Product>& items, Color color, Size size) {
-	std::vector<Product> ret_items;
-	std::for_each(items.begin(), items.end(),
-		[&](const auto& item)->void {
-			if (item.size == size && item.color == color)
-			ret_items.push_back(item);
-		});
-	return ret_items;
+std::vector<Product> filter_by_color_and_size(const std::vector<Product>& items, Color color, Size size) {
+    std::vector<Product> ret_items;
+    std::for_each(items.begin(), items.end(),
+                  [&](const auto& item) -> void {
+                      if (item.size == size && item.color == color)
+                          ret_items.push_back(item);
+                  });
+    return ret_items;
 }
 
 만약 물건에 색상과 크기 말고 다른 속성이 생기고 고객이 또 그에 따른 필터 요구사항을 추가한다면 점점 더 복잡해질 뿐이다.
 이는 지금 현재 코드 구조가 열림 닫힘 원칙을 지키지 않아서이다.
 밑의 코드는 열림 닫힘 원칙을 지킨 예시이다.
-일단 색상에 따라, 크기에 따라, 색상과 크기에 따라... 이렇게 나눠지는 현상을 직관화하기 위해서 명세라는 템플릿으로 따로 뺀다.
-
-
-
-
+일단 색상에 따라, 크기에 따라, 색상과 크기에 따라... 이렇게 나눠지는 현상을 직관화하기 위해서 명세라는 템플릿 클래스로 따로 뺀다.
+template <typename T>
+class Sepcification {
+   public:
+    virtual bool is_specified(T* item) = 0;
+};
 
 
 
