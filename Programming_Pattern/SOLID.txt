@@ -39,6 +39,7 @@ class Saver {
 };
 
 2. 열림 닫힘 원칙 (OCP)
+확장에는 열려있지만 수정에는 닫혀있어야 하는 원칙이다.
 필터링을 해주는 프로그램을 개발한다고 해보자.
 코드는 일단 밑과 같다.
 
@@ -87,15 +88,32 @@ std::vector<Product> filter_by_color_and_size(const std::vector<Product>& items,
 만약 물건에 색상과 크기 말고 다른 속성이 생기고 고객이 또 그에 따른 필터 요구사항을 추가한다면 점점 더 복잡해질 뿐이다.
 이는 지금 현재 코드 구조가 열림 닫힘 원칙을 지키지 않아서이다.
 밑의 코드는 열림 닫힘 원칙을 지킨 예시이다.
+
 일단 색상에 따라, 크기에 따라, 색상과 크기에 따라... 이렇게 나눠지는 현상을 직관화하기 위해서 명세라는 템플릿 클래스로 따로 뺀다.
 template <typename T>
 class Sepcification {
-   public:
-    virtual bool is_specified(T* item) = 0;
+  public:
+    virtual bool is_specified(const T &item) = 0;
 };
 
+필터를 더 유연하게 만든 템플릿 필터 클래스를 만든다.
+template <typename T>
+class Filter {
+    virtual std::vector<T> filter(const std::vector<T> &items, Sepcification<T> &spec) = 0;
+};
 
-
-
-
-
+위 두 템플릿을 이용해 필터를 짜보면 밑과 같다.
+class BetterFilter : public Filter<Product> {
+  public:
+    std::vector<Product> filter(const std::vector<Product> &items, Sepcification<Product> &spec) {
+        std::vector<Product> ret_items;
+        std::for_each(items.begin(), items.end(),
+                      [&](const auto &item) -> void {
+                          if (spec.is_specified(item))
+                              ret_items.push_back(item);
+                      });
+        return ret_items;
+    }
+};
+이렇게 하면 예전에 함수 인자와 내부 로직이 난잡하게 계속 변했던 것과 비교하면 명세와 필터의 기능이 명확하게 분리가 되어 코드 짜기가 수월해진다.
+filter 함수는 그대로고 

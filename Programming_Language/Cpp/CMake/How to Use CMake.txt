@@ -1,27 +1,5 @@
 - Windows 10 이상에서 VS Code와 함께 CMake를 사용하는 법
 
-# 초반 설치
-
-1. Microsoft Store에 들어가서 Windows Terminal을 설치해준다.
-
-2. Windows Terminal에서 PowerShell 탭을 열고 $PSVersionTable 명령어를 수행한 뒤에 출력된 PSVersion이 3 이상인지 확인한다. (3이하라면 PowerShell을 업데이트해준다. PowerShell 업데이트 방법은 알아서 찾아라...)
-
-3. .NET Framework 4.5 버전 이상이 설치되어 있는지 확인한다. (Visual Studio에서 ".NET 테스크톱 개발" 항목을 선택하면 알아서 최신버전의 .NET Framework를 설치해준다.)
-
-4. Windows Terminal을 관리자 모드로 열고 PowerShell 탭을 띄운후에 Get-ExecutionPolicy 명령어를 수행 후에 Restricted인지 확인한다. Restricted이라면 Set-ExecutionPolicy AllSigned 명령어를 추가적으로 수행해준다.
-
-5. Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1')) 명령어를 수행해 Chocolatey를 설치해준다.
-
-6. 설치가 끝났으면 Windows Terminal를 관리자 모드로 재시작해주고 PowerShell 탭을 띄우고 choco 명령어를 수행해 Chocolatey가 잘 설치되었는지 확인한다.
-
-7. choco install cmake, choco install graphviz, choco install git, choco install doxygen.install, choco install python, choco install make, choco install llvm 명령어를 순차적으로 실행해서 CMake 활용에 필요한 프로그램들을 깔아준다. (llvm은 선택이라지만 디스크 용량이 충분하다면 걍 깔자) 여기서 중요한 점은 cmake 시스템 환경변수가 올바르게 등록되었는지를 알아야 한다. 
-
-8. CMake를 설치해도 PowerShell 관리자 모드에서 cmake --version 명령어가 제대로 실행되지 않는다면 환경변수가 제대로 설정되지 않은 것이니 시스템 속성 -> 고급 탭 -> 환경 변수 -> 시스템 변수 -> Path 에 cmake.exe가 위치한 폴더 경로를 추가해주자. (보통 "C:\Program Files\CMake\bin" 이거다.)
-
-9. VS Code를 설치하고 확장에서 franneck94 유저가 만들어 놓은 "C/C++ Extension Pack", "Coding Tools Extension Pack"을 설치하고 VS Code를 재시작해준다.
-
-10. 설치된 항목 중에 중요한 것은 C/C++, Doxygen Documentation Generator, Cmake Tools 인데 Cmake Tools 이 녀석이 사용되는 상태인지 확인을 해보고 사용안되는 것으로 되어 있다면 사용 상태로 바꿔놓는다.
-
 # VS Code에서 CMake 활성화
 
 1. 진행할 프로젝트 폴더를 VS Code로 열고 CMakeLists.txt 파일을 추가해준다. 반드시 이름을 대소문자까지 모두 동일하게 만들어야 한다.  그 다음 cpp 파일 아무거나 만들어 준다.
