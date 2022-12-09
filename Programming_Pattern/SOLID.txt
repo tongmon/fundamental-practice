@@ -9,7 +9,7 @@
 
 밑은 단일 책임 원칙 위배 예시
 class NotePad {
-    Editor m_Edit;
+    Editor edit;
 };
 
 class Editor {
@@ -20,19 +20,19 @@ class Editor {
     void SaveToCustomServer();
 };
 
-밑은 단인 책임 원칙을 준수하는 예시
+밑은 단일 책임 원칙을 준수하는 예시
 class NotePad {
-    Editor m_Edit;
-    Saver m_Saver;
+    Editor editor;
+    Saver saver;
 };
 
 class Editor {
-   public:
+  public:
     void DoEdit();
 };
 
 class Saver {
-   public:
+  public:
     void SaveToDisk(Editor& edit);
     void SaveToCloud(Editor& edit);
     void SaveToCustomServer(Editor& edit);
@@ -47,7 +47,7 @@ enum class Color { Red, Green, Blue };
 enum class Size { Small, Medium, Large };
 
 class Product {
-   public:
+  public:
     Color color;
     Size size;
 };
@@ -238,4 +238,90 @@ process(sq);
 결과적으로 Square 객체의 set_height과 Rectangle 객체의 set_height의 작동 방식이 달라서 LSP 원칙을 위배하고 있다.
 이러한 경우 Square 클래스에서 set_width, set_height을 제거하고 set_size 함수 하나만 정의하는 것이 맞다. (아니면 Square 클래스를 Rectangle 클래스 자식으로 삼지 말고 독립적이게 따로 만드는 방법도 있다.)
 
-4. 
+4. 인터페이스 분리 원칙(ISP)
+구현하지 않는 가상함수 껍데기를 만들지 말자는 원칙이다.
+
+예를 들어 복합기의 기반을 다지는 IMachine 인터페이스를 살펴보자.
+struct Document {
+    int index;
+    std::string content;
+};
+
+class IMachine {
+  public:
+    virtual void print(std::vector<Document> &docs) = 0;
+    virtual void fax(std::vector<Document> &docs) = 0;
+    virtual void scan(std::vector<Document> &docs) = 0;
+};
+IMachine을 상속하기만 하면 print, fat, scan 등을 재정의하여 사용할 수 있다.
+그런데 만약 만드려는 복합기가 fax 지원을 안한다면 어떻게 할까? 그냥 fax 함수를 껍데기인 채로 놓아두어야 할까?
+정리정돈이 안되어 있기 때문에 별로다.
+
+밑의 예시처럼 ISP 원칙을 지키기위해 모든 인터페이스를 분리시킨다.
+class IPrinter {
+  public:
+    virtual void print(std::vector<Document> &docs) = 0;
+};
+
+class IScanner {
+  public:
+    virtual void scan(std::vector<Document> &docs) = 0;
+};
+
+class IFaxMachine {
+  public:
+    virtual void fax(std::vector<Document> &docs) = 0;
+};
+
+이렇게 하면 밑과 같이 입맛대로 팩스 기능이 없는 복합기의 IMachine 인터페이스를 조합할 수 있다.
+class IMachine : public IPrinter, public IScanner {};
+
+실제로 IMachine을 상속하는 복합기 클래스 구조 예시는 밑과 같다.
+class Machine : public IMachine {
+    IPrinter *printer;
+    IScanner *scanner;
+
+  public:
+    Machine(IPrinter *printer, IScanner *scanner) {
+        this->printer = printer;
+        this->scanner = scanner;
+    }
+    ~Machine() {
+        if (printer)
+            delete printer;
+        if (scanner)
+            delete scanner;
+    }
+
+    void print(std::vector<Document> &docs) {
+        printer->print(docs);
+    }
+
+    void scan(std::vector<Document> &docs) {
+        scanner->scan(docs);
+    }
+};
+위에서 "이미 클래스 멤버 변수로 IPrinter와 IScanner가 있는데 왜 IMachine을 또 상속한거지?"라는 의문이 들수 있는데 Machine에서 print, scan 함수에 대한 재정의를 강제하기 위해서 상속한 것이다.
+
+밑과 같이 인터페이스를 상속한 클래스를 만들고 입맛대로 print 함수와 scan 함수를 재작성한다.
+class Printer : public IPrinter {
+  public:
+    Printer() {}
+    void print(std::vector<Document> &docs) {
+        std::cout << "I print something!\n";
+    }
+};
+
+class Scanner : public IScanner {
+  public:
+    Scanner() {}
+    void scan(std::vector<Document> &docs) {
+        std::cout << "I scan something!\n";
+    }
+};
+
+밑과 같이 복합기 클래스를 생성하고 사용하면 된다.
+Machine machine(new Printer(), new Scanner());
+machine.print(doc);
+
+5. 의존성 역전 원칙(DIP)
