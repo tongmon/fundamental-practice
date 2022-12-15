@@ -88,3 +88,37 @@ CMake 관련된 작업을 할 때 유용하다. makefile로 명령어를 묶어 
 3. task.json 파일의 "args" 항목을 보면 "-o" 다음 경로로 지정되어 있는 "${fileDirname}\\${fileBasenameNoExtension}.exe" 이 녀석이 있을텐데 얘도 "${workspaceRoot}\\build\\Debug\\MyExecutable.exe" 경로로 설정해준다.
 
 4. F5를 눌러 디버깅을 하면 된다.
+
+5. 복잡한 코드를 디버깅 하는 경우 "undefined reference to ..." 오류가 날 수 있다. 해당 오류가 발생하면 실행파일을 VS Code가 지워버리는데 이를 해결하려면 task.json을 수정해줘야 한다.
+이유를 간단히 살펴보면 예를 들어 main.cpp에서 XmlBuilder 클래스를 사용하고 있는데 이 녀석에 대한 파일을 참조하지 못해서 디버깅 시에 오류가 발생하는 것이다.
+해결법은 XmlBuilder 클래스가 정의되어 있는 cpp 파일의 위치를 알려주면된다.
+task.json의 "-g" 인자로 경로를 추가해준다. 보통 default 값은 ${file} 이다.
+예를 들어 XmlBuilder 클래스가 존재하는 파일의 위치가 "프로젝트_폴더/xml/xmlbuilder.cpp" 라면 "${workspaceRoot}\\xml\\xmlbuilder.cpp" 를 추가한다.
+그러면 보통 task.json의 모습은 밑과 비슷할 것이다. 
+{
+    "tasks": [
+        {
+            "type": "cppbuild",
+            "label": "C/C++: g++.exe 활성 파일 빌드",
+            "command": "C:\\msys64\\mingw64\\bin\\g++.exe",
+            "args": [
+                "-fdiagnostics-color=always",
+                "-g",
+                //"${file}",
+                "${workspaceRoot}\\main.cpp",
+                "${workspaceRoot}\\xml\\xmlbuilder.cpp"
+                "-o",
+                "${workspaceRoot}\\build\\Debug\\StudyProject.exe"
+            ],
+            "options": {
+                "cwd": "${fileDirname}"
+            },
+            "problemMatcher": [
+                "$gcc"
+            ],
+            "group": "build",
+            "detail": "디버거에서 생성된 작업입니다."
+        }
+    ],
+    "version": "2.0.0"
+}
