@@ -151,7 +151,7 @@ XmlBuilder XmlWriter::build(const std::string &tag) {
 std::string XmlWriter::str(const std::string &tag, const std::string &content) {
     return XmlWriter(tag, content).str();
 }
-build 함수의 구현부는 별 특이한게 없이 간단한데 추후에 설명하겠지만 XmlBuilder의 생성자가 바뀌었다.
+build 함수의 구현부는 별 특이한게 없이 간단한데 추후에 설명하겠지만 build() 함수에서 볼 수 있듯이 XmlBuilder의 생성자가 바뀌었다.
 
 xmlbuilder.h의 코드 내용이다.
 class XmlBuilder {
@@ -163,9 +163,15 @@ class XmlBuilder {
     }
     ~XmlBuilder() { delete root; }
     operator XmlWriter() const { return *root; }
-    XmlWriter &add_child(const std::string &tag, const std::string &content);
+    XmlBuilder &add_child(const std::string &tag, const std::string &content);
     std::string str() {
         return root->str();
     }
 };
 중요하게 바뀐 것은 XmlBuilder에서도 XmlWriter의 생성자로 접근하지 못하여 이제 root를 포인터형으로 가지고 있어야 한다. 그리고 사용자는 XmlBuilder를 생성할 때 XmlWriter::build() 함수를 이용하게 된다.
+
+xmlbuilder.cpp의 코드 내용이다.
+XmlBuilder &XmlBuilder::add_child(const std::string &tag, const std::string &content) {
+    root->element.push_back(XmlWriter{tag, content});
+    return *this;
+}
