@@ -77,28 +77,22 @@ std::cout << builder.str() << "\n";
 2. 흐름식 빌더
 객체 생성을 하는 함수에서 객체를 반환하는 형태를 갖춘다.
 
-일단 XmlWriter 클래스에 밑과 같은 public 멤버 함수 add_child()를 추가해준다.
-XmlWriter &add_child(const std::string &tag, const std::string &content) {
-    element.push_back(XmlWriter{tag, content});
-    return element.back();
-}
-
 XmlBuilder 클래스에서 add_child() 함수를 밑과 같이 변형시켜준다.
-XmlWriter &add_child(const std::string &tag, const std::string &content) {
+XmlBuilder &XmlBuilder::add_child(const std::string &tag, const std::string &content) {
     root.element.push_back(XmlWriter{tag, content});
-    return root.element.back();
+    return *this;
 }
 
 이렇게 되면 밑과 같이 xml 스트링 값을 출력할 수 있다.
 XmlBuilder builder("Zoo");
-builder.add_child("Water", "Fish");
-builder.add_child("Ground", "").add_child("Horse", "Zebra");
+builder.add_child("Water", "Fish").add_child("Ground", XmlWriter{"Horse", "Zebra"}.str());
 std::cout << builder.str() << "\n";
 
-객체 생성을 연달아 할 수 있어 생성자를 이용해 껴넣는 단순 빌더 방식보다 직관성이 많이 좋아졌다.
+Xml 정보 추가를 연달아 할 수 있어 단순 빌더 방식보다 호출 코드도 짧고 직관적이다.
 
-2-1. XmlBuilder 클래스 무조건 이용하게 만들기
-사용자가 xml 클래스를 사용할 때 XmlWriter도 사용하고 XmlBuilder도 사용할 수 있으면 혼동이 올 수도 있고 충분히 XmlBuilder 클래스로 모든 작업이 가능하다면 굳이 사용자에게 XmlWriter 클래스를 제공해줄 필요가 없다. 이러한 경우 사용자가 XmlBuilder만 사용하도록 코드를 구성해야 한다.
+2-1. 사용자 인터페이스 통합하기
+사용자가 xml 클래스를 사용할 때 XmlWriter도 사용하고 XmlBuilder도 사용할 수 있으면 혼동이 올 수 있다.
+사용자가 xml 정보를 생성하고 출력하는데만 집중할 수 있도록 직관적으로 인터페이스를 제공해야한다.
 
 생각보다 좀 복잡한 단계를 거쳐야 한다.
 일단 기존에 main.cpp에서 모두 처리하던 코드들을 .h, .cpp 파일들로 전방선언, 불완전한 반환값 문제를 방지하기 위해 분리해야 한다.
@@ -109,6 +103,7 @@ class XmlBuilder;
 class XmlWriter {
     std::string content;
     std::string tag;
+    friend class XmlBuilder;
 
   protected:
     XmlWriter(const std::string &tag = "", const std::string &content = "");
@@ -118,18 +113,17 @@ class XmlWriter {
 
     std::vector<XmlWriter> element;
 
-    XmlWriter &add_child(const std::string &tag, const std::string &content);
-
     std::string str(const std::string &tabs = "") const;
 
-    // static XmlBuilder &&build(const std::string &tag);
+    static XmlBuilder build(const std::string &tag);
 
-    static std::unique_ptr<XmlBuilder> build(const std::string &tag);
+    static std::string str(const std::string &tag, const std::string &content);
 };
-일단 잘 봐야되는 것은 생성자가 protected로 사용자가 못쓰게 가려졌다는 것이다. 이것으로 인해 사용자는 강제로 특정 인터페이스를 통해서만 xml 정보를 구축할 수 있다. (소멸자가 public에 남겨진 이유는 추후에 설명한다.)
-또 다른 중요한 점은 전역 클래스 멤버 함수로 build라는 함수가 추가되었는데 이는 사용자가 유일하게 XmlBuilder 클래스를 획득할 수 있는 인터페이스다. 즉 사용자는 해당 함수를 사용하지 않고서는 xml 정보를 구축할 수 없다.
-사용자는 이제 빌더를 생성할 때 XmlWriter::build("Zoo") 요런식으로 접근하게 된다.
-주석 처리된 코드와 같이 std::move()를 사용하는 &&를 사용해도 된다. 단지 개발자의 취향이다.
+일단 잘 봐야되는 것은 생성자가 protected로 사용자가 못쓰게 가려졌다는 것이다. 이것으로 인해 사용자는 강제로 특정 인터페이스를 통해서만 xml 정보를 구축할 수 있다.
+반면에 XmlBuilder 클래스는 친구 클래스로 선언 되었기에 XmlWriter의 생성자를 이용할 수 있다.
+또 다른 중요한 점은 전역 클래스 멤버 함수가 build, str 두개 있는데 사용자가 사용할 수 있는 xml 생성 인터페이스가 build()이고 자식 노드를 추가하기 위한 인터페이스가 str()이다.
+이제 xml 정보를 생성할 때 XmlWriter::build("Zoo") 요런식으로 접근하게 된다.
+xml 자식 노드를 생성할 때 XmlWriter::str("Horse", "Zebra") 이렇게 접근할 수 있다.
 
 xmlwriter.cpp의 코드 내용이다.
 XmlWriter::XmlWriter(const std::string &tag, const std::string &content) {
@@ -149,21 +143,13 @@ std::string XmlWriter::str(const std::string &tabs) const {
     return tabs + "<" + tag + ">\n" + (element.empty() ? content_modified : content_from_element) + "\n" + tabs + "</" + tag + ">";
 }
 
-XmlWriter &XmlWriter::add_child(const std::string &tag, const std::string &content) {
-    element.push_back(XmlWriter{tag, content});
-    return element.back();
+XmlBuilder XmlWriter::build(const std::string &tag) {
+    XmlWriter *writer = new XmlWriter(tag, "");
+    return XmlBuilder(writer);
 }
 
-/*
-XmlBuilder &&XmlWriter::build(const std::string &tag) {
-    XmlWriter *writer = new XmlWriter(tag, "");
-    return std::move(XmlBuilder(writer));
-}
-*/
-
-std::unique_ptr<XmlBuilder> XmlWriter::build(const std::string &tag) {
-    XmlWriter *writer = new XmlWriter(tag, "");
-    return std::make_unique<XmlBuilder>(writer);
+std::string XmlWriter::str(const std::string &tag, const std::string &content) {
+    return XmlWriter(tag, content).str();
 }
 build 함수의 구현부는 별 특이한게 없이 간단한데 추후에 설명하겠지만 XmlBuilder의 생성자가 바뀌었다.
 

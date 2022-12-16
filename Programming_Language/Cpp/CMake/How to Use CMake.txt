@@ -472,16 +472,3 @@ Doxygen 결과 파일인 index.html이 생성되는 위치가 적혀있는 OUTPU
 6. Doxyfile이 있는 곳에서 터미널로 doxygen 명령을 수행하면 OUTPUT_DIRECTORY 옵션에 정의된 위치에 결과 파일이 생성되고 생성 파일 중에 index.html 파일을 웹으로 열어보면 주석 정보가 문서화되어 정리된 페이지를 볼 수 있다.
 
 
-
-
-
-target_link_directories([프로젝트명]
-	PRIVATE
-	${CMAKE_SOURCE_DIR}/external/zlib
-)
-
-
-target_link_libraries([프로젝트명] 
- 	PRIVATE
- 	zlibd
-)
