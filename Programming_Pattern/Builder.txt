@@ -152,6 +152,7 @@ std::string XmlWriter::str(const std::string &tag, const std::string &content) {
     return XmlWriter(tag, content).str();
 }
 build 함수의 구현부는 별 특이한게 없이 간단한데 추후에 설명하겠지만 build() 함수에서 볼 수 있듯이 XmlBuilder의 생성자가 바뀌었다.
+사용자는 XmlWriter 생성자에 접근할 수 없기 때문에 자식 노드를 만들기 위한 str() 함수를 따로 만들어 준다.
 
 xmlbuilder.h의 코드 내용이다.
 class XmlBuilder {
@@ -168,10 +169,19 @@ class XmlBuilder {
         return root->str();
     }
 };
-중요하게 바뀐 것은 XmlBuilder에서도 XmlWriter의 생성자로 접근하지 못하여 이제 root를 포인터형으로 가지고 있어야 한다. 그리고 사용자는 XmlBuilder를 생성할 때 XmlWriter::build() 함수를 이용하게 된다.
+객체 생성 역할만을 위한 XmlBuilder 클래스를 사용자로부터 숨기기 위해 XmlBuilder 클래스의 생성자를 사용자가 직접 사용하지 못하게 XmlWriter 클래스를 생성해야만 XmlBuilder를 생성할 수 있도록 형식을 바꾼다.
+사용자는 이제 XmlBuilder를 이용해서 xml 정보를 구축하는 것이 아니라 XmlWriter::build() 함수를 통해 xml 정보를 구축하게 된다. 
+그리고 연산자 재정의 부분도 새로 추가되었는데 이를 통해 완벽하게 사용자는 XmlBuilder 클래스를 신경쓸 필요가 없어진다. 만약 add_child() 함수를 이용한다고 해도 XmlBuilder 자료형으로 반환이 될텐데 이를 그냥 XmlWriter 자료형으로 받고 str() 함수를 실행해도 XmlBuilder 클래스에서 직접 str() 함수를 실행한 것과 결과는 동일하다.
 
 xmlbuilder.cpp의 코드 내용이다.
 XmlBuilder &XmlBuilder::add_child(const std::string &tag, const std::string &content) {
     root->element.push_back(XmlWriter{tag, content});
     return *this;
 }
+XmlWriter 클래스를 친구 클래스를 선언했기에 XmlBuilder 클래스에서 XmlWriter 생성자에 접근이 가능하다.
+
+실제 사용자가 XmlWriter와 XmlBuilder를 활용한 예시는 밑과 같다.
+XmlWriter writer = XmlWriter::build("Zoo").add_child("Water", "Fish").add_child("Ground", XmlWriter::str("Horse", "Zebra"));
+std::cout << writer.str() << "\n";
+코드를 보면 사용자는 XmlBuilder가 어디서 어떻게 쓰였는지 알 필요가 없다. 단지 XmlWriter의 build(), str() 인터페이스를 이용하고 add_child()로 XmlWriter 객체를 생성하고 해당 값을 XmlWriter 클래스로 받아 활용할 뿐이다.
+XmlBuilder 클래스는 묵묵히 숨어서 객체 생성과 관련된 작업을 진행할 뿐이다.
