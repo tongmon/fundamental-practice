@@ -1,8 +1,6 @@
 {
-    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
     "name": "catch2sample",
     "version": "1.0.0",
-    "builtin-baseline": "e46521db005de9208c9ed79ef4f96e212cb9a25a",
     "dependencies": [
         "catch2"
     ]

@@ -129,6 +129,8 @@ add_compile_options -> 컴파일 옵션 추가 [ex. add_compile_options(-g -Wall
 
 file -> 파일 이름을 변수로 저장할 때 사용된다. 예를 들어 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./SourceFile/*.cpp) 이렇게 하면 SourceFile 폴더 내부를 돌면서 확장자가 cpp인 파일들을 SRC_FILES 리스트 변수에 추가한다. GLOB_RECURSE 옵션도 지정되었으니 SourceFile 파일 하위 폴더까지 돌면서 조사한다. CONFIGURE_DEPENDS이 설정되면 SourceFile 폴더 내부에 새로운 파일이 추가, 삭제된 경우에 CMake 빌드 명령어만 수행해도 CMake 세팅이 자동으로 된다.
 
+add_compile_options -> 컴파일 옵션 인자를 넣어줄 수 있다. [ex. add_compile_options(-g -Wall -std=c++11)]
+
 # CMakeLists.txt 사전변수
 
 CMAKE_CXX_STANDARD -> C++ 표준 버전 정의 [ex. set(CMAKE_CXX_STANDARD 17)]
@@ -202,6 +204,9 @@ rebuild:
 위와 같은 내용의 Makefile이 있다면 터미널에서 단지 make rebuild 명령만 수행해도 CMake가 세팅되고 재빌드가 수행된다.
 
 # CMake에서 External Library 추가하는 방법
+
+Warning: corrupt .drectve at end of def file
+Warning: corrupt .drectve at end of def file
 
 해당 방법은 여러가지가 존재한다. git, vcpkg, conan 등등... 각각의 방법에 대해 예시를 들어 절차적으로 설명하겠다.
 
@@ -337,7 +342,7 @@ CXX=C:/msys64/mingw64/bin/g++.exe
 
 2. vcpkg 설치를 원하는 위치로 cd 명령을 수행해 이동하고 git clone https://github.com/microsoft/vcpkg 명령을 수행한다.
 
-3. 다음에 .\vcpkg\bootstrap-vcpkg.bat 명령을 수행하여 vcpkg를 설치한다.
+3. 다음에 bootstrap-vcpkg.bat를 실행하여 vcpkg를 설치한다.
 
 4. 관리자 모드로 PowerShell을 켜고 vcpkg 폴더 내로 들어가 .\vcpkg integrate install 와 .\vcpkg integrate powershell 명령을 수행하고 터미널이나 PowerShell 창을 재시작한다.
 

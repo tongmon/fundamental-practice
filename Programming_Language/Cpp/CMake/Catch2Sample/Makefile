@@ -35,7 +35,7 @@ release: # 릴리즈용 빌드
 	cmake --build $(build_path)/Release --target $(target) -j $(job_num)
 
 debug: # 디버그용 빌드
-	mkdir $(windows_build_path)\Debug | cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=$(c_compiler) -DCMAKE_CXX_COMPILER=$(cxx_compiler) -S . -B $(build_path)/Debug -G "$(generator)" --graphviz=$(build_path)/Debug/graph_info/graph.dot
+	mkdir $(windows_build_path)\Debug | cmake --no-warn-unused-cli -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_C_COMPILER=$(c_compiler) -DCMAKE_CXX_COMPILER=$(cxx_compiler) -S . -B $(build_path)/Debug -G "$(generator)" --graphviz=$(build_path)/Debug/graph_info/graph.dot
 	dot -Tpng $(build_path)/Debug/graph_info/graph.dot -o $(build_path)/graph_debug.png
 	cmake --build $(build_path)/Debug --target $(target) -j $(job_num)
 

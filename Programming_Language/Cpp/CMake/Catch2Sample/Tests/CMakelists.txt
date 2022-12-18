@@ -1,2 +1,1 @@
 add_subdirectory(Test01)
-add_subdirectory(Test02)
