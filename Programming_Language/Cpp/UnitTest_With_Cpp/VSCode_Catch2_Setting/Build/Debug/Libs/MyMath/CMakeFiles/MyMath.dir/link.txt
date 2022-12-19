@@ -1,2 +1,0 @@
-C:/msys64/mingw64/bin/ar.exe qc libMyMath.a CMakeFiles/MyMath.dir/mymath.cpp.obj
-C:/msys64/mingw64/bin/ranlib.exe libMyMath.a

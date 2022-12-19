@@ -2,6 +2,7 @@
 #include <mybenchmark.h>
 #include <vector>
 
+// 일반적인 소수 판별 함수
 bool is_prime_01(unsigned int n) {
     if (n <= 1)
         return false;
@@ -13,6 +14,8 @@ bool is_prime_01(unsigned int n) {
     return true;
 }
 
+// 에라토스테네스의 체를 이용한 소수 판별 함수
+// 다수의 소수 판별을 진행할 때 효과적임, 첫 계산시 is_prime_01 함수보다 느림
 bool is_prime_02(unsigned int n, unsigned int max) {
     static std::vector<bool> primes;
 

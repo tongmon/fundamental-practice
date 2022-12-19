@@ -46,6 +46,12 @@ prepare: # cmake 사전 준비
 	mkdir $(windows_build_path)\$(build_type) | cmake --no-warn-unused-cli -DCMAKE_BUILD_TYPE=$(build_type) -DCMAKE_C_COMPILER=$(c_compiler) -DCMAKE_CXX_COMPILER=$(cxx_compiler) -S . -B $(build_path)/$(build_type) -G "$(generator)" --graphviz=$(build_path)/$(build_type)/Graph_Info/graph.dot
 	dot -Tpng $(build_path)/$(build_type)/Graph_Info/graph.dot -o $(build_path)/Graph_$(build_type).png
 	
+unittest:
+	.\build\debug\Tests\Test01\unit_tests_01.exe
+
+benchmark:
+	.\build\debug\Tests\Test02\unit_tests_02.exe
+
 # 예를들어 터미널에서 make build_type=Release target=SDL2 generator="Visual Studio 17 2022" 를 하면 SDL2만 VS2022 생성기를 통해 Release 모드로 빌드된다.
 
 # vcpkg를 사용한다면 -DCMAKE_TOOLCHAIN_FILE=C:/vcpkg/scripts/buildsystems/vcpkg.cmake 옵션 추가 요망

@@ -1,5 +1,4 @@
 #include <catch2/catch_all.hpp>
-
 #include <mymath.h>
 
 // 팩토리얼 함수 테스팅...

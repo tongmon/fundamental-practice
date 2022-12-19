@@ -1,2 +1,0 @@
-C:/msys64/mingw64/bin/ar.exe qc libMyBenchMark.a CMakeFiles/MyBenchMark.dir/mybenchmark.cpp.obj
-C:/msys64/mingw64/bin/ranlib.exe libMyBenchMark.a

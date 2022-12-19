@@ -1,5 +1,4 @@
 #include <catch2/catch_all.hpp>
-
 #include <mybenchmark.h>
 
 TEST_CASE("Prime Checking with is_prime_01") {
