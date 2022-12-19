@@ -17,7 +17,7 @@
 
 ### - **project**
 > 현재 프로젝트의 속성과 관련된 정보를 적는다.  
-> 예를 들어 project(CppProjectTemplate VERSION 1.0.0 LANGUAGES C CXX) 이렇게 적혔다면 프로젝트 이름은 CppProjectTemplate이고 해당 프로젝트의 버전은 1.0.0이며 프로젝트에서 쓰이는 언어는 C 또는 CXX(C++)이다.
+> 예를 들어 ```project(CppProjectTemplate VERSION 1.0.0 LANGUAGES C CXX)``` 이렇게 적혔다면 프로젝트 이름은 CppProjectTemplate이고 해당 프로젝트의 버전은 1.0.0이며 프로젝트에서 쓰이는 언어는 C 또는 CXX(C++)이다.
 > ```
 > project(CppProjectTemplate VERSION 1.0.0 LANGUAGES C CXX)
 > ```
@@ -25,7 +25,7 @@
 ### - **add_executable** 
 > 실행 파일을 만드는데 사용되는 모든 파일들(.cpp만)을 적는다.  
 > 꼭 앞에 실행 파일의 이름을 적어주어야 한다.  
-> add_executable(MyExecutable main.cpp) 이렇게 하면 MyExecutable.exe를 만들겠다는 것이다.
+> ```add_executable(MyExecutable main.cpp)``` 이렇게 하면 MyExecutable.exe를 만들겠다는 것이다.
 > ```
 > add_executable(MyExecutable main.cpp sdl_drawer.cpp)
 > ```
@@ -47,7 +47,7 @@
 > 라이브러리를 만들기 위한 명령이다.  
 > 현재 프로젝트에 종속될 라이브러리와 관련된 파일들(.cpp만)을 적는다.  
 > 꼭 앞에 생성될 라이브러리 이름과 링크 방식을 적어야 한다.  
-> 예를 들어 add_library(MyLibrary STATIC my_lib.cpp) 이렇게 적었다면 정적 링크(STATIC)할 MyLibrary 이름을 가진 라이브러리를 생성하는데 필요한 파일은 my_lib.cpp라는 것이다.
+> 예를 들어 ```add_library(MyLibrary STATIC my_lib.cpp)``` 이렇게 적었다면 정적 링크(STATIC)할 MyLibrary 이름을 가진 라이브러리를 생성하는데 필요한 파일은 my_lib.cpp라는 것이다.
 > ```
 > add_library(MyLibrary STATIC my_lib.cpp my_math.cpp)
 > ```
@@ -92,23 +92,23 @@
 
 ### - **target_link_libraries** 
 > 실행 파일이 원활하게 실행될 수 있게 관련된 라이브러리를 링크 시키기 위한 명령이다.  
-> 예를 들어 target_link_libraries(MyExecutable PUBLIC MyLibrary)를 하면 MyExecutable 실행 파일에 MyLibrary 라이브러리가 PUBLIC으로 링크된다.
+> 예를 들어 ```target_link_libraries(MyExecutable PUBLIC MyLibrary)```를 하면 MyExecutable 실행 파일에 MyLibrary 라이브러리가 PUBLIC으로 링크된다.
 > ```
 > target_link_libraries(MyExecutable PUBLIC MyLibrary)
 > ```
 
 ### - **target_link_directories**
 > 종속 라이브러리들을 정의하기 손쉽게 하기 위해 사용하는 명령이다.  
-> 어떤 라이브러리를 생성하는 add_library(MyLibrary 어쩌구저쩌구...)가 있다고 하자.  
-> 여기서 target_link_directories(MyLibrary PUBLIC "C:/CMakeProject/lib")도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 link_directories("C:/CMakeProject/lib")를 한 효과를 지닌다.
+> 어떤 라이브러리를 생성하는 ```add_library(MyLibrary 어쩌구저쩌구...)```가 있다고 하자.  
+> 여기서 ```target_link_directories(MyLibrary PUBLIC "C:/CMakeProject/lib")```도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 ```link_directories("C:/CMakeProject/lib")```를 한 효과를 지닌다.
 > ```
 > target_link_directories(MyLibrary PUBLIC "C:/CMakeProject/lib")
 > ```
 
 ### - **target_include_directories** 
 > 헤더 파일을 정의하기 손쉽게 하기 위해 사용하는 명령이다.  
-> 어떤 라이브러리를 생성하는 add_library(MyLibrary 어쩌구저쩌구...)가 있다고 하자.  
-> 여기서 target_include_directories(MyLibrary PUBLIC "C:/CMakeProject/include")도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 include_directories("C:/CMakeProject/include")를 한 효과를 지닌다.
+> 어떤 라이브러리를 생성하는 ```add_library(MyLibrary 어쩌구저쩌구...)```가 있다고 하자.  
+> 여기서 ```target_include_directories(MyLibrary PUBLIC "C:/CMakeProject/include")```도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 ```include_directories("C:/CMakeProject/include")```를 한 효과를 지닌다.
 > ```
 > target_include_directories(MyLibrary PUBLIC "C:/CMakeProject/include")
 > ```
@@ -127,7 +127,7 @@
 > 그리고 더 중요한 것은 add_subdirectory 명령의 순서이다.  
 > 만약 app 폴더 내부에 있는 파일들이 MyExecutable이라는 실행 파일을 만드는데 해당 실행 파일이 MyLibrary라는 라이브러리를 요구한다고 해보자.  
 > 근데 MyLibrary는 src 폴더 내부에 있는 파일들을 통해 생성된다.  
-> 이 경우 app 폴더와 src 폴더를 모두 가지고 있는 상위 폴더에서는 MyLibrary가 먼저 만들어져야 한다는 것을 알고 add_subdirectory(src) 후에 add_subdirectory(app) 를 해줘야 한다.  
+> 이 경우 app 폴더와 src 폴더를 모두 가지고 있는 상위 폴더에서는 MyLibrary가 먼저 만들어져야 한다는 것을 알고 ```add_subdirectory(src)``` 후에 ```add_subdirectory(app)``` 를 해줘야 한다.  
 > 이미 add_subdirectory로 추가했던 폴더를 중복해서 또 추가하면 오류가 나니 주의해야한다.
 > ```
 > add_subdirectory(src)
@@ -135,15 +135,15 @@
 
 ### - **set** 
 > cmake에서 변수를 지정할 때 사용된다.  
-> 예를 들어 set(LIBRARY_NAME "MyLibrary") 라고 하면 C++로 따지면 std::string LIBRARY_NAME = "MyLibrary"; 이거랑 똑같은 것이다.  
-> 만약에 set(LIBRARY_NAME MyLibrary) 이렇게 "를 때고 변수 지정을 한다면 CMake가 적절한 변수 형태를 유추해서 저장을 한다.  
+> 예를 들어 ```set(LIBRARY_NAME "MyLibrary")``` 라고 하면 C++로 따지면 ```std::string LIBRARY_NAME = "MyLibrary";``` 이거랑 똑같은 것이다.  
+> 만약에 ```set(LIBRARY_NAME MyLibrary)``` 이렇게 "를 때고 변수 지정을 한다면 CMake가 적절한 변수 형태를 유추해서 저장을 한다.  
 > 이 경우에는 MyLibrary가 문자열이니 문자형으로 저장을 할 것이다.  
-> 배열형도 가능한데 set(LIBRARY_SOURCES "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc") 이렇게 해주면 LIBRARY_SOURCES 이 녀석은 배열이다.  
+> 배열형도 가능한데 ```set(LIBRARY_SOURCES "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc")``` 이렇게 해주면 LIBRARY_SOURCES 이 녀석은 배열이다.  
 > set은 단순히 변수를 저장할 때도 쓰이지만 CMake 자체에 내장되어 있는 변수들의 값을 바꿀 때도 사용된다.  
-> 예를 들어 프로젝트에서 C++ 17을 사용하고 싶다면 set(CMAKE_CXX_STANDARD 17) 이렇게 해주면 된다.  
+> 예를 들어 프로젝트에서 C++ 17을 사용하고 싶다면 ```set(CMAKE_CXX_STANDARD 17)``` 이렇게 해주면 된다.  
 > 변수명을 지을 때 주의할 점은 모두 대문자로 지어야 한다는 것이다.   
-> 변수명을 사용할 때는 ${LIBRARY_NAME} 이렇게 사용한다.  
-> 보통 add_library(MyLibrary "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc")를 add_library(MyLibrary ${LIBRARY_SOURCES}) 이렇게 줄이는 곳에 많이 쓰인다.
+> 변수명을 사용할 때는 ```${LIBRARY_NAME}``` 이렇게 사용한다.  
+> 보통 ```add_library(MyLibrary "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc")를 add_library(MyLibrary ${LIBRARY_SOURCES})``` 이렇게 줄이는 곳에 많이 쓰인다.
 > ```
 > set(CMAKE_CXX_STANDARD 17)
 > ```
@@ -173,7 +173,7 @@
 > ```
 
 ### - **message** 
-> message("문자열")로 사용한다.  
+> ```message("문자열")```로 사용한다.  
 > 빌드 시점이 아니라 CMake 세팅 시점에 출력된다.  
 > ```
 > message("Compile Warning")
@@ -195,8 +195,8 @@
 > static constexpr std::int32_t project_version_minor{@PROJECT_VERSION_MINOR@};
 > static constexpr std::int32_t project_version_patch{@PROJECT_VERSION_PATCH@};
 > ```
-> 해당 .in 파일이 있는 곳 CMakeLists.txt 파일에 configure_file("config.h.in" "${CMAKE_BINARY_DIR}/configured_files/include/config.h" ESCAPE_QUOTES) 해당 명령어가 있으면 빌드 시점에 CMake가 "빌드_경로/configure_file/include/" 경로에 config.h.in에서 .in을 떼고 config.h을 만들어 주는데 특이한 점은 @로 감싸고 있는 문자열을 CMake가 가지고 있던 값으로 모두 치환해준다. (ESCAPE_QUOTES 옵션은 "@PROJECT_NAME@" 이 녀석을 치환할 때 실제로 \"치환 값\" 이렇게 "를 \"로 안전하게 바꿔 .h 파일을 생성하도록 한다.)  
-> 예를 들어 최상위 CMakeLists.txt에 project(CppProjectTemplate VERSION 1.2.3 LANGUAGES C CXX) 이러한 내용이 있다면 @PROJECT_NAME@ -> CppProjectTemplate, @PROJECT_VERSION@ -> 1.2.3 등으로 치환된다.  
+> 해당 .in 파일이 있는 곳 CMakeLists.txt 파일에 ```configure_file("config.h.in" "${CMAKE_BINARY_DIR}/configured_files/include/config.h" ESCAPE_QUOTES)``` 해당 함수가 있으면 빌드 시점에 CMake가 ```빌드_경로/configure_file/include/``` 경로에 config.h.in에서 .in을 떼고 config.h을 만들어 주는데 특이한 점은 @로 감싸고 있는 문자열을 CMake가 가지고 있던 값으로 모두 치환해준다. (ESCAPE_QUOTES 옵션은 "@PROJECT_NAME@" 이 녀석을 치환할 때 실제로 \"치환 값\" 이렇게 "를 \"로 안전하게 바꿔 .h 파일을 생성하도록 한다.)  
+> 예를 들어 최상위 CMakeLists.txt에 ```project(CppProjectTemplate VERSION 1.2.3 LANGUAGES C CXX)``` 이러한 내용이 있다면 @PROJECT_NAME@ -> CppProjectTemplate, @PROJECT_VERSION@ -> 1.2.3 등으로 치환된다.  
 > 생성된 config.h 모양은 밑과 같다.
 > ```
 > #pragma once
@@ -218,7 +218,7 @@
 
 ### - **file** 
 > 파일 이름을 변수로 저장할 때 사용된다.  
-> 예를 들어 file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./SourceFile/*.cpp) 이렇게 하면 SourceFile 폴더 내부를 돌면서 확장자가 cpp인 파일들을 SRC_FILES 리스트 변수에 추가한다.  
+> 예를 들어 ```file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./SourceFile/*.cpp)``` 이렇게 하면 SourceFile 폴더 내부를 돌면서 확장자가 cpp인 파일들을 SRC_FILES 리스트 변수에 추가한다.  
 > GLOB_RECURSE 옵션도 지정되었으니 SourceFile 파일 하위 폴더까지 돌면서 조사한다.  
 > CONFIGURE_DEPENDS이 설정되면 SourceFile 폴더 내부에 새로운 파일이 추가, 삭제된 경우에 CMake 빌드 명령어만 수행해도 CMake 세팅이 자동으로 된다.
 > ```
@@ -226,7 +226,7 @@
 > ```
 
 ### - **add_compile_options** 
-> 컴파일 옵션 인자를 넣어줄 수 있다. [ex. add_compile_options(-g -Wall -std=c++11)]
+> 컴파일 옵션 인자를 넣어줄 수 있다.
 > ```
 > add_compile_options(-g -Wall -std=c++11)
 > ```
@@ -236,18 +236,18 @@
 
 ### - **CMAKE_CXX_STANDARD** 
 > C++ 표준 버전 정의  
-> [ex. set(CMAKE_CXX_STANDARD 17)]  
+> [ex. ```set(CMAKE_CXX_STANDARD 17)```]  
 
 ### - **CMAKE_CXX_STANDARD_REQUIRED** 
 > C++ 표준 버전 정의된 것을 필수로 요구할 것이냐 아니냐를 따지는 옵션이다.  
 > 만약 프로젝트 빌드 유저의 환경이 C++17을 지원하지 않는 경우 CMAKE_CXX_STANDARD_REQUIRED 변수가 OFF로 되어 있으면 CMAKE_CXX_STANDARD가 17로 정의되어 있더라도 프로젝트 빌드 유저 환경에 맞는 다른 C++ 버전이 채택되어 그걸로 빌드된다.  
-> [ex. set(CMAKE_CXX_STANDARD_REQUIRED ON)]
+> [ex. ```set(CMAKE_CXX_STANDARD_REQUIRED ON)```]
 
 ### - **CMAKE_CXX_EXTENSIONS** 
 > 특정 컴파일러 확장 기능을 사용하냐 안하냐를 결정한다.  
 > msvc만의 기능이 있고 gcc만의 기능이 있는데 이러한 특수한 기능을 사용할 것이냐를 물어보는 것이다.  
 > 크로스 플랫폼 빌드가 빌요한 프로젝트에서는 걍 사용하지 말자.  
-> [ex. set(CMAKE_CXX_EXTENSIONS OFF)]
+> [ex. ```set(CMAKE_CXX_EXTENSIONS OFF)```]
 
 ### - **CMAKE_SOURCE_DIR** 
 > 프로젝트 최상위 경로, set()으로도 바뀌지 않음.
@@ -279,7 +279,7 @@
 > 자세한 명령어 내용은 https://runebook.dev/ko/docs/cmake/ 이곳에서 찾아보자.  
 > 세팅은 빌드 전 cmake 환경 설정을 한다고 생각하면 되고 빌드는 말 그대로 코드 산출물이 발생되는 것이다.  
 > CMake 세팅을 할 때는 파일 경로를 적는 일이 잦은데 경로 구분자는 '\'요게 아니라 '/'이거다.  
-> 그니까 예를 들어 C:\MyDir\HelloWorld.txt 이거는 에러인데 C:/MyDir/HelloWorld.txt 이거는 정상이다.  
+> 그니까 예를 들어 ```C:\MyDir\HelloWorld.txt``` 이거는 에러인데 ```C:/MyDir/HelloWorld.txt``` 이거는 정상이다.  
 
 ### - **세팅 옵션**
 
@@ -288,24 +288,24 @@
 
 * _-B_  
 -B 옵션은 빌드 후 생성되는 파일들이 위치할 폴더 경로가 적혀야 한다.  
-예를 들어 C:/VS_CODE_PROJECTS/HelloWorld/CMakeLists.txt 이렇게 위치하고 있다면 "cmake -S C:/VS_CODE_PROJECTS/HelloWorld -B C:/VS_CODE_PROJECTS/HelloWorld/build" 명령어를 수행해 cmake 프로젝트를 세팅해주면 된다.
+예를 들어 ```C:/VS_CODE_PROJECTS/HelloWorld/CMakeLists.txt``` 이렇게 위치하고 있다면 ```cmake -S C:/VS_CODE_PROJECTS/HelloWorld -B C:/VS_CODE_PROJECTS/HelloWorld/build``` 명령어를 수행해 cmake 프로젝트를 세팅해주면 된다.
 
 * _-D_  
 -D 옵션은 CMakeLists.txt에 정의된 변수를 커맨드 라인으로 세팅할 때 사용된다.  
-예를 들어 CMake 환경 세팅을 진행할 때 C++14 버전으로 빌드 설정을 하고싶다면 "cmake .. -DCMAKE_CXX_STANDARD=14" 이러한 명령어를 입력하면 된다. 주의할 점은 -D와 특정 변수명 사이에 띄어쓰기가 없이 붙여써야 한다는 것이다.
+예를 들어 CMake 환경 세팅을 진행할 때 C++14 버전으로 빌드 설정을 하고싶다면 ```cmake .. -DCMAKE_CXX_STANDARD=14``` 이러한 명령어를 입력하면 된다. 주의할 점은 -D와 특정 변수명 사이에 띄어쓰기가 없이 붙여써야 한다는 것이다.
 
 * _-G_  
 -G 옵션은 CMake가 빌드 구성 파일을 만들 수 있도록 도와주는 생성기를 지정하는 곳에 쓰인다.  
 그러면 생성기가 뭐냐고 물어볼 수 있는데 CMake는 혼자서 링크 종속성에 대한 정보를 컴파일러에게 전달하지 못한다.  
 이유는 링크 종속성을 전달하는 방식이 플랫폼마다 다르기 때문인데 Mac과 같은 Unix 기반에서는 Unix Makefiles가 생성기 역할을 해주고 Windows에서는 Visual Studio가 이 역할을 해준다.  
 물론 Ninja와 같이 크로스 플랫폼 생성기도 있지만 프로젝트가 돌아가는 컴퓨터에 Ninja가 깔려있을 것이라는 보장이 없지 않은가? 따라서 자신이 빌드할 때 특정한 생성기를 이용하여 빌드하고 싶다면 -G 옵션을 사용하면 된다.   
-예를 들어 cmake -S .. -B . -G "Visual Studio 16 2019" 이렇게 하면 CMake관련 빌드 구성 파일들이 Visual Studio 2019를 통해 생성된다.  
+예를 들어 ```cmake -S .. -B . -G "Visual Studio 16 2019"``` 이렇게 하면 CMake관련 빌드 구성 파일들이 Visual Studio 2019를 통해 생성된다.  
 생성기에 대한 자세한 답변은 https://stackoverflow.com/questions/25941536/what-is-a-cmake-generator 요기에 잘 설명되어 있다.
 
 * _--graphviz_  
---graphviz 옵션은 dot이라는 모듈 종속성 그리기 프로그램이 설치되어 있어야 사용이 가능하다. (choco install graphviz를 했다면 사용이 가능하다.)  
-사용법은 cmake -S . -B build --graphviz=graph.dot 이렇게 빌드 세팅을 진행할 때 --graphviz=graph.dot 이 녀석을 붙여주면 된다.  
-이렇게 하면 종속성 정보가 그래프로 그려지는 데 필요한 graph.dot 파일이 생성되는데 이 녀석을 .png 파일로 생성하려면 dot -Tpng graph.dot -o graph.png 명령어를 실행하면 된다.
+--graphviz 옵션은 dot이라는 모듈 종속성 그리기 프로그램이 설치되어 있어야 사용이 가능하다. (```choco install graphviz```를 했다면 사용이 가능하다.)  
+사용법은 ```cmake -S . -B build --graphviz=graph.dot``` 이렇게 빌드 세팅을 진행할 때 ```--graphviz=graph.dot``` 이 녀석을 붙여주면 된다.  
+이렇게 하면 종속성 정보가 그래프로 그려지는 데 필요한 graph.dot 파일이 생성되는데 이 녀석을 .png 파일로 생성하려면 ```dot -Tpng graph.dot -o graph.png``` 명령어를 실행하면 된다.
 
 * _--no-warn-unused-cli_  
 --no-warn-unused-cli 옵션을 사용하게 되면 CMake 명령줄에 관련한 경고가 뜨지 않고 명령줄에 선언되었지만 실제 CMakeLists.txt에는 존재하지 않는 변수가 있더라도 경고가 뜨지 않는다.  
@@ -319,7 +319,7 @@
 
 * _--target_  
 --target 옵션은 특정 타겟을 정해서 해당 타겟만 빌드할 수 있다.  
-예를 들어 CMakeLists.txt에 MyLibrary라는 라이브러리가 정의되어 있다면 cmake --build . --target MyLibrary를 하면 MyLibrary와 그 라이브러리에 종속된 모듈들만 빌드된다.
+예를 들어 CMakeLists.txt에 MyLibrary라는 라이브러리가 정의되어 있다면 ```cmake --build . --target MyLibrary```를 하면 MyLibrary와 그 라이브러리에 종속된 모듈들만 빌드된다.
 
 * _-j_  
 -j 옵션은 빌드 속도를 가속하기 위한 병렬 처리를 세팅하기 위해 필요하다.  
@@ -329,7 +329,7 @@
 -----------------------
 
 > 보통 명령어를 축약해서 사용할 때 활용한다.  
-> 예를 들어 터미널에서 CMake를 빌드할 때마다 mkdir build, cd build, cmake -S .. -B . -G "Ninja" 이런거 계속 치기 귀찮기 때문에 Makefile에 미리 정의해놓고 쓰게 된다.  
+> 예를 들어 터미널에서 CMake를 빌드할 때마다 ```mkdir build, cd build, cmake -S .. -B . -G "Ninja"``` 이런거 계속 치기 귀찮기 때문에 Makefile에 미리 정의해놓고 쓰게 된다.  
 > 윈도우, 리눅스, MAC 모두 명령어가 살짝 다르기 때문에 빌드 환경에 따라 다른 명령어를 사용해야 한다.  
 > 밑은 윈도우 환경에서 예시이고 파일 이름은 꼭 Makefile이여야 하며 프로젝트 최상위 폴더에 위치하는 것이 좋다.  
 ```
@@ -344,9 +344,8 @@ rebuild:
 
 ## CMake에서 External Library 추가하는 방법
 -----------------------
-
 > 해당 방법은 여러가지가 존재한다. git, vcpkg, conan 등등... 각각의 방법에 대해 예시를 들어 절차적으로 설명하겠다.
-
+``` ```
 ### - **CMake와 Git을 통해 외부 라이브러리 추가**  
 ``` ```
 > #### 1. 자신이 진행할 프로젝트를 VS Code로 연다.
@@ -356,7 +355,7 @@ rebuild:
 > #### 3. 프로젝트 터미널에서 git init 명령어를 실행하여 프로젝트에 git을 활성화한다. (해당 명령어를 수행할 때 위치는 프로젝트 최상위 폴더여야 한다.)
 ``` ```
 > #### 4. https://github.com/nlohmann/json 라이브러리를 추가하려고 한다.  
-> #### 프로젝트 터미널에서 git submodule add https://github.com/nlohmann/json external/json 명령어를 한다. (해당 명령어를 수행할 때 위치는 프로젝트 최상위 폴더여야 한다.)  
+> #### 프로젝트 터미널에서 ```git submodule add https://github.com/nlohmann/json external/json``` 명령어를 한다. (해당 명령어를 수행할 때 위치는 프로젝트 최상위 폴더여야 한다.)  
 > #### 만약 수행이 안된다면 VS Code를 재실행하고 해당 명령어를 수행한다.
 > #### 명령어에서 external/json 부분이 있는데 해당 경로에서 json 폴더명은 사용자가 원하는 이름으로 해도 되지만 여기서는 json으로 한다.
 ``` ```
@@ -380,7 +379,7 @@ rebuild:
 > ```
 > #### 해당 내용을 분석해보면 function([함수 이름] [함수 인자]), endfunction([함수 이름]) 이고 find_package에서 Git 패키지와 관련된 데이터들을 추가해준다.  
 > #### 그니까 find_package(Git REQUIRED)를 했다면 Git의 실행파일 경로가 저장되어 있는 GIT_EXECUTABLE 와 같은 매크로들을 이제 사용할 수 있다.  
-> #### if문 부분 로직을 보면 만약 dir 경로에 CMakeLists.txt 파일이 존재하지 않으면 execute_process 명령을 통해 명령어를 실행하는데 해당 명령어는 "submodule update --init --recursive -- ${dir}" 이다.  
+> #### if문 부분 로직을 보면 만약 dir 경로에 CMakeLists.txt 파일이 존재하지 않으면 execute_process 명령을 통해 명령어를 실행하는데 해당 명령어는 ```submodule update --init --recursive -- ${dir}``` 이다.  
 > #### 그리고 프로젝트의 최상위 위치는 WORKING_DIRECTORY 인자로 넘겨야 하는데 해당 인자는 최상위 위치가 정의되어 있는 PROJECT_SOURCE_DIR 매크로로 넘겨준다. 즉 dir 경로에 CMakeLists.txt 파일이 존재하지 않으면 ${dir}에 위치한 레포지토리를 업데이트하라는 것이다.
 > #### 그리고 해당 레포지토리 폴더를 프로젝트의 최상위 CMakeLists.txt 파일과 연결해줘야 하기에 add_subdirectory(${dir}) 명령을 수행한다.
 ``` ```
@@ -391,114 +390,119 @@ rebuild:
 > add_git_submodule(external/json)
 > ```
 > #### 각 명령에 대해 설명해보자면 CMAKE_MODULE_PATH 매크로는 CMake 커스텀 함수 파일들이 위치하는 경로를 담고 있어야 하는데 지금 커스텀 함수 파일인 AddGitSubmodule.cmake가 존재하는 곳이 ```"${PROJECT_SOURCE_DIR}/cmake/"```이기에 ```set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")``` 이렇게 세팅해준다.  
-> #### 커스텀 함수 파일 이름이 AddGitSubmodule.cmake이기에 해당 파일에 정의되어 있는 커스텀 함수를 CMake에서 사용해주기 위해 include(AddGitSubmodule)로 AddGitSubmodule.cmake 파일을 포함시켜준다.  
-> #### 외부 라이브러리 경로는 최상위 프로젝트 폴더부터 "external/json"에 존재하니 AddGitSubmodule 파일에서 정의한 함수인 add_git_submodule(external/json)를 하여 해당 라이브러리의 CMakeLists.txt와 프로젝트 최상위 CMakeLists.txt를 연동해준다.  
+> #### 커스텀 함수 파일 이름이 AddGitSubmodule.cmake이기에 해당 파일에 정의되어 있는 커스텀 함수를 CMake에서 사용해주기 위해 ```include(AddGitSubmodule)```로 AddGitSubmodule.cmake 파일을 포함시켜준다.  
+> #### 외부 라이브러리 경로는 최상위 프로젝트 폴더부터 ```external/json```에 존재하니 AddGitSubmodule 파일에서 정의한 함수인 ```add_git_submodule(external/json)```를 하여 해당 라이브러리의 CMakeLists.txt와 프로젝트 최상위 CMakeLists.txt를 연동해준다.  
 ``` ```
-> #### 8. 마지막으로 해당 외부 라이브러리를 사용하는 모듈에 적절하게 외부 라이브러리 종속성을 추가해준다. 지금 추가하려는 라이브러리 이름은 nlohmann_json(라이브러리 이름은 특정 라이브러리 내의 CMakeLists.txt에 project() 속에 쓰여있다.)이니 예를 들어 target_link_libraries(${EXECUTABLE_NAME} PUBLIC ${LIBRARY_NAME} nlohmann_json) 요렇게 넣어주면 된다.
-
+> #### 8. 마지막으로 해당 외부 라이브러리를 사용하는 모듈에 적절하게 외부 라이브러리 종속성을 추가해준다. 지금 추가하려는 라이브러리 이름은 nlohmann_json(라이브러리 이름은 특정 라이브러리 내의 CMakeLists.txt에 project() 속에 쓰여있다.)이니 예를 들어 ```target_link_libraries(${EXECUTABLE_NAME} PUBLIC ${LIBRARY_NAME} nlohmann_json)``` 요렇게 넣어주면 된다.
+``` ```
 ### - **CMake의 FetchContent 기능을 이용하여 Git을 통해 외부 라이브러리 추가**
-
-1. 최상위 CMakeLists.txt에 include(FetchContent) 명령을 적는다. 이러면 FetchContent와 관련된 함수들을 이용할 수 있다.
-
-2. FetchContent_Declare 명령을 이용한다.
-FetchContent_Declare(<라이브러리 이름> GIT_REPOSITORY <레포지토리 주소 + .git> GIT_TAG <다운 받고자 하는 레포지토리 태크>)
-예를들어 굉장히 유명한 C++ 전용 로깅 라이브러리인 spdlog를 사용하고 싶다면 다음과 같이 명령을 선언하면 된다.
-FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.11.0)
-GIT_TAG를 주의해야 하는데 태그 주소를 보고 적어야 한다. (https://github.com/gabime/spdlog/releases/tag/v1.11.0이면 v1.11.0 이 녀석을 적는다.)
-
-3. FetchContent_Declare 바로 밑에  FetchContent_MakeAvailable(<라이브러리 이름>)을 적는다.
-
-4. 마지막으로 해당 외부 라이브러리를 사용하는 모듈에 적절하게 외부 라이브러리 종속성을 추가해준다.
-
-5. 해당 방법의 장점은 특정 라이브러리만 빌드 타겟으로 정해 그것만 빌드할 수 있다는 것이다. 단점은 재빌드를 수행할 때 외부 라이브러리들까지 모두 빌드하기 때문에 빌드 시간이 오래걸린다.
-
-### Conan과 CMake를 사용하여 외부 라이브러리 추가
-
-1. 일단 패키지 관리툴인 Conan을 설치해야 한다. 이미 설치했다면 3번 항목부터 봐라.
-
-2. PowerShell에 들어가 pip install conan을 하여 설치한다.
-
-3. https://conan.io/center/ 에서 사용하고 싶은 라이브러리 이름을 검색한다. 여기선 예시로 catch2 라이브러리로 하겠다.
-
-4. 검색하면 "catch2/특정 버전" 옆에 클립보드로 복사하는 버튼이 있을 텐데 이걸 누른다.
-
-5. 프로젝트의 최상위 CMakeLists.txt가 위치한 곳에 conanfile.txt를 만들고 밑과 같은 내용을 담는다.
-```
-[requires]
-
-[generators]
-cmake
-```
-6. conanfile.txt의 [requires] 밑에 아까 클립보드로 복사한 라이브러리 내용을 붙여넣는다. (ex. catch2/3.2.0)
-
-6.1 이건 선택사항인데 conanfile.txt 파일에 추가적으로 밑과 같이 설정하면
-```
-[imports]
-bin, *.dll -> ./build/debug/bin
-lib, *.lib -> ./build/debug/lib
-```
-빌드 후 종속성에 있는 모든 dll은 conanfile.txt 파일 경로를 기준으로 "./build/debug/bin" 경로에,  모든 lib는 "./build/debug/lib" 경로에 위치한다.
-그리고 conan의 디폴트 링크 방식은 static 방식이기에 따로 dll을 생성하지 않는다. 이를 수정하려면 conanfile.txt에 밑과 같이
-```
-[options]
-catch2:shared=True
-```
-이렇게 추가해줘야 한다. (여기선 예시로 catch2 라이브러리를 사용했지만 형식은 "패키지이름:shared=True" 아니면 "패키지이름:shared=False"이다.)
-더 자세한 내용은 https://docs.conan.io/en/latest/using_packages/conanfile_txt.html 이곳에 쓰여있다.
-
-7. conan이 설치된 폴더에 들어가야 한다. (보통 "C:\Users\<사용자 데스크탑 이름>\.conan"에 위치한다.) 설치 폴더에 profiles라는 폴더가 있고 그 내부에 default 파일이 있을 것이다. 해당 녀석에 수정이 필요할 수도 있는데 보통 밑과 같이 되어있을 것이다.
-```
-[settings]
-os=Windows
-os_build=Windows
-arch=x86_64
-arch_build=x86_64
-compiler=Visual Studio
-compiler.version=17
-build_type=Release
-[options]
-[build_requires]
-[env]
-```
-만약 자신이 VS Code에서 빌드할 때 컴파일러를 Visual Studio의 MSVC를 사용하면 상관이 없지만 gcc나 clang을 사용한다면 바꿔줘야 한다.
-Windows, Mac, Linux에서 모두 사용할 수 있는 gcc를 사용하는 경우에 대해서만 예시를 들면 밑과 같이 바뀌어야 한다.
-```
-[settings]
-os=Windows
-os_build=Windows
-arch=x86_64
-arch_build=x86_64
-compiler=gcc
-compiler.version=12
-compiler.libcxx=libstdc++11
-build_type=Release
-[env]
-CC=C:/msys64/mingw64/bin/gcc.exe
-CXX=C:/msys64/mingw64/bin/g++.exe
-[options]
-[build_requires]
-```
-물론 compiler.version, CC, CXX에 대한 값은 빌드 환경마다 달라지기 때문에 적절하게 바꿔서 넣어줘야 한다.
-
-8. VS Code에서 원활한 Intellisense를 사용하기 위해 .vscode/c_cpp_properties.json의 includePath에 "~/.conan/data/**" 경로를 추가해야 특정 라이브러리가 제공하는 헤더를 include할 때 편집기에서 빨간 밑줄이 안 그어진다. (사실 빨간 줄만 그어질 뿐이지 실제로 에러는 아니기에 빌드, 실행은 잘 된다.)
-
-9. 터미널에서 "conan install <conanfile.txt가 있는 경로 위치> -if <conanbuildinfo.cmake가 만들어질 경로>" 명령어를 수행한다. 이러면 conan이 설치되어 있는 곳에 연동할 라이브러리 dll들이 설치되고 해당 경로가 프로젝트와 연동된다. (ex. conan install . -if ./build)
-
-10. 최상위 CMakeLists.txt에 include(<conanbuildinfo.cmake가 위치한 폴더>/conanbuildinfo.cmake)와 conan_basic_setup()을 추가해준다.
-
-11. 그리고 해당 라이브러리가 쓰이는 곳 CMakeLists.txt에 target_link_libraries 함수가 있을 텐데 여기에 "${CONAN_대문자로된라이브러리이름} or CONAN_PKG::라이브러리이름"을 추가해주면 된다. 단 ${CONAN_대문자로된라이브러리이름}를 이용하여 라이브러리를 추가하면 해당 라이브러리에 한하여 graphviz가 작동 안한다. (ex. target_link_libraries(${EXECUTABLE_NAME} PUBLIC ${CONAN_CATCH2}))
-
-### vcpkg와 CMake를 사용하여 외부 라이브러리 추가
-
-1. vcpkg를 먼저 설치해야 한다. 관리자 모드로 터미널이나 PowerShell을 연다.
-
-2. vcpkg 설치를 원하는 위치로 cd 명령을 수행해 이동하고 git clone https://github.com/microsoft/vcpkg 명령을 수행한다.
-
-3. 다음에 bootstrap-vcpkg.bat를 실행하여 vcpkg를 설치한다.
-
-4. 관리자 모드로 PowerShell을 켜고 vcpkg 폴더 내로 들어가 .\vcpkg integrate install 와 .\vcpkg integrate powershell 명령을 수행하고 터미널이나 PowerShell 창을 재시작한다.
-
-5. 자신의 프로젝트로 가서 .vscode/settings.json에 cmake.configureSettings 내용으로 CMAKE_TOOLCHAIN_FILE 경로를 지정해주어야 한다. 추가하면 대략 밑과 같은 모습이 될 것이다.
+``` ```
+> #### 1. 최상위 CMakeLists.txt에 include(FetchContent) 명령을 적는다. 이러면 FetchContent와 관련된 함수들을 이용할 수 있다.
+``` ```
+> #### 2. FetchContent_Declare 명령을 이용한다.  
+> #### ```FetchContent_Declare(<라이브러리 이름> GIT_REPOSITORY <레포지토리 주소 + .git> GIT_TAG <다운 받고자 하는 레포지토리 태그>)``` 
+> #### 예를들어 굉장히 유명한 C++ 전용 로깅 라이브러리인 spdlog를 사용하고 싶다면 다음과 같이 명령을 선언하면 된다.  
+> #### ```FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.11.0)```  
+> #### GIT_TAG를 주의해야 하는데 태그 주소를 보고 적어야 한다. (https://github.com/gabime/spdlog/releases/tag/v1.11.0이면 v1.11.0 이 녀석을 적는다.)  
+``` ```
+> #### 3. FetchContent_Declare 바로 밑에  ```FetchContent_MakeAvailable(<라이브러리 이름>)```을 적는다.
+``` ```
+> #### 4. 마지막으로 해당 외부 라이브러리를 사용하는 모듈에 적절하게 외부 라이브러리 종속성을 추가해준다.
+``` ```
+> #### 5. 해당 방법의 장점은 특정 라이브러리만 빌드 타겟으로 정해 그것만 빌드할 수 있다는 것이다.  
+> #### 단점은 재빌드를 수행할 때 외부 라이브러리들까지 모두 빌드하기 때문에 빌드 시간이 오래걸린다는 것도 있고 GitHub에 공개되어 있지 않거나 CMake를 사용하여 빌드하지 않는 오픈 소스 라이브러리들은 사용이 불가능하다.
+``` ```
+### - **Conan과 CMake를 사용하여 외부 라이브러리 추가**
+``` ```
+> #### 1. 일단 패키지 관리툴인 Conan을 설치해야 한다. 이미 설치했다면 3번 항목부터 봐라.
+``` ```
+> #### 2. PowerShell에 들어가 pip install conan을 하여 설치한다.
+``` ```
+> #### 3. https://conan.io/center/ 에서 사용하고 싶은 라이브러리 이름을 검색한다. 여기선 예시로 catch2 라이브러리로 하겠다.
+``` ```
+> #### 4. 검색하면 ```catch2/특정 버전``` 옆에 클립보드로 복사하는 버튼이 있을 텐데 이걸 누른다.
+``` ```
+> #### 5. 프로젝트의 최상위 CMakeLists.txt가 위치한 곳에 conanfile.txt를 만들고 밑과 같은 내용을 담는다.  
+> ```
+> [requires]
+> 
+> [generators]
+> cmake
+> ```
+``` ```
+> #### 6. conanfile.txt의 ```[requires]``` 밑에 아까 클립보드로 복사한 라이브러리 내용을 붙여넣는다. (ex. ```catch2/3.2.1```)
+> ``` ```
+>> #### 6.1 이건 선택사항인데 conanfile.txt 파일에 추가적으로 밑과 같이 설정하면  
+>> ```
+>> [imports]
+>> bin, *.dll -> ./build/debug/bin
+>> lib, *.lib -> ./build/debug/lib
+>> ```
+>> #### 빌드 후 종속성에 있는 모든 dll은 conanfile.txt 파일 경로를 기준으로 "./build/debug/bin" 경로에,  모든 lib는 "./build/debug/lib" 경로에 위치한다.  
+>> #### 그리고 conan의 디폴트 링크 방식은 static 방식이기에 따로 dll을 생성하지 않는다. 이를 수정하려면 conanfile.txt에 밑과 같이  
+>> ```
+>> [options]
+>> catch2:shared=True
+>> ```
+>> #### 이렇게 추가해줘야 한다. (여기선 예시로 catch2 라이브러리를 사용했지만 형식은 "패키지이름:shared=True" 아니면 "패키지이름:shared=False"이다.)  
+>> #### 더 자세한 내용은 https://docs.conan.io/en/latest/using_packages/conanfile_txt.html 이곳에 쓰여있다.
+``` ```
+> #### 7. conan이 설치된 폴더에 들어가야 한다. (보통 "C:\Users\<사용자 데스크탑 이름>\.conan"에 위치한다.)  
+> #### 설치 폴더에 profiles라는 폴더가 있고 그 내부에 default 파일이 있을 것이다.  
+> #### 해당 녀석에 수정이 필요할 수도 있는데 보통 밑과 같이 되어있을 것이다.
+> ```
+> [settings]
+> os=Windows
+> os_build=Windows
+> arch=x86_64
+> arch_build=x86_64
+> compiler=Visual Studio
+> compiler.version=17
+> build_type=Release
+> [options]
+> [build_requires]
+> [env]
+> ```
+> #### 만약 자신이 VS Code에서 빌드할 때 컴파일러를 Visual Studio의 MSVC를 사용하면 상관이 없지만 gcc나 clang을 사용한다면 바꿔줘야 한다.
+> #### Windows, Mac, Linux에서 모두 사용할 수 있는 gcc를 사용하는 경우에 대해서만 예시를 들면 밑과 같이 바뀌어야 한다.
+> ```
+> [settings]
+> os=Windows
+> os_build=Windows
+> arch=x86_64
+> arch_build=x86_64
+> compiler=gcc
+> compiler.version=12
+> compiler.libcxx=libstdc++11
+> build_type=Release
+> [env]
+> CC=C:/msys64/mingw64/bin/gcc.exe
+> CXX=C:/msys64/mingw64/bin/g++.exe
+> [options]
+> [build_requires]
+> ```
+> #### 물론 compiler.version, CC, CXX에 대한 값은 빌드 환경마다 달라지기 때문에 적절하게 바꿔서 넣어줘야 한다.
+``` ```
+> #### 8. VS Code에서 원활한 Intellisense를 사용하기 위해 ```.vscode/c_cpp_properties.json```의 includePath에 ```~/.conan/data/**``` 경로를 추가해야 특정 라이브러리가 제공하는 헤더를 include할 때 편집기에서 빨간 밑줄이 안 그어진다. (사실 빨간 줄만 그어질 뿐이지 실제로 에러는 아니기에 빌드, 실행은 잘 된다.)
+``` ```
+> #### 9. 터미널에서 ```conan install <conanfile.txt가 있는 경로 위치> -if <conanbuildinfo.cmake가 만들어질 경로>``` 명령어를 수행한다. 이러면 conan이 설치되어 있는 곳에 연동할 라이브러리 dll들이 설치되고 해당 경로가 프로젝트와 연동된다. (ex. ```conan install . -if ./build```)
+``` ```
+> #### 10. 최상위 CMakeLists.txt에 ```include(<conanbuildinfo.cmake가 위치한 폴더>/conanbuildinfo.cmake)```와 ```conan_basic_setup()```을 추가해준다.
+``` ```
+> #### 11. 그리고 해당 라이브러리가 쓰이는 곳 CMakeLists.txt에 target_link_libraries 함수가 있을 텐데 여기에 ```${CONAN_대문자로된라이브러리이름} or CONAN_PKG::라이브러리이름```을 추가해주면 된다. 
+> #### 단 ```${CONAN_대문자로된라이브러리이름}```를 이용하여 라이브러리를 추가하면 해당 라이브러리에 한하여 graphviz가 작동 안한다. (ex. ```target_link_libraries(${EXECUTABLE_NAME} PUBLIC ${CONAN_CATCH2})```)
+``` ```
+### - **vcpkg와 CMake를 사용하여 외부 라이브러리 추가**
+``` ```
+> #### 1. vcpkg를 먼저 설치해야 한다. 관리자 모드로 터미널이나 PowerShell을 연다.
+``` ```
+> #### 2. vcpkg 설치를 원하는 위치로 cd 명령을 수행해 이동하고 ```git clone https://github.com/microsoft/vcpkg``` 명령을 수행한다.
+``` ```
+> #### 3. 다음에 bootstrap-vcpkg.bat를 실행하여 vcpkg를 설치한다.
+``` ```
+> #### 4. 관리자 모드로 PowerShell을 켜고 vcpkg 폴더 내로 들어가 ```.\vcpkg integrate install``` 와 ```.\vcpkg integrate powershell``` 명령을 수행하고 터미널이나 PowerShell 창을 재시작한다.
+``` ```
+> #### 5. 자신의 프로젝트로 가서 .vscode/settings.json에 cmake.configureSettings 내용으로 CMAKE_TOOLCHAIN_FILE 경로를 지정해주어야 한다. 추가하면 대략 밑과 같은 모습이 될 것이다.
 ```
 {
   "C_Cpp_Runner.cCompilerPath": "gcc",
@@ -511,10 +515,10 @@ CXX=C:/msys64/mingw64/bin/g++.exe
 }
 ```
 아니면 그냥 settings.json 수정없이 cmake 세팅 명령어를 수행할 때 -DCMAKE_TOOLCHAIN_FILE=<vcpkg가 설치된 폴더 경로>/scripts/buildsystems/vcpkg.cmake 이걸 추가해줘도 된다.
-
-1. vcpkg는 vcpkg.json라는 파일로 종속성 관리를 한다. 프로젝트 최상위 CMakeLists.txt가 있는 곳에 vcpkg.json 파일을 생성해준다.
-
-2. vcpkg.json 작성법을 약간 숙지해야 하는데 방법은 https://github.com/microsoft/vcpkg/blob/master/docs/users/manifests.md 이곳에 자세하게 나와있다. 여기서는 필수적인 내용만 간략히 설명한다.
+``` ```
+6. vcpkg는 vcpkg.json라는 파일로 종속성 관리를 한다. 프로젝트 최상위 CMakeLists.txt가 있는 곳에 vcpkg.json 파일을 생성해준다.
+``` ```
+7. vcpkg.json 작성법을 약간 숙지해야 하는데 방법은 https://github.com/microsoft/vcpkg/blob/master/docs/users/manifests.md 이곳에 자세하게 나와있다. 여기서는 필수적인 내용만 간략히 설명한다.
 일단 예시로 밑과 같은 내용이 있다고 하자.
 ```
 {
@@ -566,13 +570,13 @@ CXX=C:/msys64/mingw64/bin/g++.exe
 "overrides"는 "dependencies"에 정의된 라이브러리의 버전을 고정시킨다. 라이브러리의 "version>="이 이미 정의되어 있어도 해당 라이브러리의 "overrides" 버전 정보가 존재한다면 "overrides"의 버전이 우선적으로 적용된다.
 
 "platform"은 라이브러리를 특정 플랫폼에서만 사용할 때 정의한다. "!windows", "windows & linux", "(windows & arm64) | (linux & x64)" 등 여러 방식으로 사용할 수 있고 OS 계열에는 windows, uwp, linux, osx, android, emscripten가 있고 아키텍쳐 계열에는 x86, x64, wasm32, arm64, arm가 있다.
-
+``` ```
 8. 라이브러리를 사용할 CMakeLists.txt에서 find_package(<라이브러리 이름> REQUIRED)을 해준다. (find_package에도 다양한 옵션이 있으니 찾아보자.)
-
+``` ```
 9. 라이브러리가 쓰이는 곳 CMakeLists.txt에 target_link_libraries 함수가 있을 텐데 여기에 라이브러리 이름을 추가해주면 된다. (ex. target_link_libraries(${EXECUTABLE_NAME} PUBLIC Boost::boost))
-
+``` ```
 10. 만약 8번 9번에서 라이브러리 이름이 잘못되었거나 8번에서 CONFIG REQUIRED인데 그냥 REQUIRED로 적었거나 하면 오류가 나면서 터미널에 어떻게 고쳐야 하는지 출력되니 그걸 따라서 CMakeLists.txt 내용을 바꾸면 된다.
-
+``` ```
 ## CMake와 Doxygen 같이 사용하기
 -----------------------
 
