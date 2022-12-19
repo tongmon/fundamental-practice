@@ -1,0 +1,2 @@
+add_library(${MATH_LIBRARY_NAME} mymath.cpp)
+target_include_directories(${MATH_LIBRARY_NAME} PUBLIC "./")

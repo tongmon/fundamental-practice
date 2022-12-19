@@ -1,0 +1,26 @@
+cmake_minimum_required(VERSION 3.16)
+
+project(Catch2Sample VERSION 1.0.0 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 17)
+
+set(EXECUTABLE_NAME UnitTest)
+set(MATH_LIBRARY_NAME MyMath)
+set(BENCHMARK_LIBRARY_NAME MyBenchMark)
+
+# Catch2 3.2.1 버전 라이브러리 종속성 추가
+Include(FetchContent)
+
+FetchContent_Declare(
+  Catch2
+  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+  GIT_TAG        v3.2.1
+)
+
+FetchContent_MakeAvailable(Catch2)
+
+add_subdirectory(Libs)
+add_subdirectory(App)
+
+# 단위 테스트 프로젝트 빌드 리스트에 추가
+add_subdirectory(Tests)

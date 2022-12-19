@@ -1,0 +1,12 @@
+digraph "unit_tests_01" {
+node [
+  fontsize = "12"
+];
+    "node5" [ label = "unit_tests_01", shape = egg ];
+    "node1" [ label = "Catch2WithMain\n(Catch2::Catch2WithMain)", shape = octagon ];
+    "node5" -> "node1" [ style = dotted ] // unit_tests_01 -> Catch2WithMain
+    "node0" [ label = "Catch2\n(Catch2::Catch2)", shape = octagon ];
+    "node1" -> "node0"  // Catch2WithMain -> Catch2
+    "node3" [ label = "MyMath", shape = octagon ];
+    "node5" -> "node3" [ style = dotted ] // unit_tests_01 -> MyMath
+}

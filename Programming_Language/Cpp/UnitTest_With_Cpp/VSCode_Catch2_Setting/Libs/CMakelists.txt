@@ -1,0 +1,2 @@
+add_subdirectory(MyMath)
+add_subdirectory(MyBenchMark)
