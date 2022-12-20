@@ -32,15 +32,17 @@ ex. ```add_library(MyLibrary STATIC my_lib.cpp my_math.cpp)```
 
 > **위에 서술한 ```add_library()``` 함수를 올바르게 사용하려면 3가지 옵션에 대한 설명을 알아야 한다.**  
 > - STATIC 옵션  
-> 정적 라이브러리를 생성하기 위한 옵션이다.  
-> 크로스 플랫폼 개발이라면 해당 옵션이 좋다.  
-> 보통 .lib, .a 확장자가 붙는다.
+> 정적 라이브러리를 생성하기 위한 옵션이다.   
+> 크로스 플랫폼 개발이라면 해당 옵션이 좋다.   
+> 실행 파일 크기가 커진다.  
+> 보통 .lib, .a 확장자가 붙는다.  
 >   
 > - SHARED 옵션  
-> 공유 라이브러리를 생성하기 위한 옵션이다.
-> 라이브러리 코드를 재사용하기 쉬워 좋다.
-> 어플리케이션이 메모리에 로드되는 시점에 링크된다.
-> 보통 .dll, .so 확장자가 붙는다. 
+> 공유 라이브러리를 생성하기 위한 옵션이다.  
+> 라이브러리 코드를 재사용하기 쉬워 좋다.  
+> 실행 파일과 붙어있어야 실행 파일이 원활하게 작동한다.  
+> 어플리케이션이 메모리에 로드되는 시점에 링크되기에 실행 파일 초기 로딩이 정적 라이브러리에 비해 오래걸린다.  
+> 보통 .dll, .so 확장자가 붙는다.  
 >   
 > - MODULE 옵션   
 > 공유 라이브러리와 유사하지만 특정 플랫폼에서 링커로 링크할 수 없다.  
@@ -371,6 +373,7 @@ endif()
 file(GLOB_RECURSE FETCHED_LIBS CONFIGURE_DEPENDS 
 	${CMAKE_BINARY_DIR}/_deps/*-build/*.a
 	${CMAKE_BINARY_DIR}/_deps/*-build/*.lib
+	${CMAKE_BINARY_DIR}/_deps/*-build/*.dylib
 	${CMAKE_BINARY_DIR}/_deps/*-build/*.so
 	${CMAKE_BINARY_DIR}/_deps/*-build/*.dll)
 
