@@ -4,233 +4,198 @@
 ## CMakeLists.txt 문법
 &NewLine;
 
-### - **주석처리**
-> CMakeLists.txt에서 주석은 #으로 달아준다.  
-> ```
-> # 이건 CMake 파일이다!!
-> ```
+* **주석처리**  
+CMakeLists.txt에서 주석은 #으로 달아준다.  
+ex. ```# 이건 CMake 파일이다!!```
 
-### - **cmake_minimum_required**
-> CMake의 최소 사용 버전을 설정해준다.
-> ```  
-> cmake_minimum_required(VERSION 3.16)  
-> ```  
+* **cmake_minimum_required**  
+CMake의 최소 사용 버전을 설정해준다.  
+ex. ```cmake_minimum_required(VERSION 3.16)```  
 
-### - **project**
-> 현재 프로젝트의 속성과 관련된 정보를 적는다.  
-> 예를 들어 ```project(CppProjectTemplate VERSION 1.0.0 LANGUAGES C CXX)``` 이렇게 적혔다면 프로젝트 이름은 CppProjectTemplate이고 해당 프로젝트의 버전은 1.0.0이며 프로젝트에서 쓰이는 언어는 C 또는 CXX(C++)이다.
-> ```
-> project(CppProjectTemplate VERSION 1.0.0 LANGUAGES C CXX)
-> ```
+* **project**  
+현재 프로젝트의 속성과 관련된 정보를 적는다.  
+예를 들어 ```project(CppProjectTemplate VERSION 1.0.0 LANGUAGES C CXX)``` 이렇게 적혔다면 프로젝트 이름은 CppProjectTemplate이고 해당 프로젝트의 버전은 1.0.0이며 프로젝트에서 쓰이는 언어는 C 또는 CXX(C++)이다.  
+ex. ```project(CppProjectTemplate VERSION 1.0.0 LANGUAGES C CXX)```
 
-### - **add_executable** 
-> 실행 파일을 만드는데 사용되는 모든 파일들(.cpp만)을 적는다.  
-> 꼭 앞에 실행 파일의 이름을 적어주어야 한다.  
-> ```add_executable(MyExecutable main.cpp)``` 이렇게 하면 MyExecutable.exe를 만들겠다는 것이다.
-> ```
-> add_executable(MyExecutable main.cpp sdl_drawer.cpp)
-> ```
+* **add_executable**   
+실행 파일을 만드는데 사용되는 모든 파일들(.cpp만)을 적는다.  
+꼭 앞에 실행 파일의 이름을 적어주어야 한다.  
+```add_executable(MyExecutable main.cpp)``` 이렇게 하면 MyExecutable.exe를 만들겠다는 것이다.  
+ex. ```add_executable(MyExecutable main.cpp sdl_drawer.cpp)```
 
-> **라이브러리 생성 관련 CMake 함수를 올바르게 사용하려면 3가지 옵션에 대한 설명을 알아야 한다.**  
+* **add_library**  
+라이브러리를 만들기 위한 명령이다.  
+현재 프로젝트에 종속될 라이브러리와 관련된 파일들(.cpp만)을 적는다.  
+꼭 앞에 생성될 라이브러리 이름과 링크 방식을 적어야 한다.  
+예를 들어 ```add_library(MyLibrary STATIC my_lib.cpp)``` 이렇게 적었다면 정적 링크(STATIC)할 MyLibrary 이름을 가진 라이브러리를 생성하는데 필요한 파일은 my_lib.cpp라는 것이다.  
+ex. ```add_library(MyLibrary STATIC my_lib.cpp my_math.cpp)```
+
+> **위에 서술한 ```add_library()``` 함수를 올바르게 사용하려면 3가지 옵션에 대한 설명을 알아야 한다.**  
 > - STATIC 옵션  
-> STATIC 옵션은 어쩌구 저쩌구  
-> 저쩌구 어쩌구  
+> 정적 라이브러리를 생성하기 위한 옵션이다.  
+> 크로스 플랫폼 개발이라면 해당 옵션이 좋다.  
+> 보통 .lib, .a 확장자가 붙는다.
 >   
 > - SHARED 옵션  
-> SHARED 옵션 어쩌구 저쩌구  
-> 저쩌구 어쩌구  
+> 공유 라이브러리를 생성하기 위한 옵션이다.
+> 라이브러리 코드를 재사용하기 쉬워 좋다.
+> 어플리케이션이 메모리에 로드되는 시점에 링크된다.
+> 보통 .dll, .so 확장자가 붙는다. 
 >   
-> - MODULE 옵션  
-> MODULE 옵션 어쩌구 저쩌구  
-> 저쩌구 어쩌구  
+> - MODULE 옵션   
+> 공유 라이브러리와 유사하지만 특정 플랫폼에서 링커로 링크할 수 없다.  
+> ```dlopen``` 기능을 사용하여 런타임에 동적으로 로드할 수는 있다.  
+> Windows 플랫폼에서는 그냥 .dll로 작동한다.  
 
-### - **add_library**
-> 라이브러리를 만들기 위한 명령이다.  
-> 현재 프로젝트에 종속될 라이브러리와 관련된 파일들(.cpp만)을 적는다.  
-> 꼭 앞에 생성될 라이브러리 이름과 링크 방식을 적어야 한다.  
-> 예를 들어 ```add_library(MyLibrary STATIC my_lib.cpp)``` 이렇게 적었다면 정적 링크(STATIC)할 MyLibrary 이름을 가진 라이브러리를 생성하는데 필요한 파일은 my_lib.cpp라는 것이다.
-> ```
-> add_library(MyLibrary STATIC my_lib.cpp my_math.cpp)
-> ```
+* **link_libraries**  
+링크할 라이브러리 파일 목록을 정의한다.  
+CMakeList에서 빌드된 라이브러리의 경우 .lib와 같은 확장자를 떼고 사용해도 된다.  
+ex. ```link_libraries(MyLib.lib MyLib2)```
 
-> **라이브러리 링크 관련 CMake 함수를 올바르게 사용하려면 3가지 옵션에 대한 설명을 알아야 한다. 클래스 상속 관계와 유사하다.**  
+* **link_directories** 
+링크할 라이브러리 포함 폴더 위치를 정의한다.  
+ex. ```link_directories(../lib ../lib2)```
+
+* **include_directories**   
+헤더파일 포함 폴더 위치를 정의한다.  
+ex. ```include_directories(../include ../include2)```
+
+> 타겟이 따로 지정되지 않은 경우 설정하는 ```link_libraries()```, ```link_directories()```, ```include_directories()``` 함수들 말고 밑에 서술할 target이 정해져 있는 ```target_link_libraries()```, ```target_link_directories()```, ```target_include_directories()``` 함수들이 Modern CMake에서 추천된다.
+
+* **target_link_libraries**  
+실행 파일이 원활하게 실행될 수 있게 관련된 라이브러리를 링크 시키기 위한 명령이다.  
+예를 들어 ```target_link_libraries(MyExecutable PUBLIC MyLibrary)```를 하면 MyExecutable 실행 파일에 MyLibrary 라이브러리가 PUBLIC으로 링크된다.  
+ex. ```target_link_libraries(MyExecutable PUBLIC MyLibrary)```
+
+> **위에 서술한 ```target_link_libraries()``` 함수를 올바르게 사용하려면 3가지 옵션에 대한 설명을 알아야 한다. 클래스 상속 관계와 유사하다.**  
 > - PUBLIC 옵션  
 > PUBLIC으로 종속된 라이브러리는 상위 어디든 사용이 가능하다.  
-> 이게 무슨 말이냐면 MyLib1이 MyLib2를 필요로 하여 PUBLIC으로 종속한다고 하자.  
-> MyLib0이 MyLib1을 필요로 할 때 PUBLIC, PRIVATE, INTERFACE 어떤 유형으로 종속하던 MyLib0에서는 추가적으로 MyLib2를 종속할 필요없이 MyLib1만 종속하면 MyLib2를 사용할 수 있다.  
+> ```<---```는 종속 순서를 의미한다.   
+> 즉 ```target_link_libraries(MyLib0 PUBLIC MyLib1)```이면 ```MyLib0 <--- MyLib1[PUBLIC]```이다.  
+> ex. ```MyLib0 <--- MyLib1[PUBLIC | PRIVATE | INTERFACE] <--- MyLib2[PUBLIC]``` => MyLib0은 MyLib2 사용 가능  
 > 
 > - PRIVATE 옵션  
-> PRIVATE으로 종속된 라이브러리는 PRIVATE로 종속하는 경우에만 사용이 가능하다.  
-> 이게 무슨 말이냐면 MyLib1이 MyLib2를 필요로 하여 PRIVATE으로 종속한다고 하자.  
-> MyLib0이 MyLib1을 PRIVATE로 종속해야만 MyLib0에서 추가적인 MyLib2 종속없이 MyLib1만 종속하여 MyLib2를 사용할 수 있다.  
-> 만약 MyLib0가 MyLib1을 PUBLIC으로 종속한다면 MyLib1는 사용이 가능하지만 MyLib2는 사용하지 못한다.  
-> MyLib2를 사용하려면 따로 MyLib0에 새로운 링크를 걸어주어야 한다.  
+> PRIVATE으로 종속된 라이브러리는 PRIVATE로 종속하는 경우에만 사용이 가능하다.   
+> ex. ```MyLib0 <--- MyLib1[PRIVATE] <--- MyLib2[PRIVATE]``` => MyLib0은 MyLib2 사용 가능  
+> ex. ```MyLib0 <--- MyLib1[PUBLIC | INTERFACE] <--- MyLib2[PRIVATE]``` => MyLib0은 MyLib2 사용 불가  
 > 
 > - INTERFACE 옵션  
 > 헤더 파일로만 구성된 라이브러리를 종속할 때 사용된다.  
 > 그 외에는 PUBLIC으로 작동할 때랑 똑같다.  
 
-### - **link_libraries**
-> 링크할 라이브러리 파일 목록을 정의한다.  
-> CMakeList에서 빌드된 라이브러리의 경우 .lib와 같은 확장자를 떼고 사용해도 된다.
-> ```
-> link_libraries(MyLib.lib MyLib2)
-> ```
+* **target_link_directories**
+종속 라이브러리들을 정의하기 손쉽게 하기 위해 사용하는 명령이다.  
+어떤 라이브러리를 생성하는 ```add_library(MyLibrary 어쩌구저쩌구...)```가 있다고 하자.  
+여기서 ```target_link_directories(MyLibrary PUBLIC "C:/CMakeProject/lib")```도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 ```link_directories("C:/CMakeProject/lib")```를 한 효과를 지닌다.  
+ex. ```target_link_directories(MyLibrary PUBLIC "C:/CMakeProject/lib")```
 
-### - **link_directories** 
-> 링크할 라이브러리 포함 폴더 위치를 정의한다.
-> ```
-> link_directories(../lib ../lib2)
-> ```
+* **target_include_directories**   
+헤더 파일을 정의하기 손쉽게 하기 위해 사용하는 명령이다.  
+어떤 라이브러리를 생성하는 ```add_library(MyLibrary 어쩌구저쩌구...)```가 있다고 하자.  
+여기서 ```target_include_directories(MyLibrary PUBLIC "C:/CMakeProject/include")```도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 ```include_directories("C:/CMakeProject/include")```를 한 효과를 지닌다.  
+ex. ```target_include_directories(MyLibrary PUBLIC "C:/CMakeProject/include")```
 
-### - **include_directories** 
-> 헤더파일 포함 폴더 위치를 정의한다.
-> ```
-> include_directories(../include ../include2)
-> ```
+* **add_dependencies**   
+직접적으로 의존성을 정의한다.  
+target_link_libraries로도 충분하기 때문에 잘 안쓴다.  
+정 써야한다면 exe간의 의존성을 정의할 때나 CMake 내부에서 의존성 파악이 어려운 파일들에 사용할 수는 있다.  
+ex. ```add_dependencies(<Target_이름> <의존_대상> <의존_대상> ...)```
 
-> 위의 타겟이 따로 지정되지 않은 경우 설정하는 3개의 CMake 함수들 말고 밑에 target이 정해져 있는 3개의 CMake 함수들이 Modern CMake에서 추천된다.
+* **add_subdirectory**  
+하위 폴더에 빌드 관련 CMakeLists.txt가 있는 경우 이를 인식하도록 상위 폴더의 CMakeLists.txt에 add_subdirectory를 해주어야 한다.  
+CMake가 파일을 타고 타고 내려갈 때 꼭 필요한 명령이기 때문에 파일이 따로 없고 폴더만 포함하는 폴더에도 CMakeLists.txt 파일을 만들어 줘야 한다.  
+그리고 더 중요한 것은 add_subdirectory 명령의 순서이다.  
+만약 app 폴더 내부에 있는 파일들이 MyExecutable이라는 실행 파일을 만드는데 해당 실행 파일이 MyLibrary라는 라이브러리를 요구한다고 해보자.  
+근데 MyLibrary는 src 폴더 내부에 있는 파일들을 통해 생성된다.  
+이 경우 app 폴더와 src 폴더를 모두 가지고 있는 상위 폴더에서는 MyLibrary가 먼저 만들어져야 한다는 것을 알고 ```add_subdirectory(src)``` 후에 ```add_subdirectory(app)``` 를 해줘야 한다.  
+이미 add_subdirectory로 추가했던 폴더를 중복해서 또 추가하면 오류가 나니 주의해야한다.  
+ex. ```add_subdirectory(src)```
 
-### - **target_link_libraries** 
-> 실행 파일이 원활하게 실행될 수 있게 관련된 라이브러리를 링크 시키기 위한 명령이다.  
-> 예를 들어 ```target_link_libraries(MyExecutable PUBLIC MyLibrary)```를 하면 MyExecutable 실행 파일에 MyLibrary 라이브러리가 PUBLIC으로 링크된다.
-> ```
-> target_link_libraries(MyExecutable PUBLIC MyLibrary)
-> ```
+* **set**   
+cmake에서 변수를 지정할 때 사용된다.  
+예를 들어 ```set(LIBRARY_NAME "MyLibrary")``` 라고 하면 C++로 따지면 ```std::string LIBRARY_NAME = "MyLibrary";``` 이거랑 똑같은 것이다.  
+만약에 ```set(LIBRARY_NAME MyLibrary)``` 이렇게 "를 때고 변수 지정을 한다면 CMake가 적절한 변수 형태를 유추해서 저장을 한다.  
+이 경우에는 MyLibrary가 문자열이니 문자형으로 저장을 할 것이다.  
+배열형도 가능한데 ```set(LIBRARY_SOURCES "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc")``` 이렇게 해주면 LIBRARY_SOURCES 이 녀석은 배열이다.  
+set은 단순히 변수를 저장할 때도 쓰이지만 CMake 자체에 내장되어 있는 변수들의 값을 바꿀 때도 사용된다.  
+예를 들어 프로젝트에서 C++ 17을 사용하고 싶다면 ```set(CMAKE_CXX_STANDARD 17)``` 이렇게 해주면 된다.  
+변수명을 지을 때 주의할 점은 모두 대문자로 지어야 한다는 것이다.   
+변수명을 사용할 때는 ```${LIBRARY_NAME}``` 이렇게 사용한다.  
+보통 ```add_library(MyLibrary "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc")를 add_library(MyLibrary ${LIBRARY_SOURCES})``` 이렇게 줄이는 곳에 많이 쓰인다.  
+ex. ```set(CMAKE_CXX_STANDARD 17)```
 
-### - **target_link_directories**
-> 종속 라이브러리들을 정의하기 손쉽게 하기 위해 사용하는 명령이다.  
-> 어떤 라이브러리를 생성하는 ```add_library(MyLibrary 어쩌구저쩌구...)```가 있다고 하자.  
-> 여기서 ```target_link_directories(MyLibrary PUBLIC "C:/CMakeProject/lib")```도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 ```link_directories("C:/CMakeProject/lib")```를 한 효과를 지닌다.
-> ```
-> target_link_directories(MyLibrary PUBLIC "C:/CMakeProject/lib")
-> ```
+* **option**  
+CMake에서 bool형 변수를 생성할 때 사용된다.    
+변수명, 변수 설명, 디폴트 값 순으로 정의한다.  
+ex. ```option(COMPILE_EXECUTABLE "This is COMPILE_EXECUTABLE hint!" OFF)```
 
-### - **target_include_directories** 
-> 헤더 파일을 정의하기 손쉽게 하기 위해 사용하는 명령이다.  
-> 어떤 라이브러리를 생성하는 ```add_library(MyLibrary 어쩌구저쩌구...)```가 있다고 하자.  
-> 여기서 ```target_include_directories(MyLibrary PUBLIC "C:/CMakeProject/include")```도 추가적으로 있다고 하면 MyLibrary를 종속하는 모든 빌드 모듈은 ```include_directories("C:/CMakeProject/include")```를 한 효과를 지닌다.
-> ```
-> target_include_directories(MyLibrary PUBLIC "C:/CMakeProject/include")
-> ```
+* **add_definitions**   
+전처리기에 매크로를 전달할 때 사용된다.  
+매크로를 정의만 할거면 -D<매크로이름> 이렇게 쓰고 값까지 지정하려면 -D<매크로>=값 이렇게 사용한다.  
+ex. ```add_definitions(-DTHIS_IS_MACRO -DSET_THE_VALUE=2)```
 
-### - **add_dependencies** 
-> 직접적으로 의존성을 정의한다.  
-> target_link_libraries로도 충분하기 때문에 잘 안쓴다.  
-> 정 써야한다면 exe간의 의존성을 정의할 때나 CMake 내부에서 의존성 파악이 어려운 파일들에 사용할 수는 있다.
-> ```
-> add_dependencies(<Target_이름> <의존_대상> <의존_대상> ...)
-> ```
+* **if(조건)**  
+CMake에도 if문이 존재한다.   
+if문을 사용했으면 endif()로 꼭 닫아줘야 한다.   
+else문, else if문은 else(), elseif()로 사용한다.  
+밑은 간단한 예시이다.  
+```
+if(COMPILE_EXECUTABLE)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
+```
 
-### - **add_subdirectory** 
-> 하위 폴더에 빌드 관련 CMakeLists.txt가 있는 경우 이를 인식하도록 상위 폴더의 CMakeLists.txt에 add_subdirectory를 해주어야 한다.  
-> CMake가 파일을 타고 타고 내려갈 때 꼭 필요한 명령이기 때문에 파일이 따로 없고 폴더만 포함하는 폴더에도 CMakeLists.txt 파일을 만들어 줘야 한다.  
-> 그리고 더 중요한 것은 add_subdirectory 명령의 순서이다.  
-> 만약 app 폴더 내부에 있는 파일들이 MyExecutable이라는 실행 파일을 만드는데 해당 실행 파일이 MyLibrary라는 라이브러리를 요구한다고 해보자.  
-> 근데 MyLibrary는 src 폴더 내부에 있는 파일들을 통해 생성된다.  
-> 이 경우 app 폴더와 src 폴더를 모두 가지고 있는 상위 폴더에서는 MyLibrary가 먼저 만들어져야 한다는 것을 알고 ```add_subdirectory(src)``` 후에 ```add_subdirectory(app)``` 를 해줘야 한다.  
-> 이미 add_subdirectory로 추가했던 폴더를 중복해서 또 추가하면 오류가 나니 주의해야한다.
-> ```
-> add_subdirectory(src)
-> ```
+* **message**  
+```message("문자열")```로 사용한다.   
+빌드 시점이 아니라 CMake 세팅 시점에 출력된다.   
+ex. ```message("Compile Warning")```
 
-### - **set** 
-> cmake에서 변수를 지정할 때 사용된다.  
-> 예를 들어 ```set(LIBRARY_NAME "MyLibrary")``` 라고 하면 C++로 따지면 ```std::string LIBRARY_NAME = "MyLibrary";``` 이거랑 똑같은 것이다.  
-> 만약에 ```set(LIBRARY_NAME MyLibrary)``` 이렇게 "를 때고 변수 지정을 한다면 CMake가 적절한 변수 형태를 유추해서 저장을 한다.  
-> 이 경우에는 MyLibrary가 문자열이니 문자형으로 저장을 할 것이다.  
-> 배열형도 가능한데 ```set(LIBRARY_SOURCES "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc")``` 이렇게 해주면 LIBRARY_SOURCES 이 녀석은 배열이다.  
-> set은 단순히 변수를 저장할 때도 쓰이지만 CMake 자체에 내장되어 있는 변수들의 값을 바꿀 때도 사용된다.  
-> 예를 들어 프로젝트에서 C++ 17을 사용하고 싶다면 ```set(CMAKE_CXX_STANDARD 17)``` 이렇게 해주면 된다.  
-> 변수명을 지을 때 주의할 점은 모두 대문자로 지어야 한다는 것이다.   
-> 변수명을 사용할 때는 ```${LIBRARY_NAME}``` 이렇게 사용한다.  
-> 보통 ```add_library(MyLibrary "my_lib.cc" "my_lib_2.cc" "my_lib_3.cc")를 add_library(MyLibrary ${LIBRARY_SOURCES})``` 이렇게 줄이는 곳에 많이 쓰인다.
-> ```
-> set(CMAKE_CXX_STANDARD 17)
-> ```
+* **configure_file** 
+빌드 시점에 동적으로 헤더 파일을 만들어 줄 때 사용된다.  
+살짝 설명이 길어질텐데 어떻게 사용하냐면 일단 밑과 같은 config.h.in 파일이 존재한다고 하자. (확장자는 .h,.cpp를 제외하고 뭐를 사용하던 상관없다. 근데 앵간하면 .in으로 사용하자.)
+```c++
+#pragma once
 
-### - **option** 
-> CMake에서 bool형 변수를 생성할 때 사용된다.  
-> 변수명, 변수 설명, 디폴트 값 순으로 정의한다.
-> ```
-> option(COMPILE_EXECUTABLE "This is COMPILE_EXECUTABLE hint!" OFF)
-> ```
+#include <cstdint>
+#include <string_view>
 
-### - **add_definitions** 
-> 전처리기에 매크로를 전달할 때 사용된다.  
-> 매크로를 정의만 할거면 -D<매크로이름> 이렇게 쓰고 값까지 지정하려면 -D<매크로>=값 이렇게 사용한다.
-> ```
-> add_definitions(-DTHIS_IS_MACRO -DSET_THE_VALUE=2)
-> ```
+static constexpr std::string_view project_name = "@PROJECT_NAME@";
+static constexpr std::string_view project_version = "@PROJECT_VERSION@";
 
-### - **if(조건)** 
-> CMake에도 if문이 존재한다.  
-> if문을 사용했으면 endif()로 꼭 닫아줘야 한다.  
-> else문, else if문은 else(), elseif()로 사용한다.
-> ```
-> if(COMPILE_EXECUTABLE)
->   set(CMAKE_CXX_STANDARD 17)
-> endif()
-> ```
+static constexpr std::int32_t project_version_major{@PROJECT_VERSION_MAJOR@};
+static constexpr std::int32_t project_version_minor{@PROJECT_VERSION_MINOR@};
+static constexpr std::int32_t project_version_patch{@PROJECT_VERSION_PATCH@};
+```
+해당 .in 파일이 있는 곳 CMakeLists.txt 파일에 ```configure_file("config.h.in" "${CMAKE_BINARY_DIR}/configured_files/include/config.h" ESCAPE_QUOTES)``` 해당 함수가 있으면 빌드 시점에 CMake가 ```빌드_경로/configure_file/include/``` 경로에 config.h.in에서 .in을 떼고 config.h을 만들어 주는데 특이한 점은 @로 감싸고 있는 문자열을 CMake가 가지고 있던 값으로 모두 치환해준다.  
+ESCAPE_QUOTES 옵션은 ```"@PROJECT_NAME@"``` 이 녀석을 치환할 때 실제로 \\"치환 값\\" 이렇게 "를 \\"로 안전하게 바꿔 .h 파일을 생성하도록 한다.  
+예를 들어 최상위 CMakeLists.txt에 ```project(CppProjectTemplate VERSION 1.2.3 LANGUAGES C CXX)``` 이러한 내용이 있다면 @PROJECT_NAME@ -> CppProjectTemplate, @PROJECT_VERSION@ -> 1.2.3 등으로 치환된다.  
+생성된 config.h 모양은 밑과 같다.  
+```c++
+#pragma once
 
-### - **message** 
-> ```message("문자열")```로 사용한다.  
-> 빌드 시점이 아니라 CMake 세팅 시점에 출력된다.  
-> ```
-> message("Compile Warning")
-> ```
+#include <cstdint>
+#include <string_view>
+ 
+static constexpr std::string_view project_name = "CppProjectTemplate";
+static constexpr std::string_view project_version = "1.2.3";
 
-### - **configure_file** 
-> 빌드 시점에 동적으로 헤더 파일을 만들어 줄 때 사용된다.  
-> 살짝 설명이 길어질텐데 어떻게 사용하냐면 일단 밑과 같은 config.h.in 파일이 존재한다고 하자. (확장자는 .h,.cpp를 제외하고 뭐를 사용하던 상관없다. 근데 앵간하면 .in으로 사용하자.)
-> ```
-> #pragma once
-> 
-> #include <cstdint>
-> #include <string_view>
-> 
-> static constexpr std::string_view project_name = "@PROJECT_NAME@";
-> static constexpr std::string_view project_version = "@PROJECT_VERSION@";
-> 
-> static constexpr std::int32_t project_version_major{@PROJECT_VERSION_MAJOR@};
-> static constexpr std::int32_t project_version_minor{@PROJECT_VERSION_MINOR@};
-> static constexpr std::int32_t project_version_patch{@PROJECT_VERSION_PATCH@};
-> ```
-> 해당 .in 파일이 있는 곳 CMakeLists.txt 파일에 ```configure_file("config.h.in" "${CMAKE_BINARY_DIR}/configured_files/include/config.h" ESCAPE_QUOTES)``` 해당 함수가 있으면 빌드 시점에 CMake가 ```빌드_경로/configure_file/include/``` 경로에 config.h.in에서 .in을 떼고 config.h을 만들어 주는데 특이한 점은 @로 감싸고 있는 문자열을 CMake가 가지고 있던 값으로 모두 치환해준다. (ESCAPE_QUOTES 옵션은 "@PROJECT_NAME@" 이 녀석을 치환할 때 실제로 \"치환 값\" 이렇게 "를 \"로 안전하게 바꿔 .h 파일을 생성하도록 한다.)  
-> 예를 들어 최상위 CMakeLists.txt에 ```project(CppProjectTemplate VERSION 1.2.3 LANGUAGES C CXX)``` 이러한 내용이 있다면 @PROJECT_NAME@ -> CppProjectTemplate, @PROJECT_VERSION@ -> 1.2.3 등으로 치환된다.  
-> 생성된 config.h 모양은 밑과 같다.
-> ```
-> #pragma once
-> 
-> #include <cstdint>
-> #include <string_view>
-> 
-> static constexpr std::string_view project_name = "CppProjectTemplate";
-> static constexpr std::string_view project_version = "1.2.3";
-> 
-> static constexpr std::int32_t project_version_major{1};
-> static constexpr std::int32_t project_version_minor{2};
-> static constexpr std::int32_t project_version_patch{3};
-> ```
-> 생성된 헤더 파일을 가지고 소스 파일에서 project_name 변수를 사용할 수 있다. (빌드 시점에서 동적으로 생성되는 헤더 파일이기에 config.h 헤더가 존재하지 않고 project_name 변수도 없다고 VS Code의 Intellisense에서 오류라고 판단할 수 있는데 막상 빌드해보면 오류 표시가 없어지면서 빌드가 잘 된다.)
-> ```
-> configure_file("config.h.in" "${CMAKE_BINARY_DIR}/configured_files/include/config.h" ESCAPE_QUOTES)
-> ```
+static constexpr std::int32_t project_version_major{1};
+static constexpr std::int32_t project_version_minor{2};
+static constexpr std::int32_t project_version_patch{3};
+```
+생성된 헤더 파일을 가지고 소스 파일에서 project_name 변수를 사용할 수 있다. (빌드 시점에서 동적으로 생성되는 헤더 파일이기에 config.h 헤더가 존재하지 않고 project_name 변수도 없다고 VS Code의 Intellisense에서 오류라고 판단할 수 있는데 막상 빌드해보면 오류 표시가 없어지면서 빌드가 잘 된다.)  
+ex. ```configure_file("config.h.in" "${CMAKE_BINARY_DIR}/configured_files/include/config.h" ESCAPE_QUOTES)```
 
-### - **file** 
-> 파일 이름을 변수로 저장할 때 사용된다.  
-> 예를 들어 ```file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./SourceFile/*.cpp)``` 이렇게 하면 SourceFile 폴더 내부를 돌면서 확장자가 cpp인 파일들을 SRC_FILES 리스트 변수에 추가한다.  
-> GLOB_RECURSE 옵션도 지정되었으니 SourceFile 파일 하위 폴더까지 돌면서 조사한다.  
-> CONFIGURE_DEPENDS이 설정되면 SourceFile 폴더 내부에 새로운 파일이 추가, 삭제된 경우에 CMake 빌드 명령어만 수행해도 CMake 세팅이 자동으로 된다.
-> ```
-> file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./SourceFile/*.cpp)
-> ```
+* **file** 
+파일 이름을 변수로 저장할 때 사용된다.  
+예를 들어 ```file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./SourceFile/*.cpp)``` 이렇게 하면 SourceFile 폴더 내부를 돌면서 확장자가 cpp인 파일들을 SRC_FILES 리스트 변수에 추가한다.  
+GLOB_RECURSE 옵션도 지정되었으니 SourceFile 파일 하위 폴더까지 돌면서 조사한다.  
+CONFIGURE_DEPENDS이 설정되면 SourceFile 폴더 내부에 새로운 파일이 추가, 삭제된 경우에 CMake 빌드 명령어만 수행해도 CMake 세팅이 자동으로 된다.  
+ex. ```file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./SourceFile/*.cpp)```
 
-### - **add_compile_options** 
-> 컴파일 옵션 인자를 넣어줄 수 있다.
-> ```
-> add_compile_options(-g -Wall -std=c++11)
-> ```
+* **add_compile_options**  
+컴파일 옵션 인자를 넣어줄 수 있다.  
+ex. ```add_compile_options(-g -Wall -std=c++11)```
 
 &NewLine;
 ## CMakeLists.txt 사전변수  
@@ -283,9 +248,11 @@
 세팅은 빌드 전 cmake 환경 설정을 한다고 생각하면 되고 빌드는 말 그대로 코드 산출물이 발생되는 것이다.  
 CMake 세팅을 할 때는 파일 경로를 적는 일이 잦은데 경로 구분자는 '\'요게 아니라 '/'이거다.  
 그니까 예를 들어 ```C:\MyDir\HelloWorld.txt``` 이거는 에러인데 ```C:/MyDir/HelloWorld.txt``` 이거는 정상이다.  
+
 &NewLine;
 ### - **세팅 옵션**
 &NewLine;
+
 * _-S_  
 -S 옵션은 프로젝트의 root directory 경로가 위치해야 한다. (보통 첫 CMakeLists.txt가 위치하는 곳, 프로젝트 폴더 최상위 경로)
 
@@ -313,9 +280,11 @@ CMake 세팅을 할 때는 파일 경로를 적는 일이 잦은데 경로 구�
 * _--no-warn-unused-cli_  
 --no-warn-unused-cli 옵션을 사용하게 되면 CMake 명령줄에 관련한 경고가 뜨지 않고 명령줄에 선언되었지만 실제 CMakeLists.txt에는 존재하지 않는 변수가 있더라도 경고가 뜨지 않는다.  
 보통의 경우 사용된다.
+
 &NewLine;
 ### - **빌드 옵션**
 &NewLine;
+
 * _--build_  
 --build 옵션은 프로젝트를 빌드할 때 수행하는 명령어다.  
 "--build 특정 경로"로 사용하면 된다. (여기서 특정 경로는 빌드 산출물이 생성되어 위치할 경로를 뜻한다.)
