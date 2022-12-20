@@ -30,7 +30,7 @@ void Rotate(vector<vector<int>>& mat) {
 int Gcd(int a, int b) {
 	int r = a % b;
 	if (r == 0)
-		return b;
+            return b;
 	return Gcd(b, r);
 }
 
@@ -62,7 +62,7 @@ bool is_Prime(int Num) {
     if (Num <= 1)
         return 0;
     if (!(Num % 2))
-		return Num == 2;
+        return Num == 2;
     for (int i = 3; i <= sqrt(Num); i+=2) {
         if (!(Num % i))
             return 0;
