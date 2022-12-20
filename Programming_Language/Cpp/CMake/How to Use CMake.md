@@ -139,7 +139,7 @@ CMake에도 if문이 존재한다.
 if문을 사용했으면 endif()로 꼭 닫아줘야 한다.   
 else문, else if문은 else(), elseif()로 사용한다.  
 밑은 간단한 예시이다.  
-	```
+	```cmake
 	if(COMPILE_EXECUTABLE)
   		set(CMAKE_CXX_STANDARD 17)
 	endif()
@@ -186,7 +186,7 @@ ex. ```message("Compile Warning")```
 	생성된 헤더 파일을 가지고 소스 파일에서 project_name 변수를 사용할 수 있다. (빌드 시점에서 동적으로 생성되는 헤더 파일이기에 config.h 헤더가 존재하지 않고 project_name 변수도 없다고 VS Code의 Intellisense에서 오류라고 판단할 수 있는데 막상 빌드해보면 오류 표시가 없어지면서 빌드가 잘 된다.)  
 	ex. ```configure_file("config.h.in" "${CMAKE_BINARY_DIR}/configured_files/include/config.h" ESCAPE_QUOTES)```
 
-* **file** 
+* **file**  
 파일 이름을 변수로 저장할 때 사용된다.  
 예를 들어 ```file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./SourceFile/*.cpp)``` 이렇게 하면 SourceFile 폴더 내부를 돌면서 확장자가 cpp인 파일들을 SRC_FILES 리스트 변수에 추가한다.  
 GLOB_RECURSE 옵션도 지정되었으니 SourceFile 파일 하위 폴더까지 돌면서 조사한다.  
@@ -196,6 +196,11 @@ ex. ```file(GLOB_RECURSE SRC_FILES CONFIGURE_DEPENDS ./SourceFile/*.cpp)```
 * **add_compile_options**  
 컴파일 옵션 인자를 넣어줄 수 있다.  
 ex. ```add_compile_options(-g -Wall -std=c++11)```
+
+* **install**  
+```${CMAKE_INSTALL_PREFIX}```에 지정된 위치에 빌드 파일을 설치하는데 쓰이는 함수이다.  
+자신의 프로젝트를 배포하는데 유용하기에 다른 목차에서 자세히 다룬다.  
+ex. ```install (FILES ${FETCHED_LIBS} DESTINATION lib)```
 
 &NewLine;
 ## CMakeLists.txt 사전변수  
@@ -229,7 +234,7 @@ ex. ```set(CMAKE_CXX_EXTENSIONS OFF)```
 빌드 타입 (Debug, Release 등...)
 
 * **CMAKE_INSTALL_PREFIX**   
-최종 생성물을 복사하여 저장할 경로가 저장되어 있는 변수.
+make install 명령어가 정의되어 있는 경우 최종 생성물을 복사하여 저장할 경로가 저장되어 있는 변수.
 
 * **RUNTIME_OUTPUT_DIRECTORY**   
 빌드 완료한 실행 바이너리를 저장할 디렉토리가 저장되어 있는 변수.
@@ -305,7 +310,7 @@ CMake 세팅을 할 때는 파일 경로를 적는 일이 잦은데 경로 구�
 예를 들어 터미널에서 CMake를 빌드할 때마다 ```mkdir build, cd build, cmake -S .. -B . -G "Ninja"``` 이런거 계속 치기 귀찮기 때문에 Makefile에 미리 정의해놓고 쓰게 된다.  
 윈도우, 리눅스, MAC 모두 명령어가 살짝 다르기 때문에 빌드 환경에 따라 다른 명령어를 사용해야 한다.  
 밑은 윈도우 환경에서 예시이고 파일 이름은 꼭 Makefile이여야 하며 프로젝트 최상위 폴더에 위치하는 것이 좋다.  
-```
+```makefile
 rebuild:
 	mkdir build | rmdir /s /q build
 	mkdir build
@@ -315,6 +320,63 @@ rebuild:
 ```
 위와 같은 내용의 Makefile이 있다면 터미널에서 단지 make rebuild 명령만 수행해도 CMake가 세팅되고 재빌드가 수행된다.
 
+&NewLine;
+## CMake에서 install 명령 활용하기
+&NewLine;
+
+install 함수는 CMake 프로젝트를 ```make install``` 명령어로 설치할 때 유용하다.
+```make install``` 명령이 실행될 때 설치 구성 방식을 정해주는 함수라고 보면 된다.
+해당 함수가 프로젝트에서 완전히 쓰이지 않으면 ```${CMAKE_BINARY_DIR}``` 위치에서 ```make install``` 명령을 수행하여도 아무일도 일어나지 않는다.  
+한번이라도 프로젝트에서 쓰여야 ```make install``` 명령이 작동한다.  
+  
+CMake는 기본적으로 install 경로를 ```${CMAKE_INSTALL_PREFIX}``` 이곳에 저장해두는데 시스템 경로이기에 바꿔주는 것이 좋다.  
+그냥 간단히 ```set()``` 명령어로 바뀌지 않기에 밑의 구문을 프로젝트 최상위 CMakelists.txt에 지정해둬야 한다.  
+```cmake
+if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
+  message(STATUS "Setting default CMAKE_INSTALL_PREFIX path to ${CMAKE_BINARY_DIR}/install")
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/install" CACHE STRING "The path to use for make install" FORCE)
+endif()
+```
+위 구문에서는 ```${CMAKE_INSTALL_PREFIX}```에 지정된 경로를 ```${CMAKE_BINARY_DIR}/install```로 바꾸고 있다.  
+해당 구문을 적을 때 반드시 다른 이진 파일이나 라이브러리가 생성되기 전 단계에 적어야 한다.  
+즉 모든 ```add_executable()```, ```add_library()``` 함수들보다 선행되어야 한다.  
+
+```${TEST_MAIN}```이라는 실행 바이너리 파일을 ```${CMAKE_INSTALL_PREFIX}/bin``` 경로로 복사하는 명령은 밑과 같다.  
+```install(TARGETS ${TEST_MAIN} DESTINATION bin)```   
+  
+```${BENCHMARK_LIBRARY_NAME}```이라는 라이브러리 파일을 ```${CMAKE_INSTALL_PREFIX}/lib``` 경로로 복사하는 명령은 밑과 같다.  
+```install(TARGETS ${BENCHMARK_LIBRARY_NAME} LIBRARY DESTINATION lib)```  
+
+```stamp.png```이라는 파일을 ```${CMAKE_INSTALL_PREFIX}/resource``` 경로로 복사하는 명령은 밑과 같다.  
+```install(FILES stamp.png DESTINATION resource)```  
+
+```${PROJECT_SOURCE_DIR}/include/```폴더의 모든 내용을 ```${CMAKE_INSTALL_PREFIX}/include``` 경로로 복사하는 명령은 밑과 같다.  
+```install(DIRECTORY ${PROJECT_SOURCE_DIR}/include/ DESTINATION include)```  
+
+```file()``` 함수와 궁합이 잘 맞는데 얘를들어  ```${CMAKE_BINARY_DIR}/resource``` 경로 내부를 재귀적으로 돌면서 모든 .png 파일만 ```${CMAKE_INSTALL_PREFIX}/img``` 경로로 복사하고 싶다면 밑과 같이 구현하면 된다.    
+```cmake
+file(GLOB_RECURSE IMG_FILES CONFIGURE_DEPENDS ${CMAKE_BINARY_DIR}/resource/*.png)
+install (FILES ${IMG_FILES} DESTINATION img)
+```  
+좀 더 Genreric한 예시를 보자.  
+CMake의 FetchContent 기능을 사용하면 보통 빌드되고 난 후의 .dll, .a 등의 라이브러리 파일들은 ```${CMAKE_BINARY_DIR}/_deps/<프로젝트 이름>-build/``` 경로에 존재한다.  
+요런 실행 파일을 원활하게 실행하는데 필요한 녀석들을 모두 ```${CMAKE_BINARY_DIR}/Install/Libs```에 몰아넣고 싶을 때 어떻게 할까?  
+밑과 같이 하면 된다.
+```cmake
+if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
+  message(STATUS "Setting default CMAKE_INSTALL_PREFIX path to ${CMAKE_BINARY_DIR}/Install")
+  set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}/Install" CACHE STRING "The path to use for make install" FORCE)
+endif()
+
+file(GLOB_RECURSE FETCHED_LIBS CONFIGURE_DEPENDS 
+	${CMAKE_BINARY_DIR}/_deps/*-build/*.a
+	${CMAKE_BINARY_DIR}/_deps/*-build/*.lib
+	${CMAKE_BINARY_DIR}/_deps/*-build/*.so
+	${CMAKE_BINARY_DIR}/_deps/*-build/*.dll)
+
+install (FILES ${FETCHED_LIBS} DESTINATION Libs)
+```  
+  
 &NewLine;
 ## CMake에서 External Library 추가하는 방법  
 &NewLine;
@@ -351,7 +413,7 @@ rebuild:
 
 6. **cmake 폴더 내에 AddGitSubmodule.cmake 파일을 만든다.**   
 해당 파일의 내용은 밑과 같아야 한다.
-	```
+	```cmake
 	function(add_git_submodule dir)
 	    find_package(Git REQUIRED)
 
@@ -374,7 +436,7 @@ rebuild:
 &NewLine;
 
 7. **프로젝트의 최상위 CMakeLists.txt 파일에 가서 밑의 명령들을 추가해준다.**  
-	```
+	```cmake
 	set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/")
 	include(AddGitSubmodule)
 	add_git_submodule(external/json)
@@ -438,7 +500,7 @@ GIT_TAG를 주의해야 하는데 태그 주소를 보고 적어야 한다. (htt
 &NewLine;
 
 5. **프로젝트의 최상위 CMakeLists.txt가 위치한 곳에 conanfile.txt를 만들고 밑과 같은 내용을 담는다.**  
-	```
+	```ini
 	[requires]
 
 	[generators]
@@ -451,14 +513,14 @@ GIT_TAG를 주의해야 하는데 태그 주소를 보고 적어야 한다. (htt
 ex. ```catch2/3.2.1```   
 
    * **이건 선택사항인데 conanfile.txt 파일에 추가적으로 밑과 같이 설정하면**  
-		```
+		```ini
 		[imports]  
 		bin, *.dll -> ./build/debug/bin  
 		lib, *.lib -> ./build/debug/lib  
 		```  
 		빌드 후 종속성에 있는 모든 dll은 conanfile.txt 파일 경로를 기준으로 "./build/debug/bin" 경로에,  모든 lib는 "./build/debug/lib" 경로에 위치한다.  
 		그리고 conan의 디폴트 링크 방식은 static 방식이기에 따로 dll을 생성하지 않는다. 이를 수정하려면 conanfile.txt에 밑과 같이  
-		```
+		```ini
 		[options]
 		catch2:shared=True
 		```
@@ -471,7 +533,7 @@ ex. ```catch2/3.2.1```
 보통 "C:\Users\<사용자 데스크탑 이름>\.conan"에 위치한다.  
 설치 폴더에 profiles라는 폴더가 있고 그 내부에 default 파일이 있을 것이다.   
 해당 녀석에 수정이 필요할 수도 있는데 보통 밑과 같이 되어있을 것이다.  
-	```
+	```ini
 	[settings]
 	os=Windows
 	os_build=Windows
@@ -486,7 +548,7 @@ ex. ```catch2/3.2.1```
 	```
 	만약 자신이 VS Code에서 빌드할 때 컴파일러를 Visual Studio의 MSVC를 사용하면 상관이 없지만 gcc나 clang을 사용한다면 바꿔줘야 한다.
 	Windows, Mac, Linux에서 모두 사용할 수 있는 gcc를 사용하는 경우에 대해서만 예시를 들면 밑과 같이 바뀌어야 한다.
-	```
+	```ini
 	[settings]
 	os=Windows
 	os_build=Windows
@@ -553,7 +615,7 @@ ex. ```conan install . -if ./build```
 		....
 		....
 		"cmake.configureSettings": {
-		"CMAKE_TOOLCHAIN_FILE": "<vcpkg가 설치된 폴더 경로>/scripts/buildsystems/vcpkg.cmake"
+			"CMAKE_TOOLCHAIN_FILE": "<vcpkg가 설치된 폴더 경로>/scripts/buildsystems/vcpkg.cmake"
 		}
 	}
 	```
@@ -597,7 +659,8 @@ ex. ```conan install . -if ./build```
 			}
 		]
 	}
-	```
+	```  
+
 	* ```$schema```  
 	```$schema```는 Json 작성할 때 자동완성을 도와주는 스키마를 정의한다.  
 	정의 안해도 되지만 하면 vcpkg.json 작성할 때 편하다.   
@@ -667,7 +730,7 @@ ex. ```target_link_libraries(${EXECUTABLE_NAME} PUBLIC Boost::boost)```
 
 2. **설명을 추가할 함수 위에서 ```/**Enter키```를 차례대로 누르면 Doxygen 주석 형식이 갖춰진다.**  
 대략 밑과 같이 생겼다.
-	```
+	```c++
 	/**
 	* @brief 이 함수는 어쩌구 저쩌구 ...
 	* @param 이 인자는 어쩌구 저쩌구 ...
@@ -689,7 +752,7 @@ ex. ```target_link_libraries(${EXECUTABLE_NAME} PUBLIC Boost::boost)```
 &NewLine;
 
 5. **docs 폴더 내부에 Doxyfile 이라는 파일을 만들고 내부 내용을 다음과 같이 채워준다.**  
-	```
+	```doxyfile
 	#---------------------------------------------------------------------------
 	# Project related configuration options
 	#---------------------------------------------------------------------------
