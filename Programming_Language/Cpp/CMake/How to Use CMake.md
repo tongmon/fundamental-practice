@@ -622,7 +622,8 @@ ex. ```conan install . -if ./build```
 		}
 	}
 	```
-	아니면 그냥 settings.json 수정없이 cmake 세팅 명령어를 수행할 때 ```-DCMAKE_TOOLCHAIN_FILE=<vcpkg가 설치된 폴더 경로>/scripts/buildsystems/vcpkg.cmake``` 이걸 추가해줘도 된다.
+	아니면 그냥 settings.json 수정없이 cmake 세팅 명령어를 수행할 때 ```-DCMAKE_TOOLCHAIN_FILE=<vcpkg가 설치된 폴더 경로>/scripts/buildsystems/vcpkg.cmake``` 이걸 추가해줘도 된다.  
+	또 다른 방법은 CMakelists.txt 파일에 ```set(CMAKE_TOOLCHAIN_FILE C:/vcpkg/scripts/buildsystems/vcpkg.cmake)``` 이렇게 세팅해줘도 되는데 주의할 점은 ```project()``` 함수가 선언되기 전에 추가해야 한다. (vcpkg는 ```project()``` 함수 시작과 동시에 세팅되기 때문이다.)  
 
 &NewLine;
 
@@ -721,7 +722,18 @@ ex. ```target_link_libraries(${EXECUTABLE_NAME} PUBLIC Boost::boost)```
 
 &NewLine;
 
-10. **만약 8번 9번에서 라이브러리 이름이 잘못되었거나 8번에서 CONFIG REQUIRED인데 그냥 REQUIRED로 적었거나 하면 오류가 나면서 터미널에 어떻게 고쳐야 하는지 출력되니 그걸 따라서 CMakeLists.txt 내용을 바꾸면 된다.**  
+10. **추가적으로 vcpkg는 기본적으로 라이브러리들을 64-bit 전용으로 동적 링킹 시킨다.**  
+이것이 싫다면 Vcpkg의 triplet을 따로 세팅해줘야 한다.  
+CMake에서 triplet을 세팅해주는 방법은 ```set(VCPKG_TARGET_TRIPLET <특정 값...> CACHE STRING "")``` 요렇게 ```project()``` 함수 선언 전에 추가해주면 된다.  
+32-bit / windows 전용 / static 라이브러리를 이용하고 싶다면 ```set(VCPKG_TARGET_TRIPLET "x86-windows-static" CACHE STRING "")``` 요렇게 해주면 된다.  
+static으로 빌드된 외부 라이브러리 등을 포함 시킬 때는 라이브러리 이름 뒤에 ```-static```을 붙여줘야 한다. (예를 들어 SDL2::SDL2 -> SDL2::SDL2-static)  
+사용 가능한 모든 triplet 종류는 vcpkg 설치 경로로 들어가 ```vcpkg help triplet``` 명령어를 치면 나온다.  
+라이브러리가 특정 triplet을 지원하지 않으면 환경에 제일 알맞은 triplet으로 바뀌어 적용된다.  
+자세한 정보는 https://vcpkg.readthedocs.io/en/latest/users/triplets/ 여기를 참고하자.  
+
+&NewLine;
+
+11.   **만약 8번 9번에서 라이브러리 이름이 잘못되었거나 8번에서 CONFIG REQUIRED인데 그냥 REQUIRED로 적었거나 하면 오류가 나면서 터미널에 어떻게 고쳐야 하는지 출력되니 그걸 따라서 CMakeLists.txt 내용을 바꾸면 된다.**  
 
 &NewLine;
 ## CMake와 Doxygen 같이 사용하기

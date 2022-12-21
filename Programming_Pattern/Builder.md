@@ -218,3 +218,7 @@ std::cout << writer.str() << "\n";
 코드를 보면 사용자는 XmlBuilder가 어디서 어떻게 쓰였는지 알 필요가 없다.  
 단지 XmlWriter의 build(), str() 인터페이스를 이용하고 add_child()로 XmlWriter 객체를 생성하고 해당 값을 XmlWriter 클래스로 받아 활용할 뿐이다.  
 XmlBuilder 클래스는 묵묵히 숨어서 객체 생성과 관련된 작업을 진행할 뿐이다.  
+
+&nbsp;  
+## 그루비-스타일 빌더  
+  

@@ -92,9 +92,37 @@ Visual Studio를 많이 써왔다면 Microsoft가 친근할 것이다.
 4. ```VS Code 설정(좌측 하단 톱니바퀴 아이콘) -> 텍스트 편집기 -> 서식```에서 Format On Paste, Format On Save, Format On Save Mode를 모두 켜준다.   
 세이브를 하거나 세미콜론을 붙이거나(이 경우 해당 줄만) 텍스트를 붙여넣는 경우 지정한 clang format 형식에 맞춰 텍스트를 재조립해준다.  
 
+5. VS Code에서 #include를 올바르게 했는데고 불구하고 ```#include 오류가 검색되었습니다. includePath를 업데이트하세요.``` 라는 오류가 뜨는 경우가 있는데 막상 빌드해보면 잘된다.  
+이때 굉장히 거슬릴 텐데 해결방법은 ```보기 -> 명령 팔레트 -> C/C++: 구성 편집(JSON)```을 하여 ```.vscode/c_cpp_properties.json```를 추가해주는 것이다.  
+이때 ```"compilerPath"```와 ```"intelliSenseMode"``` 등은 자신이 사용하는 컴파일러와 맞는 것으로 세팅해주어야 한다.  
+컴파일러를 gcc로 사용하고 c++17을 이용하는 세팅에서 ```.vscode/c_cpp_properties.json``` 모습은 대략 밑과 같다.  
+	```json
+	{
+		"configurations": [
+			{
+				"name": "Win32",
+				"includePath": [
+					"${workspaceFolder}/**"
+				],
+				"defines": [
+					"_DEBUG",
+					"UNICODE",
+					"_UNICODE"
+				],
+				"windowsSdkVersion": "10.0.22000.0",
+				"compilerPath": "C:/msys64/mingw64/bin/g++.exe",
+				"cStandard": "c17",
+				"cppStandard": "c++17",
+				"intelliSenseMode": "gcc-x64"
+			}
+		],
+		"version": 4
+	}
+	```
+
 ## 코드 작성까지 원활해 졌으니 이제 디버깅을 해야 한다.
 
-1. ```보기 -> 명령 팔레트 -> C/C++ 디버그 구성 추가 -> 자신이 사용하는 컴파일러를 선택```  
+1. ```보기 -> 명령 팔레트 -> C/C++: 디버그 구성 추가 -> 자신이 사용하는 컴파일러를 선택```  
 예를 들어 gcc를 사용한다면 ```C/C++: g++.exe 활성 파일 빌드 및 디버그```를 선택한다.    
 
 2. 1번 작업을 통해 .vscode 폴더 내부에 launch.json과 task.json 파일이 생성되었을 것이다.  
