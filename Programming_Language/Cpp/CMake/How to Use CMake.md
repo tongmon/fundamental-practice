@@ -54,9 +54,11 @@ ex. ```add_library(MyLibrary STATIC my_lib.cpp my_math.cpp)```
 CMakeList에서 빌드된 라이브러리의 경우 .lib와 같은 확장자를 떼고 사용해도 된다.  
 ex. ```link_libraries(MyLib.lib MyLib2)```
 
-* **link_directories** 
+* **link_directories**  
 링크할 라이브러리 포함 폴더 위치를 정의한다.  
-ex. ```link_directories(../lib ../lib2)```
+예를 들어 ```<프로젝트 폴더>/Library/FMOD/x64/fmodstudio.lib```를 종속하고 싶을 때 그냥 ```link_libraries()```만 사용하면 ```link_libraries("<프로젝트 폴더>/Library/FMOD/x64/fmodstudio.lib")``` 요렇게 해야 하지만 ```link_libraries()```선언 앞에 ```link_directories("<프로젝트 폴더>/Library/FMOD/x64/")```를 하면 그냥 ```link_libraries(fmodstudio.lib)``` 이렇게 경로 없이 라이브러리 이름만 적어줘도 된다.  
+즉 라이브러리 경로를 생략하기 위한 함수이다.  
+ex. ```link_directories(../LibDir01 ../LibDir02)```
 
 * **include_directories**   
 헤더파일 포함 폴더 위치를 정의한다.  
@@ -146,6 +148,18 @@ else문, else if문은 else(), elseif()로 사용한다.
   		set(CMAKE_CXX_STANDARD 17)
 	endif()
 	```
+
+* **add_custom_command**  
+특정 타켓의 빌드 시점에 따라 터미널 명령어를 수행하거나 통상적인 빌드 절차로 생성할 수 없는 별도의 파일들을 관리하는 경우 사용된다.  
+예를 들어 특정 경로에 존재하는 dll을 MyExecutable이라는 타켓이 빌드된 후 특정 폴더로 옮기고 싶다면 아래와 같이 ```add_custom_command()```를 사용한다.  
+	```cmake
+	add_custom_command(TARGET MyExecutable POST_BUILD
+	    COMMAND ${CMAKE_COMMAND} 
+	    -E copy <특정 dll의 경로> <특정 dll을 복사하여 옮겨 놓을 경로>
+	)
+	```
+	위 예시에 대해 간략히 설명을 추가하자면 POST_BUILD는 특정 타켓의 빌드 후라는 것을 나타내고 PRE_BUILD, PRE_LINK와 같이 다른 빌드 시점도 존재한다.  
+	```<특정 dll의 경로>```를 적는 경우 ```${CMAKE_SOURCE_DIR}/Library/FMOD/x64/fmodstudio.dll```이와 같이 dll의 이름까지 모두 적어줘야 한다.  
 
 * **message**  
 ```message("문자열")```로 사용한다.   
@@ -636,7 +650,7 @@ ex. ```conan install . -if ./build```
 일단 예시로 밑과 같은 내용이 있다고 하자.
 	```json
 	{
-		"$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+		"$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
 		"name": "project-name",
 		"version": "1.0.0",
 		"builtin-baseline":"4e368f63904b784e19401e08cbc15ca8f06eb92a",
