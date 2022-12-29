@@ -110,23 +110,23 @@ Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이�
 		이러면 .vscode 폴더 내에 settings.json이 생성될 것이다.  
 		
 		2. CMake 사용을 위한 settings.json 파일에서 각 요소에 대해 설명하겠다.  
-			```
+			```json
 			{
-    		"cmake.sourceDirectory": "${workspaceFolder}",
-    		"cmake.buildDirectory": "${workspaceFolder}/Build/${buildType}",
-    		"cmake.buildBeforeRun": true,
-    		"cmake.saveBeforeBuild": true,
-    		"cmake.buildToolArgs": [
-    		    // "--target AudioLib"
-    		],
-    		"cmake.configureArgs": [
-    		    // "--graphviz=${command:cmake.buildDirectory}/Graph_Info/graph.dot"
-    		],
-    		"cmake.configureSettings": {
-    		    // "CMAKE_CXX_FLAGS": "-O3 -Wall -m64" // -m32로 32비트용 빌드
-    		},
-    		"cmake.parallelJobs": 12,
-    		"cmake.generator": "Unix Makefiles"
+    			"cmake.sourceDirectory": "${workspaceFolder}",
+    			"cmake.buildDirectory": "${workspaceFolder}/Build/${buildType}",
+    			"cmake.buildBeforeRun": true,
+    			"cmake.saveBeforeBuild": true,
+    			"cmake.buildToolArgs": [
+    			    // "--target AudioLib"
+    			],
+    			"cmake.configureArgs": [
+    			    // "--graphviz=${command:cmake.buildDirectory}/Graph_Info/graph.dot"
+    			],
+    			"cmake.configureSettings": {
+    			    // "CMAKE_CXX_FLAGS": "-O3 -Wall -m64" // -m32로 32비트용 빌드
+    			},
+    			"cmake.parallelJobs": 12,
+    			"cmake.generator": "Unix Makefiles"
 			}
 			```
 			* cmake.sourceDirectory  
@@ -166,7 +166,7 @@ Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이�
 		1. 일단 최상위 CMakeLists.txt 위치에 CMakePresets.json을 만들어 넣는다.
 
 		1. CMakePresets.json를 작성해줘야 하는데 일단 대략적인 형식은 밑과 같다.  
-			```
+			```json
 			{
 			    "version": 4,
 			    "cmakeMinimumRequired": {
