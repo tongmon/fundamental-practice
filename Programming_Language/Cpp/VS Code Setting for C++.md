@@ -15,8 +15,10 @@ Restricted이라면 Set-ExecutionPolicy AllSigned 명령어를 추가적으로 �
   
 6. 설치가 끝났으면 Windows Terminal를 관리자 모드로 재시작해주고 PowerShell 탭을 띄우고 choco 명령어를 수행해 Chocolatey가 잘 설치되었는지 확인한다.  
   
-7. ```choco install graphviz```, ```choco install git```, ```choco install doxygen.install```, ```choco install python```, ```choco install make```, ```choco install llvm```, ```choco install cmake``` 명령어를 순차적으로 실행해서 CMake 활용에 필요한 프로그램들을 깔아준다. (llvm은 clang 컴파일러를 사용하지 않을 것이라면 굳이 안깔아도 된다.)   
-여기서 중요한 점은 cmake 시스템 환경변수가 올바르게 등록되었는지를 알아야 한다.  
+7. ```choco install graphviz```, ```choco install git```, ```choco install doxygen.install```, ```choco install python```, ```choco install make```, ```choco install llvm```, ```choco install ninja```, ```choco install cmake``` 명령어를 순차적으로 실행해서 CMake 활용에 필요한 프로그램들을 깔아준다.  
+llvm은 clang 컴파일러를 사용하지 않을 것이라면 굳이 안깔아도 된다. (gcc, msvc 등 다른 좋은 컴파일러도 있지만 clang이 설치하기 가장 편하다.)  
+make와 ninja는 둘 중 하나만 설치해도 된다. (ninja가 빌드할 때 좀 더 빠르다.)  
+여기서 중요한 점은 CMake 시스템 환경변수가 올바르게 등록되었는지를 알아야 한다.  
 
 8. CMake를 설치해도 PowerShell 관리자 모드에서 cmake --version 명령어가 제대로 실행되지 않는다면 환경변수가 제대로 설정되지 않은 것이니 시스템 속성 -> 고급 탭 -> 환경 변수 -> 시스템 변수 -> Path 에 cmake.exe가 위치한 폴더 경로를 추가해주자. (보통 ```C:\Program Files\CMake\bin``` 이거다.)   
 

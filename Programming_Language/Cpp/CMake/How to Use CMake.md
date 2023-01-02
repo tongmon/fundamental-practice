@@ -160,18 +160,18 @@ else문, else if문은 else(), elseif()로 사용한다.
 	```
 	위 예시에 대해 간략히 설명을 추가하자면 POST_BUILD는 특정 타켓의 빌드 후라는 것을 나타내고 PRE_BUILD, PRE_LINK와 같이 다른 빌드 시점도 존재한다.  
 	```<특정 dll의 경로>```를 적는 경우 ```${CMAKE_SOURCE_DIR}/Library/FMOD/x64/fmodstudio.dll```이와 같이 dll의 이름까지 모두 적어줘야 한다.  
-	```add_custom_command()```는 이외에도 훨씬 더 많은 활용 방법이 있으니 공식 CMake 문서를 참고하자.
+	```add_custom_command()```는 이외에도 훨씬 더 많은 활용 방법이 있으니 공식 CMake 문서를 참고하자.  
 
-* **add_custom_target**
+* **add_custom_target**  
 통상적인 빌드 모듈이 아닌 것을 타겟에 추가한다.  
-예를 들어 추가적인 명령어로 생성되는 graphviz 파일을 타겟으로 추가하고 싶다면 밑과 같이 선언해줘야 한다.
+예를 들어 추가적인 명령어로 생성되는 graphviz 파일을 타겟으로 추가하고 싶다면 밑과 같이 선언해줘야 한다.  
 	```cmake
 	add_custom_target(Graphviz ALL
 	    COMMAND ${CMAKE_COMMAND} "--graphviz=${CMAKE_BINARY_DIR}/Graph_Info/graph.dot" .
 	    COMMAND dot -Tpng ${CMAKE_BINARY_DIR}/Graph_Info/graph.dot -o ${CMAKE_BINARY_DIR}/../Graph_${CMAKE_BUILD_TYPE}.png
 	)
 	```
-	위 예시를 설명해보자면 Graphviz 타겟을 추가하는데 해당 타겟이 지정되고 빌드되면 ```${CMAKE_COMMAND} "--graphviz=${CMAKE_BINARY_DIR}/Graph_Info/graph.dot" .```와 ```COMMAND dot -Tpng ${CMAKE_BINARY_DIR}/Graph_Info/graph.dot -o ${CMAKE_BINARY_DIR}/../Graph_${CMAKE_BUILD_TYPE}.png``` 명령어가 실행된다.
+	위 예시를 설명해보자면 Graphviz 타겟을 추가하는데 해당 타겟이 지정되고 빌드되면 ```${CMAKE_COMMAND} "--graphviz=${CMAKE_BINARY_DIR}/Graph_Info/graph.dot" .```와 ```COMMAND dot -Tpng ${CMAKE_BINARY_DIR}/Graph_Info/graph.dot -o ${CMAKE_BINARY_DIR}/../Graph_${CMAKE_BUILD_TYPE}.png``` 명령어가 실행된다.  
 
 * **message**  
 ```message("문자열")```로 사용한다.   
