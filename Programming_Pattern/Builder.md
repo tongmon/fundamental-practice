@@ -220,5 +220,113 @@ std::cout << writer.str() << "\n";
 XmlBuilder 클래스는 묵묵히 숨어서 객체 생성과 관련된 작업을 진행할 뿐이다.  
 
 &nbsp;  
+## 컴포지트 빌더  
+
+특정 클래스에 여러가지 데이터가 있는데 이러한 각 데이터마다 빌더를 따로 두고 싶을 때 컴포지트 빌더를 사용한다.  
+&nbsp;  
+
+다음과 같은 Person 클래스 객체가 있다고 하자.  
+```c++
+class Person {
+    // 주소
+    std::string street_address;
+    std::string post_code;
+    std::string city;
+
+    // 직장
+    std::string company_name;
+    std::string position;
+    int annual_income = 0;
+
+    Person() {
+        std::cout << "Person created\n";
+    }
+
+  public:
+    ~Person() {
+        std::cout << "Person destroyed\n";
+    }
+
+    static PersonBuilder create();
+
+    Person(Person &&other)
+        : street_address{std::move(other.street_address)},
+          post_code{std::move(other.post_code)},
+          city{std::move(other.city)},
+          company_name{std::move(other.company_name)},
+          position{std::move(other.position)},
+          annual_income{other.annual_income} {
+    }
+
+    Person &operator=(Person &&other) {
+        if (this == &other)
+            return *this;
+        street_address = std::move(other.street_address);
+        post_code = std::move(other.post_code);
+        city = std::move(other.city);
+        company_name = std::move(other.company_name);
+        position = std::move(other.position);
+        annual_income = other.annual_income;
+        return *this;
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, const Person &obj) {
+        return os
+               << "street_address: " << obj.street_address
+               << "\n post_code: " << obj.post_code
+               << "\n city: " << obj.city
+               << "\n company_name: " << obj.company_name
+               << "\n position: " << obj.position
+               << "\n annual_income: " << obj.annual_income << std::endl;
+    }
+
+    friend class PersonBuilder;
+    friend class PersonAddressBuilder;
+    friend class PersonJobBuilder;
+};
+```  
+생성자, 소멸자, 연산자 재정의 같은 세세한 구현부는 무시하고 Person 클래스에 주소와 직장 관련 데이터가 있다는 점에 주목하자.  
+친구 클래스로 PersonBuilder, PersonAddressBuilder, PersonJobBuilder를 선언한 것은 추후에 설명한다.  
+여기서 핵심은 개발자가 주소 데이터들에 대한 빌더와 직장 데이터들에 대한 빌더를 따로 만들어 구성하고 싶다면 컴포지트 빌더 패턴이 적합하다는 것이다.   
+&nbsp;  
+
+일단 PersonBuilderBase라는 주소 빌더, 직장 빌더, 사람 빌더에게 모두 필요한 기저 빌더 클래스를 밑과 같이 만들어 준다.  
+```c++
+class PersonBuilderBase {
+  protected:
+    Person &person;
+    explicit PersonBuilderBase(Person &person)
+        : person{person} {
+    }
+
+  public:
+    operator Person() const {
+        return std::move(person);
+    }
+
+    PersonAddressBuilder lives() const;
+    PersonJobBuilder works() const;
+};
+```
+이 녀석은 실제 Person 객체를 들고 있지 않고 단지 참조만 할 뿐이다.  
+그리고 해당 빌더 베이스를 사용하면 형변환 연산 재정의 구현부에서 알 수 있듯이 ```std::move()```를 사용해 참조했던 녀석을 다른 곳으로 옮겨버린다.  
+주소 빌더의 인터페이스가 되는 lives() 함수와 직장 빌더의 인터페이스가 되는 works() 함수를 구현해준다.  
+&nbsp; 
+
+lives(), works() 함수 구현부는 다음과 같다.  
+```c++
+PersonAddressBuilder PersonBuilderBase::lives() const {
+    return PersonAddressBuilder{person};
+}
+
+PersonJobBuilder PersonBuilderBase::works() const {
+    return PersonJobBuilder{person};
+}
+```
+PersonAddressBuilder, PersonJobBuilder에서 구현된 빌더 인터페이스를 사용하기 위해 PersonAddressBuilder, PersonJobBuilder 객체를 그대로 반환해준다.  
+
+
+
+&nbsp;  
 ## 그루비-스타일 빌더  
-  
+
