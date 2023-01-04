@@ -46,7 +46,7 @@ CMake 사용을 편하게 해주고 코드 에러 표시 관련하여 많은 것
 얘를 사용하면 Makefile이나 bash 파일을 따로 만들어서 명령어 묶음을 실행해 빌드를 할 일이 적어지고 무엇보다 코드 디버깅 세팅이 굉장히 편해진다.  
 
 1. CodeLLDB by Vadim Chugunov  
-C++ 디버깅할 때 유용하다.  
+Clang 컴파일러나 MSVC 컴파일러를 이용한 프로그램을 디버깅할 때 필수다.  
 
 1. CodeSnap by adpyke  
 코드 내용을 스크린샷 찍을 때 유용하다.  
@@ -384,6 +384,157 @@ Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이�
 		
 		1. 해당 CMakePresets.json을 다 작성했다면 CMake Tools에서 제공하는 하단의 파란색 바에서 적절한 구성, 빌드 프리셋을 선택하고 빌드하면 된다.  
 
-## 디버깅  
-디버깅 방식은 굉장히 편하다.  
-Visual Studio와 같이 중단점을 찍고 F5로 디버깅을 시작하고 F10과 F11로 코드 라인에 따라 디버깅을 진행한다.  
+## 디버깅    
+일단 원활할 디버깅을 하려면 컴파일러와 디버거를 맞춰줘야 한다. (clang은 lldb로... msvc는 vsdbg로... gcc는 gdb로...)  
+만약에 빌드는 clang으로 했는데 해당 프로그램을 gdb로 디버깅하면 중단점이 작동하지 않는다.  
+VS Code에서 디버깅을 하려면 일단 launch.json을 생성해줘야 한다.  
+VS Code의 좌측 탭의 ```실행 밑 디버그```에 들어가서 launch.json 파일 만들기를 해보면 .vscode/launch.json을 생성해주는데 CodeLLDB 플러그인이 VS Code에 설치되어 있다면 LLDB 세팅을 처음에 추천할 것이다.  
+일단 아무 세팅이나 선택해도 상관없다.  
+.vscode/launch.json이 생성되었다면 해당 파일을 구성해야 하는데 일단 LLDB 구성부터 보겠다.  
+&nbsp;  
+밑은 launch.json 파일의 LLDB 구성이다.
+```json
+{
+    "type": "lldb",
+    "request": "launch",
+    "name": "LLDB Debug",
+    "program": "${command:cmake.launchTargetPath}",
+    "args": [],
+    "cwd": "${workspaceFolder}"
+}
+``` 
+* type  
+lldb를 쓸 것이기에 lldb로 고정한다.
+* request  
+디버그 구성형식을 지정한다.  
+보통 launch로 구성하고 특수한 경우에만 attach로 설정한다.
+* name  
+해당 디버그 구성에 대한 이름을 정하면 된다.
+* program  
+디버깅을 진행할 실행 프로그램의 경로를 적어준다.  
+VS Code의 CMake Tools이 알아서 지정하도록 위 예시처럼 ```${command:cmake.launchTargetPath}``` 요렇게 선언 해놓는 것이 편하다.
+* args  
+실행 파일에 전달할 파라메터를 적어준다.
+* cwd  
+작업 디렉토리 경로를 적어준다.  
+&nbsp;  
+
+밑은 launch.json 파일의 MSVC 디버거 구성이다.
+```json
+{
+    "name": "Visual Studio Debug",
+    "type": "cppvsdbg",
+    "request": "launch",
+    "program": "${command:cmake.launchTargetPath}",
+    "args": [],
+    "stopAtEntry": false,
+    "cwd": "${workspaceFolder}",
+    "environment": [],
+    "console": "internalConsole"
+}
+```
+같은 내용은 생략하고 새로운 옵션만 설명한다.  
+
+* stopAtEntry   
+이 녀석이 true면 디버그 진입점에서 중단점이 설정된 것 마냥 중단된다.  
+* environment  
+따로 환경 설정 관련해서 변수나 세팅이 존재한다면 여기다 적어준다.  
+* console  
+디버깅을 어디서 할지 결정한다.  
+```internalConsole```면 VS Code 내부 터미널에서 진행되고 ```externalConsole```면 외부 콘솔창이 따로 켜지고 거기서 디버깅이 진행된다.   
+&nbsp;  
+
+밑은 launch.json 파일의 GDB 디버거 구성이다.
+```json
+{
+    "name": "GDB Debug",
+    "type": "cppdbg",
+    "request": "launch",
+    "program": "${command:cmake.launchTargetPath}",
+    "args": [],
+    "stopAtEntry": false,
+    "cwd": "${workspaceFolder}",
+    "environment": [],
+    "externalConsole": false,
+    "MIMode": "gdb",
+    "miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe",
+    "setupCommands": [
+        {
+            "description": "gdb에 자동 서식 지정 사용",
+            "text": "-enable-pretty-printing",
+            "ignoreFailures": false
+        },
+        {
+            "description": "디스어셈블리 버전을 Intel(으)로 설정",
+            "text": "-gdb-set disassembly-flavor intel"
+        }
+    ]
+}
+```
+같은 내용은 생략하고 새로운 옵션만 설명한다.  
+
+* externalConsole  
+디버깅을 어디서 진행할지 결정하는 옵션이다.  
+true인 경우 외부 콘솔창에서 디버깅이 진행된다.  
+* MIMode  
+gdb, lldb 둘 중 하나를 선택할 수 있는데 gdb를 사용할 것이니 gdb로 설정한다.
+* miDebuggerPath  
+MIMode에 지정된 컴파일러의 경로가 적힌다.  
+gdb를 설정하였으니 gdb의 경로로 지정해준다.
+* setupCommands  
+gdb 실행시 같이 넘겨줄 인자들을 정의한다.  
+&nbsp;  
+ 
+완성된 launch.json의 모습은 밑과 같다.  
+```json
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "GDB Debug",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "miDebuggerPath": "C:/msys64/mingw64/bin/gdb.exe",
+            "setupCommands": [
+                {
+                    "description": "gdb에 자동 서식 지정 사용",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": false
+                },
+                {
+                    "description": "디스어셈블리 버전을 Intel(으)로 설정",
+                    "text": "-gdb-set disassembly-flavor intel"
+                }
+            ]
+        },
+        {
+            "name": "Visual Studio Debug",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "console": "internalConsole"
+        },
+        {
+			"name": "LLDB Debug",
+            "type": "lldb",
+            "request": "launch",
+            "program": "${command:cmake.launchTargetPath}",
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}
+```
+위 launch.json에서 개별적인 항목을 사용자 환경에 알맞게 수정해서 사용하면 된다.  
+디버깅을 시작하고 싶다면 중단점을 찍고 F5를 누르면 된다.   

@@ -3,6 +3,7 @@
 빌더 패턴은 객체를 쉽게 처리하기 위한 패턴이다.  
 여러가지 빌더 패턴 스타일이 존재한다.  
 &nbsp;  
+
 일단 밑과 같이 간단한 XmlWriter 클래스가 있다고 하자. (xml을 실제 std::string으로 변환해주는 str() 함수 내부 로직은 지금 중요하지 않으니 신경쓸 필요 없다.)  
 ```c++
 class XmlWriter {
@@ -32,6 +33,7 @@ class XmlWriter {
 };
 ```
 &nbsp;  
+
 이 상태에서 XmlWriter를 활용하려면 밑과 같이 코드를 구성해야 할 것이다.  
 ```c++
 XmlWriter xml{"Zoo", ""};
@@ -40,6 +42,7 @@ xml.element.push_back(XmlWriter{"Ground", XmlWriter("Horse", "Zebra").str()});
 std::cout << xml.str() << "\n";
 ```
 &nbsp;  
+
 그러면 대략 밑과 같이 출력이 될 것이다.
 ```xml
 <Zoo>
@@ -54,6 +57,7 @@ std::cout << xml.str() << "\n";
 </Zoo>
 ```
 &nbsp;  
+
 XmlWriter 클래스를 활용하는 코드의 구성을 보면 xml 객체에서 element를 가져와서 push_back을 하는 코드도 난잡해 보이고, 겹겹이 쌓이는 정보를 넣을 때 ```XmlWriter("Something", XmlWriter("Something", XmlWriter("Something", "Something").str()).str()).str()``` 요런식으로 넣어줘야 하기 때문에 산만하다.  
 이를 해결하는 방법들을 알아보자  
 
@@ -62,6 +66,7 @@ XmlWriter 클래스를 활용하는 코드의 구성을 보면 xml 객체에서 
   
 객체 생성 역할을 맡는 다른 클래스를 별도로 만들어서 처리한다.  
 &nbsp;  
+
 Xml 객체 생성을 해주는 XmlBuilder 클래스를 밑과 같이 정의한다.  
 ```c++
 class XmlBuilder {
@@ -78,6 +83,7 @@ class XmlBuilder {
 };
 ```
 &nbsp;  
+
 빌더 클래스를 활용해 xml 스트링 값을 출력하는 코드를 보면 밑과 같다.  
 ```c++
 XmlBuilder builder("Zoo");
@@ -100,6 +106,7 @@ XmlBuilder &XmlBuilder::add_child(const std::string &tag, const std::string &con
 }
 ```
 &nbsp;  
+
 이렇게 되면 밑과 같이 xml 스트링 값을 출력할 수 있다.  
 ```c++
 XmlBuilder builder("Zoo");
@@ -116,8 +123,8 @@ Xml 정보 추가를 연달아 할 수 있어 단순 빌더 방식보다 호출 
   
 생각보다 좀 복잡한 단계를 거쳐야 한다.  
 일단 기존에 main.cpp에서 모두 처리하던 코드들을 .h, .cpp 파일들로 전방선언, 불완전한 반환값 문제를 방지하기 위해 분리해야 한다.  
-
 &nbsp;  
+
 xmlwriter.h의 코드 내용이다. (헤더 가드와 각종 #include 들은 제외한다.)  
 ```c++
 class XmlBuilder;
@@ -149,6 +156,7 @@ class XmlWriter {
 이제 xml 정보를 생성할 때 ```XmlWriter::build("Zoo")``` 요런식으로 접근하게 된다.  
 xml 자식 노드를 생성할 때 ```XmlWriter::str("Horse", "Zebra")``` 이렇게 접근해야 한다.  
 &nbsp;  
+
 xmlwriter.cpp의 코드 내용이다.
 ```c++
 XmlWriter::XmlWriter(const std::string &tag, const std::string &content) {
@@ -180,6 +188,7 @@ std::string XmlWriter::str(const std::string &tag, const std::string &content) {
 build 함수의 구현부는 별 특이한게 없이 간단한데 추후에 설명하겠지만 build() 함수에서 볼 수 있듯이 XmlBuilder의 생성자가 바뀌었다.  
 사용자는 XmlWriter 생성자에 접근할 수 없기 때문에 자식 노드를 만들기 위한 str() 함수를 따로 만들어 준다.  
 &nbsp;  
+
 xmlbuilder.h의 코드 내용이다.
 ```c++
 class XmlBuilder {
@@ -285,8 +294,9 @@ class Person {
     friend class PersonJobBuilder;
 };
 ```  
-생성자, 소멸자, 연산자 재정의 같은 세세한 구현부는 무시하고 Person 클래스에 주소와 직장 관련 데이터가 있다는 점에 주목하자.  
-친구 클래스로 PersonBuilder, PersonAddressBuilder, PersonJobBuilder를 선언한 것은 추후에 설명한다.  
+일단 해당 객체의 생성자는 private이기 때문에 Person 클래스를 사용하려면 빌더 클래스의 인터페이스를 무조건 이용해야 한다.  
+연산자 재정의 같은 세세한 구현부는 무시하고 Person 클래스에 주소와 직장 관련 데이터가 있다는 점에 주목하자.  
+친구 클래스로 PersonBuilder, PersonAddressBuilder, PersonJobBuilder를 선언하여 각종 빌더 클래스가 Person 클래스의 private에 접근할 수 있게 해준다.
 여기서 핵심은 개발자가 주소 데이터들에 대한 빌더와 직장 데이터들에 대한 빌더를 따로 만들어 구성하고 싶다면 컴포지트 빌더 패턴이 적합하다는 것이다.   
 &nbsp;  
 
@@ -311,7 +321,7 @@ class PersonBuilderBase {
 이 녀석은 실제 Person 객체를 들고 있지 않고 단지 참조만 할 뿐이다.  
 그리고 해당 빌더 베이스를 사용하면 형변환 연산 재정의 구현부에서 알 수 있듯이 ```std::move()```를 사용해 참조했던 녀석을 다른 곳으로 옮겨버린다.  
 주소 빌더의 인터페이스가 되는 lives() 함수와 직장 빌더의 인터페이스가 되는 works() 함수를 구현해준다.  
-&nbsp; 
+&nbsp;  
 
 lives(), works() 함수 구현부는 다음과 같다.  
 ```c++
@@ -325,7 +335,103 @@ PersonJobBuilder PersonBuilderBase::works() const {
 ```
 PersonAddressBuilder, PersonJobBuilder에서 구현된 빌더 인터페이스를 사용하기 위해 PersonAddressBuilder, PersonJobBuilder 객체를 그대로 반환해준다.  
 
+&nbsp;  
+주소 데이터를 생성하는 PersonAddressBuilder 클래스의 모습은 밑과 같다.  
+```c++
+class PersonAddressBuilder : public PersonBuilderBase {
+  public:
+    explicit PersonAddressBuilder(Person &person)
+        : PersonBuilderBase{person} {
+    }
 
+    PersonAddressBuilder &at(std::string street_address) {
+        person.street_address = street_address;
+        return *this;
+    }
+
+    PersonAddressBuilder &with_postcode(std::string post_code) {
+        person.post_code = post_code;
+        return *this;
+    }
+
+    PersonAddressBuilder &in(std::string city) {
+        person.city = city;
+        return *this;
+    }
+};
+```
+주소 데이터의 각 street_address, post_code, city 정보들을 삽입할 수 있는 인터페이스 함수들이 자리하고 있다.  
+해당 인터페이스들은 자연스러운 객체 생성을 위해 this 포인터를 리턴하여 흐름식 빌더를 구성하고 있다.  
+&nbsp;  
+
+직업 데이터를 생성하는 빌더인 PersonJobBuilder 클래스의 구조도 PersonAddressBuilder와 다를 것이 없다.
+```c++
+class PersonJobBuilder : public PersonBuilderBase {
+  public:
+    explicit PersonJobBuilder(Person &person)
+        : PersonBuilderBase{person} {
+    }
+
+    PersonJobBuilder &at(std::string company_name) {
+        person.company_name = company_name;
+        return *this;
+    }
+
+    PersonJobBuilder &as_a(std::string position) {
+        person.position = position;
+        return *this;
+    }
+
+    PersonJobBuilder &earning(int annual_income) {
+        person.annual_income = annual_income;
+        return *this;
+    }
+};
+```
+&nbsp;  
+
+직업과 주소 데이터를 생성해주는 빌더를 알아보았다.  
+그런데 정작 Person 클래스의 실체는 어디있을까?  
+PersonBuilderBase에는 Person의 참조만이 있을 뿐이고 생성할 Person의 실체는 다른 곳에서 받아와야 한다.  
+PersonJobBuilder, PersonAddressBuilder 클래스도 상황은 똑같다.  
+이러한 실체를 담고 있는 PersonBuilder 클래스를 만들어야 한다.  
+&nbsp;  
+
+밑은 PersonBuilder 클래스의 구조다.  
+```c++
+class PersonBuilder : public PersonBuilderBase {
+    Person p;
+
+  public:
+    PersonBuilder() : PersonBuilderBase{p} {
+    }
+};
+```
+정말 뭐가 없다.  
+그냥 생성중인 Person 객체의 실체만 존재할 뿐이다.  
+&nbsp;  
+
+마지막으로 Person 클래스에 객체를 생성해줄수 있도록 static 함수 create()를 정의해준다.  
+```c++
+PersonBuilder Person::create() {
+    return PersonBuilder{};
+}
+```
+&nbsp;  
+
+이렇게 되면 밑과 같은 표현으로 객체 생성이 가능하다.  
+```c++
+Person p = Person::create()
+            .lives()
+                .at("서울특별시 종로구 수표로22길 17")
+                .with_postcode("03139")
+                .in("서울")
+            .works()
+                .at("Steam Company")
+                .as_a("C level")
+                .earning(70e6);
+```
+굉장히 직관적이다.  
 
 &nbsp;  
 ## 그루비-스타일 빌더  
