@@ -526,7 +526,7 @@ gdb 실행시 같이 넘겨줄 인자들을 정의한다.
             "console": "internalConsole"
         },
         {
-			"name": "LLDB Debug",
+	    "name": "LLDB Debug",
             "type": "lldb",
             "request": "launch",
             "program": "${command:cmake.launchTargetPath}",
