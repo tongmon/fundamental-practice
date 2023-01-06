@@ -436,3 +436,151 @@ Person p = Person::create()
 &nbsp;  
 ## 그루비-스타일 빌더  
 
+도메인에 특화된 언어(DSL)의 생성을 지원할 때 사용한다.  
+C++의 유니폼 초기화 기능을 적극적으로 이용하는 빌더 패턴이라고 보면 된다.  
+도메인에 특화된 언어 HTML과 관련된 클래스를 예시로 들며 패턴을 설명하겠다.  
+&nbsp;  
+
+일단 HTML의 Tag에 대한 클래스이다.  
+모든 클래스는 ```namespace HTML{}``` 내부에 있다.  
+```c++
+class Tag {
+  public:
+    std::string name;
+    std::string text;
+    std::vector<Tag> children;
+    std::vector<std::pair<std::string, std::string>> attributes;
+
+    friend std::ostream &operator<<(std::ostream &os, const Tag &tag) {
+        os << "<" << tag.name;
+
+        for (const auto &att : tag.attributes)
+            os << " " << att.first << "=\"" << att.second << "\"";
+
+        if (tag.children.size() == 0 && tag.text.length() == 0) {
+            os << "/>" << std::endl;
+        } else {
+            os << ">" << std::endl;
+
+            if (tag.text.length())
+                os << tag.text << std::endl;
+
+            for (const auto &child : tag.children)
+                os << child;
+
+            os << "</" << tag.name << ">" << std::endl;
+        }
+
+        return os;
+    }
+
+  protected:
+    Tag(const std::string &name, const std::string &text)
+        : name{name},
+          text{text} {
+    }
+
+    Tag(const std::string &name, const std::vector<Tag> &children)
+        : name{name},
+          children{children} {
+    }
+};
+```
+사소한 구현부는 신경쓰지 말고 유심히 봐야하는 것은 Tag 클래스의 생성자 부분이다.  
+생성자가 2개인데 하나는 이름과 텍스트 속성만 초기화하는 것이지만 나머지 하나는 이름과 자식들을 받아 초기화한다.  
+자식들을 받아 초기화하는 생성자가 그루비-스타일 빌더 패턴의 핵심이다.  
+이제 해당 Tag 클래스를 상속받아 HTML의 다양한 태그를 만들 수 있다.  
+&nbsp;  
+
+먼저 HTML의 Block 태그인 ```<P>``` 태그를 밑과 같이 만들어보자.  
+```c++
+class P : public Tag {
+  public:
+    P(const std::string &text)
+        : Tag{"p", text} {
+    }
+
+    P(std::initializer_list<Tag> children)
+        : Tag("p", children) {
+    }
+};
+```
+여기서는 ```std::initializer_list<Tag>```를 이용한 생성자가 핵심이다.  
+이니셜라이저 리스트와 유니폼 초기화가 맞물려 DSL을 C++ 문법을 최대한 유지하면서 표현할 수 있다.
+후에 나오는 Tag 클래스 사용 예시를 보면 느낌이 확 올 것이다.  
+&nbsp;  
+
+사용 예시를 보여주기 위해 HTML의 나머지 기타 태그들을 살짝만 구현한다.  
+```c++
+class IMG : public Tag {
+  public:
+    IMG(const std::string &url)
+        : Tag{"img", ""} {
+        attributes.emplace_back(make_pair("src", url));
+    }
+};
+
+class BODY : public Tag {
+  public:
+    BODY(const std::string &text)
+        : Tag{"body", text} {
+    }
+    BODY(std::initializer_list<Tag> children)
+        : Tag("body", children) {
+    }
+};
+
+class H1 : public Tag {
+  public:
+    H1(const std::string &text)
+        : Tag{"h1", text} {}
+};
+```
+Paragraph 태그와 별 다를 것이 없다.  
+&nbsp;  
+
+밑은 C++로 DSL을 표현한 예시이다.  
+유니폼 초기화 덕분에 도메인 언어와 굉장히 비슷한 문법으로 초기화가 가능하다.  
+```c++
+std::cout <<
+    HTML::BODY
+    {
+        HTML::H1
+        {
+            "This is First Heading!"
+        },
+        HTML::P
+        {
+            "This is First Paragraph!"
+        },
+        HTML::P
+        {
+            HTML::IMG
+            {
+                "https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/250px-Google_2015_logo.svg.png"
+            }
+        }
+    }
+<< std::endl;
+```
+&nbsp;  
+
+위 코드의 출력 결과는 밑과 같다.  
+```html
+<body>
+<h1>
+This is First Heading!  
+</h1>
+<p>
+This is First Paragraph!
+</p>
+<p>
+<img src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2f/Google_2015_logo.svg/250px-Google_2015_logo.svg.png"/>
+</p>
+</body>
+```
+들여쓰기 구현만 안되어 있지 구현한 HTML 요소는 다 포함되어 있다. 
+&nbsp;  
+
+정리해보자면 그루비-스타일 빌더 패턴은 ```std::initializer_list```와 유니폼 초기화를 이용하는 패턴으로 객체를 생성하는 코드를 작성할 때 사람이 이해하기 쉬운 형태를 유지하는 것이 장점이라고 볼 수 있다.  
+따라서 겹겹이 쌓인 복잡한 객체를 만드는 경우 활용할 수 있을 것이다.  
