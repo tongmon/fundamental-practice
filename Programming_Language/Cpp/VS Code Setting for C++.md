@@ -184,6 +184,7 @@ Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이�
 			            "installDir": "${sourceDir}/Installed"
 			        },
 			        {
+			            "description": "Windows에서 Unix Makefiles와 Clang 컴파일러 사용",
 			            "name": "windows-base",
 			            "hidden": true,
 			            "generator": "Unix Makefiles",
@@ -250,10 +251,10 @@ Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이�
 			            "hidden": true,
 			            "generator": "MinGW Makefiles",
 			            "inherits": "base",
+			            "toolchainFile": "$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
 			            "cacheVariables": {
 			                "CMAKE_C_COMPILER": "clang",
-			                "CMAKE_CXX_COMPILER": "clang++",
-			                "CMAKE_TOOLCHAIN_FILE": "$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+			                "CMAKE_CXX_COMPILER": "clang++"
 			            },
 			            "condition": {
 			                "type": "equals",
@@ -322,6 +323,9 @@ Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이�
 			* configurePresets  
 				CMake 구성에 관련된 프리셋이 적힌다.    
 
+			* description   
+				특정 항목에 대한 설명이 들어간다.     
+
 			* name  
 				프리셋 이름이다.  
 				다른 프리셋의 이름과 같을 순 없다.   
@@ -340,7 +344,8 @@ Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이�
 				```CMAKE_INSTALL_PREFIX```에 경로 지정하는 것과 같은 효과		
 
         	* inherits   
-				프리셋을 상속하는데 사용됨   		
+				프리셋을 상속하는데 사용됨   
+				문자열 말고 배열로 여러개 상속할 수도 있음	 
 
 			* architecture  
 				프로젝트 빌드 대상 아키텍쳐에 대한 정보를 적는다.      
@@ -380,6 +385,9 @@ Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이�
 				CTest로 테스르를 진행할 때 사용될 프리셋이다.  
 				CTest를 사용하지 않는다면 없어도 무방하다.  		
 
+        	* toolchainFile   
+				CMake의 CMAKE_TOOLCHAIN_FILE 변수를 지정하는 것과 동일한 효과지만 이게 더 추천된다.  
+
 			더 자세한 정보는 https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html 이곳에 적혀있다.  
 		
 		1. 해당 CMakePresets.json을 다 작성했다면 CMake Tools에서 제공하는 하단의 파란색 바에서 적절한 구성, 빌드 프리셋을 선택하고 빌드하면 된다.  
@@ -392,6 +400,7 @@ VS Code의 좌측 탭의 ```실행 밑 디버그```에 들어가서 launch.json 
 일단 아무 세팅이나 선택해도 상관없다.  
 .vscode/launch.json이 생성되었다면 해당 파일을 구성해야 하는데 일단 LLDB 구성부터 보겠다.  
 &nbsp;  
+
 밑은 launch.json 파일의 LLDB 구성이다.
 ```json
 {

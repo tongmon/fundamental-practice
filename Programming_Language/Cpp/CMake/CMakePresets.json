@@ -7,21 +7,12 @@
     },
     "configurePresets": [
         {
-            "name": "base",
-            "hidden": true,
-            "binaryDir": "${sourceDir}/Build/${presetName}",
-            "installDir": "${sourceDir}/Installed"
-        },
-        {
+            "description": "윈도우 빌드 전용 / 컴파일 빌드 폴더와 설치 폴더 지정",
             "name": "windows-base",
             "hidden": true,
-            "generator": "Ninja",
-            "inherits": "base",
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_TOOLCHAIN_FILE": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake"
-            },
+            "binaryDir": "${sourceDir}/Build/${presetName}",
+            "installDir": "${sourceDir}/Installed/${presetName}",
+            "toolchainFile": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
             "condition": {
                 "type": "equals",
                 "lhs": "${hostSystemName}",
@@ -29,9 +20,67 @@
             }
         },
         {
-            "name": "windows-x64-debug",
-            "displayName": "x64 Debug",
+            "description": "Ninja와 Clang 컴파일러 사용",
+            "name": "clang",
+            "hidden": true,
+            "generator": "Ninja",
             "inherits": "windows-base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "description": "MinGW Makefiles와 GCC 컴파일러 사용",
+            "name": "gcc",
+            "hidden": true,
+            "generator": "MinGW Makefiles",
+            "inherits": "windows-base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "description": "MSVC 컴파일러 사용",
+            "name": "msvc",
+            "hidden": true,
+            "generator": "Visual Studio 17 2022",
+            "inherits": "windows-base"
+        },
+        {
+            "description": "MSVC 컴파일러로 x64 빌드",
+            "name": "msvc-x64",
+            "displayName": "MSVC x64",
+            "inherits": "msvc",
+            "architecture": {
+                "value": "x64",
+                "strategy": "set"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+                "CMAKE_CXX_FLAGS": "/MP /D_UNICODE /DUNICODE /D_CRT_SECURE_NO_WARNINGS /JMC /permissive- /EHsc"
+            }
+        },
+        {
+            "description": "MSVC 컴파일러로 x86 빌드",
+            "name": "msvc-x86",
+            "displayName": "MSVC x86",
+            "inherits": "msvc",
+            "architecture": {
+                "value": "Win32",
+                "strategy": "set"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x86-windows-static",
+                "CMAKE_CXX_FLAGS": "/DWIN32 /MP /D_UNICODE /DUNICODE /D_CRT_SECURE_NO_WARNINGS /JMC /permissive- /EHsc"
+            }
+        },
+        {
+            "description": "Clang 컴파일러로 x64 디버그 빌드",
+            "name": "clang-x64-debug",
+            "displayName": "Clang x64 Debug",
+            "inherits": "clang",
             "architecture": {
                 "value": "x64",
                 "strategy": "external"
@@ -43,9 +92,10 @@
             }
         },
         {
-            "name": "windows-x64-release",
-            "displayName": "x64 Release",
-            "inherits": "windows-base",
+            "description": "Clang 컴파일러로 x64 릴리즈 빌드",
+            "name": "clang-x64-release",
+            "displayName": "Clang x64 Release",
+            "inherits": "clang",
             "architecture": {
                 "value": "x64",
                 "strategy": "external"
@@ -57,9 +107,10 @@
             }
         },
         {
-            "name": "windows-x86-debug",
-            "displayName": "x86 Debug",
-            "inherits": "windows-base",
+            "description": "Clang 컴파일러로 x86 디버그 빌드",
+            "name": "clang-x86-debug",
+            "displayName": "Clang x86 Debug",
+            "inherits": "clang",
             "architecture": {
                 "value": "x86",
                 "strategy": "external"
@@ -71,9 +122,10 @@
             }
         },
         {
-            "name": "windows-x86-release",
-            "displayName": "x86 Release",
-            "inherits": "windows-base",
+            "description": "Clang 컴파일러로 x86 릴리즈 빌드",
+            "name": "clang-x86-release",
+            "displayName": "Clang x86 Release",
+            "inherits": "clang",
             "architecture": {
                 "value": "x86",
                 "strategy": "external"
@@ -85,64 +137,109 @@
             }
         },
         {
-            "name": "linux-base",
-            "hidden": true,
-            "generator": "MinGW Makefiles",
-            "inherits": "base",
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "gcc",
-                "CMAKE_CXX_COMPILER": "g++",
-                "CMAKE_TOOLCHAIN_FILE": "$VCPKG_ROOT/scripts/buildsystems/vcpkg.cmake"
+            "description": "GCC 컴파일러로 x64 디버그 빌드",
+            "name": "gcc-x64-debug",
+            "displayName": "GCC x64 Debug",
+            "inherits": "gcc",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
             },
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Linux"
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
+                "CMAKE_CXX_FLAGS": "-m64",
+                "CMAKE_C_FLAGS": "-m64",
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "macos-base",
-            "hidden": true,
-            "generator": "Unix Makefiles",
-            "inherits": "base",
-            "cacheVariables": {
-                "CMAKE_C_COMPILER": "clang",
-                "CMAKE_CXX_COMPILER": "clang++",
-                "CMAKE_TOOLCHAIN_FILE": "~/vcpkg/scripts/buildsystems/vcpkg.cmake"
+            "description": "GCC 컴파일러로 x64 릴리즈 빌드",
+            "name": "gcc-x64-release",
+            "displayName": "GCC x64 Release",
+            "inherits": "gcc",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
             },
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Darwin"
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
+                "CMAKE_CXX_FLAGS": "-O3 -Wall -m64",
+                "CMAKE_C_FLAGS": "-O3 -Wall -m64",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "description": "GCC 컴파일러로 x86 디버그 빌드",
+            "name": "gcc-x86-debug",
+            "displayName": "GCC x86 Debug",
+            "inherits": "gcc",
+            "architecture": {
+                "value": "x86",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x86-mingw-static",
+                "CMAKE_CXX_FLAGS": "-m32",
+                "CMAKE_C_FLAGS": "m32",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "description": "GCC 컴파일러로 x86 릴리즈 빌드",
+            "name": "gcc-x86-release",
+            "displayName": "GCC x86 Release",
+            "inherits": "gcc",
+            "architecture": {
+                "value": "x86",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x86-mingw-static",
+                "CMAKE_CXX_FLAGS": "-O3 -Wall -m32",
+                "CMAKE_C_FLAGS": "-O3 -Wall -m32",
+                "CMAKE_BUILD_TYPE": "Release"
             }
         }
     ],
     "buildPresets": [
         {
-            "name": "windows-x64-debug-default",
-            "displayName": "Default",
-            "jobs": 12,
-            "configurePreset": "windows-x64-debug"
+            "name": "msvc-base-build-settings",
+            "hidden": true,
+            "nativeToolOptions": [
+                "/maxcpucount",
+                "/nologo",
+                "/verbosity:minimal"
+            ],
+            "jobs": 16
         },
         {
-            "name": "windows-x64-release-default",
-            "displayName": "Default",
-            "jobs": 12,
-            "configurePreset": "windows-x64-release"
+            "name": "msvc-x64-debug-build",
+            "displayName": "Debug Build",
+            "inherits": "msvc-base-build-settings",
+            "configuration": "Debug",
+            "configurePreset": "msvc-x64"
+        },
+        {
+            "name": "msvc-x64-release-build",
+            "displayName": "Release Build",
+            "inherits": "msvc-base-build-settings",
+            "configuration": "Release",
+            "configurePreset": "msvc-x64"
+        },
+        {
+            "name": "msvc-x86-debug-build",
+            "displayName": "Debug Build",
+            "inherits": "msvc-base-build-settings",
+            "configuration": "Debug",
+            "configurePreset": "msvc-x86"
+        },
+        {
+            "name": "msvc-x86-release-build",
+            "displayName": "Release Build",
+            "inherits": "msvc-base-build-settings",
+            "configuration": "Release",
+            "configurePreset": "msvc-x86"
         }
     ],
-    "testPresets": [
-        {
-            "name": "windows-x64-debug-default",
-            "displayName": "Default",
-            "output": {
-                "outputOnFailure": true
-            },
-            "execution": {
-                "noTestsAction": "error",
-                "stopOnFailure": true
-            },
-            "configurePreset": "windows-x64-debug"
-        }
-    ]
+    "testPresets": []
 }
