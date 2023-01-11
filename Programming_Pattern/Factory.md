@@ -72,8 +72,127 @@ class Point {
 어떤 좌표계를 사용할 것인지 함수의 이름도 명확하고 함수 인자들도 명확하게 정보를 제공하고 있다.  
 &nbsp;  
 
+실제 사용은 밑과 같다.  
+```c++
+Point ptCartesian = Point::NewCartesian(1, 4);
+Point ptPolar = Point::NewPolar(5, 3.14159265);
+```
+&nbsp;  
+
 ## 팩터리  
 
 빌더 패턴에서 했던 것 처럼 클래스를 생성하는 로직 부분을 별도의 클래스에 몰아넣을 수 있다.  
 이러한 클래스를 팩터리라고 한다.  
+&nbsp;  
+
+Point 클래스를 밑과 같이 바꿔준다.  
+```c++
+class Point {
+    Point(float x, float y) : x(x), y(y) {}
+
+  public:
+    float x, y;
+    friend class PointFactory;
+};
+```
+주요하게 볼 점은 PointFactory라는 팩터리 클래스가 친구 함수로 들어갔다는 것이다.  
+PointFactory라는 객체 생성을 담당하는 녀석이 존재하기 때문에 Point의 기존 생성자는 숨긴다.  
+&nbsp;  
+
+PointFactory 객체는 밑과 같다.  
+```c++
+class PointFactory {
+  public:
+    static Point NewCartesian(float x, float y) {
+        return Point{x, y};
+    }
+
+    static Point NewPolar(float r, float theta) {
+        return Point{r * cos(theta), r * sin(theta)};
+    }
+};
+```
+&nbsp;  
+
+실제 사용할 때는 밑과 같다.
+```c++
+Point ptCartesian = PointFactory::NewCartesian(1, 4);
+Point ptPolar = PointFactory::NewPolar(5, 3.14159265);
+```
+&nbsp;  
+
+## 내부 팩터리  
+
+별건 없고 팩터리 클래스를 내부에 위치 시키는 방법이다.  
+C++에서는 굳이 사용 안해도 되지만 friend 문법이 없는 C#, Java에서는 꽤 쓰인다.  
+&nbsp;  
+
+밑 코드는 Point 클래스에 내부 팩터리 패턴을 적용한 모습이다.  
+```c++
+class Point {
+    Point(float x, float y) : x(x), y(y) {}
+
+    class PointFactory {
+        PointFactory() {}
+
+      public:
+        static Point NewCartesian(float x, float y) {
+            return {x, y};
+        }
+        static Point NewPolar(float r, float theta) {
+            return {r * cos(theta), r * sin(theta)};
+        }
+    };
+
+  public:
+    float x, y;
+    static PointFactory Factory;
+};
+```
+PointFactory 클래스가 Point 클래스 내부로 들어오고 static 클래스 멤버 변수인 Factory가 추가되었다.  
+&nbsp;  
+
+실제 사용 방법은 밑과 같다.  
+```c++
+Point ptCartesian = Point::Factory.NewCartesian(1, 3);
+Point ptPolar = Point::Factory.NewPolar(5, 3.14159265);
+```
+&nbsp;  
+
+Factory 뒤에 . 이 붙고 함수가 호출되는 문법이 싫다면 Point 클래스를 다음과 같이 바꿔보자.  
+```c++
+class Point {
+    Point(float x, float y) : x(x), y(y) {}
+
+  public:
+    class PointFactory {
+        PointFactory() {}
+
+      public:
+        static Point NewCartesian(float x, float y) {
+            return {x, y};
+        }
+        static Point NewPolar(float r, float theta) {
+            return {r * cos(theta), r * sin(theta)};
+        }
+    };
+
+    float x, y;
+};
+```
+PointFactory 클래스를 public으로 바꾸고 Factory 멤버 변수를 제거하였다.  
+&nbsp;  
+
+이러면 실제 사용 방법이 이렇게 된다.  
+```c++
+Point ptCartesian = Point::PointFactory::NewCartesian(1, 3);
+Point ptPolar = Point::PointFactory::NewPolar(5, 3.14159265);
+```
+&nbsp;  
+
+클래스 관리를 할 때 클래스 내부에 모든 것을 넣어 관리하는 것이 편하다면 내부 팩터리 패턴을 사용하면 된다.  
+&nbsp;  
+
+## 추상 팩터리  
+
 
