@@ -1,26 +1,43 @@
-# C++ 빌드를 위한 VS Code 세팅
+# C++ 빌드를 위한 VS Code 세팅  
+일단 VS Code를 C++ 에디터로 사용한다는 것은 크로스 플랫폼을 고려한다는 것이지만 일단 설명은 필자가 사용하고 있는 Windows 10 기준에 중점이 맞춰져 있다.   
+Linux나 Mac에서 C++ 빌드 환경을 구성하는 것은 Windows랑 별반 차이가 없을 뿐만 아니라 오히려 더 쉬운 부분이 많다.  
 
 ## VS Code에서 C++ 빌드를 하기 위한 사전 준비
 
-1. Microsoft Store에 들어가서 Windows Terminal을 설치해준다.  
+1. Microsoft Store에 들어가서 Windows Terminal을 설치해준다. (그냥 깔려져있는 Powershell을 이용해도 되지만 편의성을 위해서 설치해준다.)  
 
-2. Windows Terminal에서 PowerShell 탭을 열고 ```$PSVersionTable``` 명령어를 수행한 뒤에 출력된 PSVersion이 3 이상인지 확인한다. (3이하라면 PowerShell을 업데이트해준다. PowerShell 업데이트 방법은 알아서 찾아라...)  
+2. Windows Terminal에서 PowerShell 탭을 열고 ```$PSVersionTable``` 명령어를 수행한 뒤에 출력된 PSVersion이 3 이상인지 확인한다. (3이하라면 PowerShell을 업데이트해준다.)  
 
 3. .NET Framework 4.5 버전 이상이 설치되어 있는지 확인한다. (Visual Studio에서 ```.NET 테스크톱 개발``` 항목을 선택하면 알아서 최신버전의 .NET Framework를 설치해준다.)  
 
 4. Windows Terminal을 관리자 모드로 열고 PowerShell 탭을 띄운후에 Get-ExecutionPolicy 명령어를 수행 후에 Restricted인지 확인한다.  
 Restricted이라면 Set-ExecutionPolicy AllSigned 명령어를 추가적으로 수행해준다.  
 
-5. ```Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))``` 명령어를 수행해 Chocolatey를 설치해준다.  
+1. ```Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))``` 명령어를 수행해 Chocolatey를 설치해준다.  
   
-6. 설치가 끝났으면 Windows Terminal를 관리자 모드로 재시작해주고 PowerShell 탭을 띄우고 choco 명령어를 수행해 Chocolatey가 잘 설치되었는지 확인한다.  
+2. 설치가 끝났으면 Windows Terminal를 관리자 모드로 재시작해주고 PowerShell 탭을 띄우고 choco 명령어를 수행해 Chocolatey가 잘 설치되었는지 확인한다.  
   
-7. ```choco install graphviz```, ```choco install git```, ```choco install doxygen.install```, ```choco install python```, ```choco install make```, ```choco install llvm```, ```choco install ninja```, ```choco install cmake``` 명령어를 순차적으로 실행해서 CMake 활용에 필요한 프로그램들을 깔아준다.  
-llvm은 clang 컴파일러를 사용하지 않을 것이라면 굳이 안깔아도 된다. (gcc, msvc 등 다른 좋은 컴파일러도 있지만 clang이 설치하기 가장 편하다.)  
-make와 ninja는 둘 중 하나만 설치해도 된다. (ninja가 빌드할 때 좀 더 빠르다.)  
-여기서 중요한 점은 CMake 시스템 환경변수가 올바르게 등록되었는지를 알아야 한다.  
+3. ```choco install graphviz```, ```choco install git```, ```choco install doxygen.install```, ```choco install python```, ```choco install cmake``` 여기까지는 어떤 컴파일러를 사용하던지 필수적이니 깔아준다.  
+   
+	* **Visual Studio를 사용하고 싶다.**  
+		Visual Studio Installer를 다운받고 C++ 구성요소를 선택하고 Visual Studio를 설치해주면 된다.  
+		어떤 버전이든 Visual Studio가 깔려져 있다면 generator와 컴파일러, 디버거까지 모든 것이 갖춰져 있을 것이다.  
+		Visual Studio 2022 버전 기준으로 generator는 ```Visual Studio 17 2022```, C/C++ 컴파일러는 ```cl.exe```, 디버거는 ```vsdbg```를 사용하게 된다.  
 
-8. CMake를 설치해도 PowerShell 관리자 모드에서 cmake --version 명령어가 제대로 실행되지 않는다면 환경변수가 제대로 설정되지 않은 것이니 시스템 속성 -> 고급 탭 -> 환경 변수 -> 시스템 변수 -> Path 에 cmake.exe가 위치한 폴더 경로를 추가해주자. (보통 ```C:\Program Files\CMake\bin``` 이거다.)   
+	* **Clang 컴파일러를 사용하고 싶다.**  
+		```choco install llvm```, ```choco install ninja```로 LLVM과 Ninja를 추가적으로 설치해준다.  
+		generator로 Ninja말고 Make를 사용하고 싶다면 ```choco install make```로 Unix Makefiles를 설치해준다.  
+		이렇게 세팅한다면 generator는 ```Ninja```(혹은 ```Unix Makefiles```), C 컴파일러는 ```clang```, C++ 컴파일러는 ```clang++```, 디버거는 ```lldb```를 사용하게 된다.  
+		Clang과 Ninja는 Windows, Linux, Mac에서 잘 작동하기 때문에 크로스 플랫폼 빌드를 추구하는 CMake와 가장 조합이 잘 맞는다.  
+
+	* **GCC 컴파일러를 사용하고 싶다.**  
+		자신이 사용하는 플랫폼이 Linux라면 보통 GCC를 사용하게 될 것이다.  
+		Windows에서 GCC를 사용하려면 MinGW를 설치해줘야 한다.  
+		MinGW 설치 방법은 인터넷에 널렸으니 찾아보고 Windows에서 GCC를 사용할 때 가장 문제점은 x64 비트용 GCC를 설치했다면 x64용 프로그램만 빌드되고 x86용 프로그램은 빌드가 안되어서 결국 x64용 GCC, x86용 GCC 이렇게 두 개를 모두 깔아줘야 해결이 된다...  
+		반면에 리눅스에서는 multilib를 설치하면 x64 GCC로 x86용 프로그램을 빌드 할 수 있다.  
+		이렇게 세팅한다면 generator는 ```MinGW Makefiles```, C 컴파일러는 ```gcc```, C++ 컴파일러는 ```g++```, 디버거는 ```gdb```를 사용하게 된다.  	
+
+4. CMake를 설치해도 PowerShell 관리자 모드에서 cmake --version 명령어가 제대로 실행되지 않는다면 환경변수가 제대로 설정되지 않은 것이니 시스템 속성 -> 고급 탭 -> 환경 변수 -> 시스템 변수 -> Path 에 cmake.exe가 위치한 폴더 경로를 추가해주자. (보통 ```C:\Program Files\CMake\bin``` 이거다.)   
 
 ## VS Code 플러그인  
 아래는 VS Code에서 C++ 사용시 유용한 플러그인 이름이 나열된다.  

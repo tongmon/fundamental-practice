@@ -141,14 +141,9 @@
             "name": "gcc-x64-debug",
             "displayName": "GCC x64 Debug",
             "inherits": "gcc",
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
                 "CMAKE_CXX_FLAGS": "-m64",
-                "CMAKE_C_FLAGS": "-m64",
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
@@ -157,46 +152,9 @@
             "name": "gcc-x64-release",
             "displayName": "GCC x64 Release",
             "inherits": "gcc",
-            "architecture": {
-                "value": "x64",
-                "strategy": "external"
-            },
             "cacheVariables": {
                 "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
                 "CMAKE_CXX_FLAGS": "-O3 -Wall -m64",
-                "CMAKE_C_FLAGS": "-O3 -Wall -m64",
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "description": "GCC 컴파일러로 x86 디버그 빌드",
-            "name": "gcc-x86-debug",
-            "displayName": "GCC x86 Debug",
-            "inherits": "gcc",
-            "architecture": {
-                "value": "x86",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x86-mingw-static",
-                "CMAKE_CXX_FLAGS": "-m32",
-                "CMAKE_C_FLAGS": "m32",
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "description": "GCC 컴파일러로 x86 릴리즈 빌드",
-            "name": "gcc-x86-release",
-            "displayName": "GCC x86 Release",
-            "inherits": "gcc",
-            "architecture": {
-                "value": "x86",
-                "strategy": "external"
-            },
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x86-mingw-static",
-                "CMAKE_CXX_FLAGS": "-O3 -Wall -m32",
-                "CMAKE_C_FLAGS": "-O3 -Wall -m32",
                 "CMAKE_BUILD_TYPE": "Release"
             }
         }
@@ -209,8 +167,14 @@
                 "/maxcpucount",
                 "/nologo",
                 "/verbosity:minimal"
-            ],
-            "jobs": 16
+            ]
+        },
+        {
+            "name": "make-base-build-settings",
+            "hidden": true,
+            "nativeToolOptions": [
+                "-j$env{NUMBER_OF_PROCESSORS}"
+            ]
         },
         {
             "name": "msvc-x64-debug-build",
@@ -239,6 +203,38 @@
             "inherits": "msvc-base-build-settings",
             "configuration": "Release",
             "configurePreset": "msvc-x86"
+        },
+        {
+            "name": "clang-x64-debug-build",
+            "displayName": "Debug Build",
+            "configurePreset": "clang-x64-debug"
+        },
+        {
+            "name": "clang-x64-release-build",
+            "displayName": "Release Build",
+            "configurePreset": "clang-x64-release"
+        },
+        {
+            "name": "clang-x86-debug-build",
+            "displayName": "Debug Build",
+            "configurePreset": "clang-x86-debug"
+        },
+        {
+            "name": "clang-x86-release-build",
+            "displayName": "Release Build",
+            "configurePreset": "clang-x86-release"
+        },
+        {
+            "name": "gcc-x64-debug-build",
+            "displayName": "Debug Build",
+            "inherits": "make-base-build-settings",
+            "configurePreset": "gcc-x64-debug"
+        },
+        {
+            "name": "gcc-x64-release-build",
+            "displayName": "Release Build",
+            "inherits": "make-base-build-settings",
+            "configurePreset": "gcc-x64-release"
         }
     ],
     "testPresets": []

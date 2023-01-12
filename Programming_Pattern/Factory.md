@@ -195,4 +195,4 @@ Point ptPolar = Point::PointFactory::NewPolar(5, 3.14159265);
 
 ## 추상 팩터리  
 
-
+여러 연관된 객체들을 생성하는 복잡한 코드 구조에 사용되는 패턴이다.  
