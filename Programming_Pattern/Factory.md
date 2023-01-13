@@ -196,3 +196,122 @@ Point ptPolar = Point::PointFactory::NewPolar(5, 3.14159265);
 ## 추상 팩터리  
 
 여러 연관된 객체들을 생성하는 복잡한 코드 구조에 사용되는 패턴이다.  
+일단 예시로 탈 것에 대한 클래스를 만들어 보기로 하자.  
+&nbsp;  
+
+밑은 탈 것에 대한 클래스이다.  
+```c++
+class Vehicle {
+  public:
+    Vehicle() {}
+    virtual void drive(std::string oil_type, int oil_amount) = 0;
+};
+```
+Vehicle을 상속하면 drive를 재정의 해줘야 한다.  
+&nbsp;  
+
+자동차와 비행기에 대한 클래스이다.  
+```c++
+class Car : public Vehicle {
+  public:
+    Car() : Vehicle() {}
+    void drive(std::string oil_type, int oil_amount) {
+        std::cout << "Car needs " << oil_amount << " liter of " << oil_type << " oil for riding the road!\n";
+    }
+};
+
+class Airplane : public Vehicle {
+  public:
+    Airplane() : Vehicle() {}
+    void drive(std::string oil_type, int oil_amount) {
+        std::cout << "Airplane needs " << oil_amount << " liter of " << oil_type << " oil for fly to the air!\n";
+    }
+};
+```
+&nbsp;  
+
+해당 두 클래스를 이용한 주유된 탈 것을 반환하는 함수를 만들어준다.    
+```c++
+std::unique_ptr<Vehicle> oiling(const std::string &vehicle_type) {
+    std::unique_ptr<Vehicle> vehicle;
+    if (vehicle_type == "car") {
+        vehicle = std::make_unique<Car>();
+        vehicle->drive("Gasoline", 100);
+    } else {
+        vehicle = std::make_unique<Airplane>();
+        vehicle->drive("Kerosene", 300);
+    }
+    return vehicle;
+}
+```
+일단 자동차와 비행기 이렇게 두 종류 밖에 없어서 분기 처리가 쉬웠지만 탈 것의 종류가 많아지면 많아질 수록 코드가 더러워질 것이다.  
+그리고 제일 중요한 것은 비행기와 자동차는 같은 곳에서 주유하지 않는다...  
+&nbsp;  
+
+위 처럼 함수만 달랑 있는 oiling() 대신에 추상 팩터리를 이용한 oiling() 함수를 만들어보자.  
+우선 탈 것에 따른 주유소를 나누기 위해 밑과 같은 팩터리 기저 클래스를 만든다.  
+```c++
+class VehicleGasStation {
+  public:
+    virtual std::unique_ptr<Vehicle> make() const = 0;
+};
+```
+위와 같은 클래스를 추상 팩터리라고 한다.  
+&nbsp;  
+
+추상 팩터리를 이용해서 밑과 같이 다른 팩터리 클래스들을 만들자.  
+```c++
+class CarGasStation : public VehicleGasStation {
+  public:
+    std::unique_ptr<Vehicle> make() const {
+        return std::make_unique<Car>();
+    }
+};
+
+class AirplaneGasStation : public VehicleGasStation {
+  public:
+    std::unique_ptr<Vehicle> make() const {
+        return std::make_unique<Airplane>();
+    }
+};
+```
+이렇게 하면 자동차와 비행기가 주유하는 곳이 나뉘어서 직관적으로 이해된다.  
+이 클래스들은 지금 객체는 생성하고 있지만 주유는 해주지 않는다.   
+&nbsp;  
+
+실제 주유를 해주는 클래스를 밑과 같이 만들어 보자.  
+```c++
+class GasStation {
+    std::unordered_map<std::string, std::unique_ptr<VehicleGasStation>> vehicle_gas_station;
+    std::unordered_map<std::string, std::pair<std::string, int>> vehicle_param;
+
+  public:
+    GasStation() {
+        vehicle_gas_station["car"] = std::make_unique<CarGasStation>();
+        vehicle_param["car"] = {"Gasoline", 100};
+
+        vehicle_gas_station["airplane"] = std::make_unique<AirplaneGasStation>();
+        vehicle_param["airplane"] = {"Kerosene", 300};
+    }
+    std::unique_ptr<Vehicle> oiling(const std::string &vehicle_type) {
+        std::unique_ptr<Vehicle> vehicle = vehicle_gas_station[vehicle_type]->make();
+        vehicle->drive(vehicle_param[vehicle_type].first, vehicle_param[vehicle_type].second);
+        return vehicle;
+    }
+};
+```
+이렇게 만들면 좋은 점은 oiling() 함수 내부 구조는 유지해도 된다는 것이다.  
+그래서 if()문을 주렁주렁 달 필요가 없어 코드가 직관적이다.  
+새로운 탈 것에 대한 정보가 생긴다면 GasStation의 생성자 부분에서 초기화를 적절히 해주고 VehicleGasStation를 상속하는 새로운 주유소 클래스를 만들면 된다.  
+&nbsp;  
+
+## 함수형 팩터리  
+
+추상 팩터리가 기저 클래스를 활용해 확장해 나가는 팩터리 패턴이였다면 함수형 팩터리는 따로 기저 클래스를 만들지 않고 함수를 이용하는 패턴이다.  
+보통 함수 중에서도 람다 함수를 이용하게 된다.  
+&nbsp;  
+
+추상 팩터리로 만들었던 GasStation 클래스를 함수형 팩터리를 이용해 다시 만들어보면 밑과 같다.  
+```c++
+
+```

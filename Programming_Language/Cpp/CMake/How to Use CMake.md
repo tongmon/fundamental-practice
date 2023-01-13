@@ -1,12 +1,23 @@
 # Windows 10 이상에서 CMake를 사용하는 법
 
 &NewLine;
+## CMake 사용 개요
+&NewLine;
+
+CMake는 크로스 플랫폼 빌드툴로 기존에 플랫폼마다 다른 컴파일러를 사용해서 빌드 환경이 계속 바뀌어 스트레스를 받는 현상을 현저히 줄여준다.  
+CMake의 빌드 시스템 구축 과정을 간단히 보자면 다음과 같다.  
+소스 파일이 위치한 곳에 CMakeLists.txt 파일을 만들어 놓고 해당 텍스트 파일에 CMake가 제공하는 함수들을 사용해 적어놓는다.  
+이때 주의할 점은 CMakeLists.txt 파일 이름인데 대소문자도 구별해서 똑같이 만들어야 한다. (Windows에서는 대소문자 틀려도 빌드 시스템이 작동할 수 있지만 Linux는 얄짤없다.)  
+그 다음 CMake Configuration에 해당하는 명령이 수행되어 빌드 환경이 구축되고 그 후에 CMake Build에 해당하는 명령이 수행되어 빌드가 진행된다.  
+CMake Configuration 명령은 세팅 옵션 목차에서 살펴볼 것이고 CMake Build 명령은 빌드 옵션 목차에서 살펴볼 것이다.  
+
+&NewLine;
 ## CMakeLists.txt 문법
 &NewLine;
 
 * **주석처리**  
 CMakeLists.txt에서 주석은 #으로 달아준다.  
-ex. ```# 이건 CMake 파일이다!!```
+ex. ```# 이건 CMake 파일이다!!```  
 
 * **cmake_minimum_required**  
 CMake의 최소 사용 버전을 설정해준다.  
@@ -359,7 +370,7 @@ install 함수는 CMake 프로젝트를 ```make install``` 명령어로 설치�
 한번이라도 프로젝트에서 쓰여야 ```make install``` 명령이 작동한다.  
   
 CMake는 기본적으로 install 경로를 ```${CMAKE_INSTALL_PREFIX}``` 이곳에 저장해두는데 시스템 경로이기에 바꿔주는 것이 좋다.  
-그냥 간단히 ```set()``` 명령어로 바뀌지 않기에 밑의 구문을 프로젝트 최상위 CMakelists.txt에 지정해둬야 한다.  
+그냥 간단히 ```set()``` 명령어로 바뀌지 않기에 밑의 구문을 프로젝트 최상위 CMakeLists.txt에 지정해둬야 한다.  
 ```cmake
 if( CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT )
   message(STATUS "Setting default CMAKE_INSTALL_PREFIX path to ${CMAKE_BINARY_DIR}/install")
@@ -650,7 +661,7 @@ ex. ```conan install . -if ./build```
 	}
 	```
 	아니면 그냥 settings.json 수정없이 cmake 세팅 명령어를 수행할 때 ```-DCMAKE_TOOLCHAIN_FILE=<vcpkg가 설치된 폴더 경로>/scripts/buildsystems/vcpkg.cmake``` 이걸 추가해줘도 된다.  
-	또 다른 방법은 CMakelists.txt 파일에 ```set(CMAKE_TOOLCHAIN_FILE C:/vcpkg/scripts/buildsystems/vcpkg.cmake)``` 이렇게 세팅해줘도 되는데 주의할 점은 ```project()``` 함수가 선언되기 전에 추가해야 한다. (vcpkg는 ```project()``` 함수 시작과 동시에 세팅되기 때문이다.)  
+	또 다른 방법은 CMakeLists.txt 파일에 ```set(CMAKE_TOOLCHAIN_FILE C:/vcpkg/scripts/buildsystems/vcpkg.cmake)``` 이렇게 세팅해줘도 되는데 주의할 점은 ```project()``` 함수가 선언되기 전에 추가해야 한다. (vcpkg는 ```project()``` 함수 시작과 동시에 세팅되기 때문이다.)  
 
 &NewLine;
 

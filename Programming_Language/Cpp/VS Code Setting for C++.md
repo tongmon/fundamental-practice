@@ -1,6 +1,7 @@
 # C++ 빌드를 위한 VS Code 세팅  
 일단 VS Code를 C++ 에디터로 사용한다는 것은 크로스 플랫폼을 고려한다는 것이지만 일단 설명은 필자가 사용하고 있는 Windows 10 기준에 중점이 맞춰져 있다.   
 Linux나 Mac에서 C++ 빌드 환경을 구성하는 것은 Windows랑 별반 차이가 없을 뿐만 아니라 오히려 더 쉬운 부분이 많다.  
+큰 차이점들을 살짝 살펴보자면 Windows에서 choco로 패키지를 설치하는 과정이 Linux에서는 apt-get install 명령어를 써야하는 것, 2023년 1월 13일 기준으로 native Linux를 지원하는 Visual Studio가 없어서 Linux에서는 보통 GCC, Clang 컴파일러를 쓰게 된다는 점, OS 별로 기저에 기본적으로 설치되어 있는 라이브러리들이 가지각색이라 상황에 따라 추가적인 라이브러리들을 설치해줘야 한다는 점 등이 있겠다.  
 
 ## VS Code에서 C++ 빌드를 하기 위한 사전 준비
 
@@ -35,7 +36,7 @@ Restricted이라면 Set-ExecutionPolicy AllSigned 명령어를 추가적으로 �
 		Windows에서 GCC를 사용하려면 MinGW를 설치해줘야 한다.  
 		MinGW 설치 방법은 인터넷에 널렸으니 찾아보고 Windows에서 GCC를 사용할 때 가장 문제점은 x64 비트용 GCC를 설치했다면 x64용 프로그램만 빌드되고 x86용 프로그램은 빌드가 안되어서 결국 x64용 GCC, x86용 GCC 이렇게 두 개를 모두 깔아줘야 해결이 된다...  
 		반면에 리눅스에서는 multilib를 설치하면 x64 GCC로 x86용 프로그램을 빌드 할 수 있다.  
-		이렇게 세팅한다면 generator는 ```MinGW Makefiles```, C 컴파일러는 ```gcc```, C++ 컴파일러는 ```g++```, 디버거는 ```gdb```를 사용하게 된다.  	
+		이렇게 세팅한다면 generator는 ```MinGW Makefiles```(혹은 ```Unix Makefiles```), C 컴파일러는 ```gcc```, C++ 컴파일러는 ```g++```, 디버거는 ```gdb```를 사용하게 된다.  	
 
 4. CMake를 설치해도 PowerShell 관리자 모드에서 cmake --version 명령어가 제대로 실행되지 않는다면 환경변수가 제대로 설정되지 않은 것이니 시스템 속성 -> 고급 탭 -> 환경 변수 -> 시스템 변수 -> Path 에 cmake.exe가 위치한 폴더 경로를 추가해주자. (보통 ```C:\Program Files\CMake\bin``` 이거다.)   
 
@@ -93,10 +94,11 @@ VS Code 코드 에디터에서 코드 에러 띄우는 기능을 개선해준다
 
 1.  CMake Tools by Microsoft  
 CMake 관련된 작업을 할 때 유용하다.  
-makefile로 명령어를 묶어 실행해 빌드하는 스타일이라면 꺼놓는 것이 좋다. (**설치 선택**)
+명령 팔레트에서 ```CMake: Configure```를 실행하면 VS CODE 파란색 하단 메뉴 목록에서 CMake 빌드 UI가 나타난다.  
+makefile로 명령어를 묶어 실행해 빌드하는 스타일이라면 꺼놓는 것이 좋다.  
 
 1.  C/C++ Include Guard by Akira Miyakoda  
-헤더 파일을 생성할 때 자동으로 헤더 가드를 붙여준다. (**설치 선택**)
+헤더 파일을 생성할 때 자동으로 헤더 가드를 붙여준다. (**설치 선택**)  
 
 ## VS Code 환경 설정  
 C++을 빌드할 수 있는 환경이 다양한 플러그인 설치를 통해 만들어졌다면 이제 실제 코드를 작성하는 경우 생산성을 높여주는 것들에 대해서 알아본다.  
@@ -123,7 +125,7 @@ Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이�
 
    	1. 두번째는 CMake, CMake Tools를 사용하는데 VS Code의 settings.json을 이용하는 방식이다.  
 	settings.json을 사용하기 때문에 CMake Tools를 잘 활용할 수 있다.  
-	즉 CMake Tools 설치하면 제공되는 VS Code 에디터 하단의 파란색 바에 다양한 빌드 관련 설정 UI 들을 사용할 수가 있다는 것이다.  
+	즉 CMake Tools 설치하고 명령 팔레트에서 ```CMake: Configure```를 실행하면 제공되는 VS Code 에디터 하단의 파란색 바에 다양한 빌드 관련 설정 UI 들을 사용할 수 있다. 
 	두번째 방식을 진행하는 절차는 다음과 같다.    
 		1. settings.json을 생성해주기 위해서 VS Code의 명령 팔레트에서 ```Preferences: Open Workspace Settings (JSON)``` 를 실행해준다.  
 		이러면 .vscode 폴더 내에 settings.json이 생성될 것이다.  
@@ -408,6 +410,7 @@ Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이�
 			더 자세한 정보는 https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html 이곳에 적혀있다.  
 		
 		1. 해당 CMakePresets.json을 다 작성했다면 CMake Tools에서 제공하는 하단의 파란색 바에서 적절한 구성, 빌드 프리셋을 선택하고 빌드하면 된다.  
+			파란색 바에서 CMake Tools 옵션들이 안보인다면 명령 팔레트에서 ```CMake: Configure```를 실행해보자.  
 
 ## 디버깅    
 일단 원활할 디버깅을 하려면 컴파일러와 디버거를 맞춰줘야 한다. (clang은 lldb로... msvc는 vsdbg로... gcc는 gdb로...)  
@@ -564,3 +567,52 @@ gdb 실행시 같이 넘겨줄 인자들을 정의한다.
 ```
 위 launch.json에서 개별적인 항목을 사용자 환경에 알맞게 수정해서 사용하면 된다.  
 디버깅을 시작하고 싶다면 중단점을 찍고 F5를 누르면 된다.   
+
+## Compiler와 Generator 특성  
+
+Compiler와 Generator마다 전달해주는 인자들도 다르고 빌드할 때 생성되는 파일들도 가지각색이라 사용 방식도 모두 다르다.  
+각기다른 특성들을 한번 알아보자.  
+&nbsp;  
+
+먼저 Compiler부터 알아보자.  
+
+* Visual Studio  
+Visual Studio라 하면 통합 빌드툴로 보통 사용하게 되는데 CMake와 함께 사용될 때는 컴파일러와 Generator만 사용하게 된다.  
+컴파일러 이름은 cl.exe인데 이렇게 지정해서 쓰는 경우는 거의 없다.  
+CMake에서 Visual Studio를 연동해 사용할 때는 직접적인 컴파일러 지정없이 generator만 Visual Studio 관련하여 지정해주면 된다.  
+예를 들어 자신이 Visual Studio 2022 버전을 사용한다면 Visual Studio 17 2022이 되고 Visual Studio 2019 버전을 사용한다면 Visual Studio 16 2019이 된다.  
+Visual Studio는 다른 컴파일러와 다르게 CMake Config 시간이 아닌 CMake Build 시간에 Release와 Debug가 결정되는 방식을 사용한다.  
+따라서 CMake로 빌드를 할 때 Release 모드를 사용하고 싶다면 ```--config Release``` 인자를 같이 넘겨주어야 한다.  
+또 빌드 시 유의사항으로는 다중 코어 빌드를 사용하고 싶다면 ```--parallel``` 옵션보다 ```-- /maxcpucount /nologo /verbosity:minimal``` 이렇게 옵션을 주어 Visual Studio에 옵션 인자를 직접 전달해주는 방식이 추천된다.  
+CMake Config 시간에는 아키텍쳐를 꼭 지정해주어야 한다.  
+예를 들어 자신이 x86 시스템 타겟으로 빌드하고 싶다면 ```-A Win32``` 인자를 같이 넘겨주어야 한다. (x64 타겟은 ```-A x64```)  
+컴파일러에 전달하는 인자는 보통 ```/D<변수명>``` 이렇게 사용한다. (ex. ```/D_CRT_SECURE_NO_WARNINGS```)   
+보통 사용하게 되는 인자들로는 ```/MP```, ```/EHsc```, ```/permissive-```, ```/JMC```가 있다. (각 인자의 의미는 Visual Studio에서 찾아보자...)  
+빌드 타겟을 따로 지정해주지 않았을 경우 기본적으로 생성해주는 타겟은 ALL_BUILD, ZERO_CHECK이 있다.  
+ALL_BUILD는 말 그대로 모든 빌드 요소를 다 빌드하는 것이고 ZERO_CHECK는 CMake Configuration을 다시 진행하는 것이다.  
+
+* Clang  
+CMake와 가장 조합이 좋은 컴파일러인 Clang이다.  
+다른 컴파일러들은 OS에 따라 설치 방식 차이가 많이나서 귀찮은데 Clang은 설치도 간단하고 대표적인 Windows. Mac, Linux 등에서 잘 작동하기 때문에 크로스 플랫폼 프로그램을 개발하고 있다면 앵간해서 Clang 쓰자.  
+Clang은 어떤 Generator를 사용하던 상관이 없지만 보통 Ninja를 많이 사용한다.  
+컴파일러에 인자를 전달할 때 GCC Style을 보통 사용하는데 중요한 인자로는 x86 빌드할 때 ```-m32```, x64 빌드할 때 ```-m64```, 속도 최적화 ```-O3``` 등이 있다.  
+더 많은 인자는 Clang 홈페이지에서 찾아보자.  
+Clang은 Config 시간에 빌드 방식이 결정되기 때문에 Release 방식으로 빌드하고 싶다면 CMAKE_BUILD_TYPE 값을 Release로 설정해줘야 한다.  
+빌드 타겟을 따로 지정해주지 않았을 경우 기본적으로 생성해주는 타겟은 all이 있다.  
+all은 Visual Studio의 ALL_BUILD와 같은 기능을 한다.  
+
+* GCC  
+Clang과 대부분의 특성은 모두 똑같은데 가장 큰 차이점이라면 x86 타겟 버전을 빌드하는 것이 굉장히 힘들다.  
+GCC로 x86 타켓 프로그램을 빌드하고 싶다면 gcc-multilib, g++-multilib를 설치하거나 x64용 toolchain과 x86용 toolchain을 하나의 GCC에 연결해주거나 아니면 x64용 GCC와 x86용 GCC를 모두 설치해야 한다.  
+
+&nbsp;  
+다음은 Generator를 알아보자.  
+
+* Ninja  
+CMake와 가장 조합이 좋은 Generator인 Ninja다.  
+이 녀석도 마찬가지로 대표적인 Windows. Mac, Linux 등에서 잘 작동하기 때문에 크로스 플랫폼 프로그램을 개발하고 있다면 설치와 설정이 쉬운 Ninja를 사용하자.  
+Ninja는 CMake Build 시간에 ```--parallel``` 옵션을 굳이 사용해주지 않아도 알아서 최대 코어를 이용하여 빌드를 수행한다.  
+
+* Makefiles 계열  
+MinGW, Unix 등의 Makefiles 계열은 보통 추가적인 설치가 필요없이 컴파일러와 같이 깔리는 경우가 대부분이다.  
+병렬 빌드를 사용하고 싶다면 CMake Build 시간에 ```--parallel``` 옵션을 사용해도 되고 ```-- -j```로 Makefiles에 직접 인자를 전달해줘도 된다.   
