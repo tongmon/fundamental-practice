@@ -308,10 +308,38 @@ class GasStation {
 ## 함수형 팩터리  
 
 추상 팩터리가 기저 클래스를 활용해 확장해 나가는 팩터리 패턴이였다면 함수형 팩터리는 따로 기저 클래스를 만들지 않고 함수를 이용하는 패턴이다.  
-보통 함수 중에서도 람다 함수를 이용하게 된다.  
+보통 함수 포인터나 ```std::function```을 이용한다.  
 &nbsp;  
 
 추상 팩터리로 만들었던 GasStation 클래스를 함수형 팩터리를 이용해 다시 만들어보면 밑과 같다.  
 ```c++
+class GasStation {
+    std::unordered_map<std::string, std::function<std::unique_ptr<Vehicle>()>> vehicle_gas_station;
 
+  public:
+    GasStation() {
+        vehicle_gas_station["car"] = [] {
+            auto car = std::make_unique<Car>();
+            car->drive("Gasoline", 100);
+            return car;
+        };
+
+        vehicle_gas_station["airplane"] = [] {
+            auto car = std::make_unique<Airplane>();
+            car->drive("Kerosene", 300);
+            return car;
+        };
+    }
+    std::unique_ptr<Vehicle> oiling(const std::string &vehicle_type) {
+        return vehicle_gas_station[vehicle_type]();
+    }
+};
 ```
+이 방식도 oiling() 함수 내부 구조가 유지된다.  
+게다가 CarGasStation, AirplaneGasStation와 같은 팩터리 클래스를 따로 안만들어줘도 되기 때문에 필요한 코드 라인이 더 적다.  
+하지만 car, airplane 같은 탈 것 종류들이 많아지고 각 탈 것마다 확연하게 다른 객체 생성 로직이 필요하다면 추상 팩터리 패턴을 사용하는 것이 더 직관적인 코드를 작성하는 데 좋을 것이다.  
+&nbsp;  
+
+## 요약  
+
+1. 팩터리 
