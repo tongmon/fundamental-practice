@@ -103,13 +103,37 @@ makefile로 명령어를 묶어 실행해 빌드하는 스타일이라면 꺼놓
 ## VS Code 환경 설정  
 C++을 빌드할 수 있는 환경이 다양한 플러그인 설치를 통해 만들어졌다면 이제 실제 코드를 작성하는 경우 생산성을 높여주는 것들에 대해서 알아본다.  
   
-1. ```VS Code 설정(좌측 하단 톱니바퀴 아이콘) -> 확장 -> C/C++```에 들어가서 Clang_format_fallback Style에 ```{ BasedOnStyle: LLVM, IndentWidth: 4, ColumnLimit: 0 }```이 녀석을 넣어준다.  
-BasedOnStyle의 종류는 다양하니 clang format 종류를 검색해보자.  
-Visual Studio를 많이 써왔다면 LLVM 대신 Microsoft가 친근할 것이다.    
+1. ```VS Code 설정(좌측 하단 톱니바퀴 아이콘) -> 확장 -> C/C++```에 들어가서 Clang_format_fallback Style에  
+	```
+	{
+		BasedOnStyle: Google,
+		IndentWidth: 4,
+		ColumnLimit: 0 
+	}
+	```
+	위와 같이 넣어준다.  
+	만약 자신이 Google 포맷이 싫고 Visual Studio에서 사용하던 formatting에 익숙하다면  
+	```
+	{
+	    BasedOnStyle: LLVM, 
+	    UseTab: Never, 
+	    IndentWidth: 4, 
+	    TabWidth: 4, 
+	    BreakBeforeBraces: Allman, 
+	    AllowShortIfStatementsOnASingleLine: false, 
+	    IndentCaseLabels: false, 
+	    ColumnLimit: 0, 
+	    AccessModifierOffset: -4, 
+	    NamespaceIndentation: All, 
+	    FixNamespaceComments: false 
+	}
+	```
+	위와 같은 내용을 집어넣어도 된다.  
+	clang-format은 순전히 사용자의 선호도에 따라 세팅이 천차만별이기 때문에 정답은 없다.  
 
-2. Clang_format_style에도 ```{ BasedOnStyle: LLVM, IndentWidth: 4, ColumnLimit: 0 }``` 이 녀석을 넣어준다.
+2. Clang_format_style에도 Clang_format_fallback Style와 같은 내용을 넣어준다.  
 
-3. 취향에 따라 Before Else(else를 새 줄에 배치)와 같은 세부 구성을 설정한다. (써보니 설정한 Clang Format이 나한테 정말 잘 맞다 싶으면 굳이 세부 구성 설정까지 안해도 된다.)
+3. 취향에 따라 Before Else(else를 새 줄에 배치)와 같은 세부 구성을 설정한다. (써보니 설정한 Clang Format이 나한테 정말 잘 맞다 싶으면 굳이 세부 구성 설정까지 안해도 된다.)  
 
 4. ```VS Code 설정(좌측 하단 톱니바퀴 아이콘) -> 텍스트 편집기 -> 서식```에서 Format On Paste, Format On Save, Format On Save Mode를 모두 켜준다.   
 세이브를 하거나 세미콜론을 붙이거나(이 경우 해당 줄만) 텍스트를 붙여넣는 경우 지정한 clang format 형식에 맞춰 텍스트를 재조립해준다.  
@@ -616,3 +640,18 @@ Ninja는 CMake Build 시간에 ```--parallel``` 옵션을 굳이 사용해주지
 * Makefiles 계열  
 MinGW, Unix 등의 Makefiles 계열은 보통 추가적인 설치가 필요없이 컴파일러와 같이 깔리는 경우가 대부분이다.  
 병렬 빌드를 사용하고 싶다면 CMake Build 시간에 ```--parallel``` 옵션을 사용해도 되고 ```-- -j```로 Makefiles에 직접 인자를 전달해줘도 된다.   
+
+## 부가적인 세팅  
+
+안해도 되지만 하면 더 좋은 세팅들을 나열한다.  
+
+* 글꼴  
+텍스트 에디터에서 글꼴은 생각보다 많이 중요하다.  
+필자가 좋아하는 글꼴은 ```Cascadia Code```로 모든 영어, 숫자, 특수 문자의 크기가 동일하기 때문에 가독성이 좋아진다.  
+VS Code에서 글꼴 설정은 ```설정 -> 텍스트 편집기 -> 글꼴 -> Font Family```에 위치하며 여러 개를 지정해 줄 수 있는데 순서에 따라 맨 앞 글꼴이 우선적으로 적용된다.  
+
+* 테마  
+필자가 선호하는 VS Code 테마는 ```One Dark Pro```이고 그 중에서도 Darker 버전을 좋아한다.  
+선호하는 이유는 변수, 함수, 자료형 등의 색이 확연히 구분되어 가독성이 좋으면서 전체적으로 어두워 눈이 덜 아프기 때문이다.   
+VS Code 테마를 적용하려면 일단 확장에서 원하는 테마를 설치하고 Ctrl + K,T 를 누르고 설치된 테마를 선택하면 된다.  
+색테마 이외의 파일 아이콘 테마나 제품 아이콘 테마 등은 번잡해서 사용하지 않는다.  
