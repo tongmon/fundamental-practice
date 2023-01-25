@@ -11,6 +11,12 @@
 class Address
 {
 public:
+    Address(const std::string street = "", const std::string city = "", const int suite = -1)
+    {
+        this->street = street;
+        this->city = city;
+        this->suite = suite;
+    }
     std::string street;
     std::string city;
     int suite;
@@ -19,6 +25,11 @@ public:
 class Contact
 {
 public:
+    Contact(const std::string name = "", Address address = Address())
+    {
+        this->name = name;
+        this->address = address;
+    }
     std::string name;
     Address address;
 };
@@ -58,6 +69,11 @@ Thor.address.suite = 11;
 class Contact
 {
 public:
+    Contact(const std::string name = "", Address *address = nullptr)
+    {
+        this->name = name;
+        this->address = address;
+    }
     std::string name;
     Address *address;
 };
@@ -70,6 +86,11 @@ public:
 class Contact
 {
 public:
+    Contact(const std::string name = "", Address *address = nullptr)
+    {
+        this->name = name;
+        this->address = address;
+    }
     Contact(const Contact &contact) : name(contact.name)
     {
         address = new Address();
@@ -77,7 +98,114 @@ public:
         address->street = contact.address->street;
         address->suite = contact.address->suite;
     }
+    ~Contact() { delete address; }
     std::string name;
     Address *address;
 };
 ```
+하지만 범용적이지가 않다.
+Address에 멤버 변수가 추가되면 Address 클래스의 구조가 바뀌는 것은 당연하고 추가적으로 Contact의 복사 생성자의 구조도 바뀌어야 하기에 번거롭다.
+&nbsp;  
+
+그러면 일을 줄이기 위해 밑과 같이 Address에 복제 생성자를 정의하는 방식으로 해결해보자.  
+```c++
+class Address
+{
+public:
+    Address(const std::string street = "", const std::string city = "", const int suite = -1)
+    {
+        this->street = street;
+        this->city = city;
+        this->suite = suite;
+    }
+    Address(const Address &other)
+        : street{other.street},
+          city{other.city},
+          suite{other.suite}
+    {
+    }
+    std::string street;
+    std::string city;
+    int suite;
+};
+```
+&nbsp;  
+
+Address 클래스가 바뀜에 따라 Contact 클래스는 밑과 같이 변할 것이다.  
+```c++
+class Contact
+{
+public:
+    Contact(const std::string name = "", Address *address = nullptr)
+    {
+        this->name = name;
+        this->address = address;
+    }
+    Contact(const Contact &contact) : name(contact.name)
+    {
+        if (address)
+            delete address;
+        address = new Address(*contact.address);
+    }
+    ~Contact() { delete address; }
+    std::string name;
+    Address *address;
+};
+```
+중요한 건 Address 내부 구조가 어떻게 바뀌던 이제 Contact 내부 구조는 바뀌지 않는다.  
+&nbsp;  
+
+조금 더 나아가 대입 연산자까지 확장해보면 밑과 같다.  
+```c++
+class Contact
+{
+public:
+    Contact(const std::string name = "", Address *address = nullptr)
+    {
+        this->name = name;
+        this->address = address;
+    }
+    Contact(const Contact &contact) : name(contact.name)
+    {
+        if (address)
+            delete address;
+        address = new Address(*contact.address);
+    }
+    ~Contact() { delete address; }
+    Contact &operator=(const Contact &other)
+    {
+        if (this == &other)
+            return *this;
+        name = other.name;
+        if (address)
+            *address = *other.address;
+        else
+            address = new Address(*other.address);
+        return *this;
+    }
+    std::string name;
+    Address *address;
+};
+```
+이렇게 Address 클래스의 기반이 갖춰져 있기에 Address 클래스를 활용하는 Contact 클래스도 확장하기 매우 편해진다.  
+&nbsp;  
+
+밑과 같은 모습으로 중복을 최소화하게 된다.  
+```c++
+Contact Asgardian{"", new Address("459 Wood Town", "Asgard", 0)};
+Contact Odin, Thor;
+Odin = Thor = Asgardian;
+
+Odin.name = "Lord of Asgard";
+Odin.address->suite = 10;
+
+Thor.name = "Thunder God";
+Thor.address->suite = 11;
+```
+해당 방법은 매우 잘 작동한다.  
+문제라면 Address와 같은 포인터 멤버 변수로 활용하게 되는 클래스들에 일일이 복제 생성자를 정의해줘야 한다는 것이다.  
+대형 프로젝트에서는 이러한 클래스들이 매우 많을 것이기에 귀찮아질 수 있다.  
+&nbsp;  
+
+## 직렬화
+
