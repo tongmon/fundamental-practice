@@ -211,10 +211,45 @@ Thor.address->suite = 11;
 
 특정 클래스 객체가 가지고 있는 데이터들을 컴퓨터 로컬 저장소에 저장하거나 특정 장소에 전송하기 위해서는 해당 값들을 특정 포맷에 담아 날려야 할 것이다.  
 대표적인게 xml, json 형식이 있을텐데... 예를 들어 위에서 계속 사용했던 Contact 클래스의 특정 객체 데이터를 json 형태로 만드는 것이 직렬화이고 특정 json 정보를 다시 Contact 클래스 객체로 만드는 것이 역직렬화이다.  
-갑자기 왜 직렬화가 튀어나오냐면 직렬화만 잘 된다면 위에서 언급했던 문제인 **포인터 멤버 변수로 활용하게 되는 클래스들에 일일이 복제 생성자를 따로 정의해주는 것**을 하지 않아도 된다!  
-C++에서 직렬화를 어떻게 접근하는지 알아보자.  
+복제 생성자를 사용하지 않고 직렬화를 이용하여 프로토타입 패턴을 구현할 수도 있다.  
+C++에서 직렬화를 이용해 어떻게 프로토타입 패턴에 접근하는지 알아보자.  
 &nbsp;  
 
-일단 C++에서는 직렬화를 기본적으로 제공하지 않기 때문에 유명한 Boost 라이브러리의 serialization 모듈을 사용한다. (Boost를 사용하는 것이 별로라면 따로 클래스 데이터들을 스트링으로 묶는 로직을 만들어줘도 된다.)  
+일단 C++에서는 직렬화를 기본적으로 제공하지 않기 때문에 유명한 Boost 라이브러리의 serialization 모듈을 사용한다. (Boost 라이브러리 연동법은 인터넷에 자료가 많으니 따로 설명하지는 않겠다.)  
+Boost를 사용하는 것이 별로라면 따로 클래스 데이터들을 문자열이나 바이트코드로 묶는 로직을 만들어줘도 된다.  
+밑은 Boost의 직렬화를 사용한 Address 클래스이다.  
+```c++
+class Address
+{
+    friend class boost::serialization::access;
+
+    template <typename Ar>
+    void serialize(Ar &ar, const unsigned int version)
+    {
+        ar &street;
+        ar &city;
+        ar &suite;
+    }
+
+public:
+    Address(const std::string street = "", const std::string city = "", const int suite = -1)
+    {
+        this->street = street;
+        this->city = city;
+        this->suite = suite;
+    }
+    std::string street;
+    std::string city;
+    int suite;
+};
+```
+Address 복제 생성자가 없어지고 Boost를 이용한 직렬화 함수가 생겼다.  
+사용법은 간단한데 직렬화를 하고 싶은 클래스에 **access 클래스**를 친구 함수로 선언하고 **템플릿 함수 serialize**를 재정의하면 된다.  
+그리고 ```&``` 연산자를 이용하여 멤버 변수들을 연결시켜주면 된다.  
+&nbsp;  
+
+
+
+
 
 
