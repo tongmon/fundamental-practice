@@ -306,13 +306,62 @@ public:
 이제 clone 함수를 이용하여 복제 생성자와 이동 연산자 재정의 함수를 정의해주면 된다.  
 &nbsp;  
 
-그렇다면 서로 동일한 역할을 하는 직렬화와 복제 생성자 프로토타입 중 어느 것을 써야하는가?  
-그냥 프로그래머 자신이 선호하는 것을 선택해 구현하면 된다.  
+그렇다면 서로 동일한 역할을 하는 직렬화와 복제 생성자 프로토타입 중 어느 것을 써야하는가?   
 직렬화를 직접 구현하기도 싫고 Boost와 같은 외부 라이브러리에 의존하기도 싫다면 복제 생성자를 통해 프로토타입 패턴에 접근하면 된다.  
-프로젝트가 클래스를 저장, 전송하는 일이 많아 이미 직렬화를 쓰게 되었다면 굳이 복제 생성자를 쓸 필요없이 직렬화를 통해 프로토타입 패턴에 접근하면 된다.
+프로젝트가 클래스를 저장, 전송하는 일이 많아 이미 직렬화를 쓰게 되었다면 굳이 복제 생성자를 쓸 필요없이 직렬화를 통해 프로토타입 패턴에 접근하면 된다.  
+속도를 비교하자면... 당연히 추가적인 연산이 없는 복제 생성자를 사용한 것이 빠르다.  
 &nbsp;  
 
 ## 프로토타입 팩터리  
 
+예시로 많이 들었던 Asgardian 객체와 같은 자주 생성하는 객체들은 어떻게 처리해야 할까?  
+전역 변수로 따로 정의해놓고 필요할 때마다 꺼내어 사용할 수도 있다.  
+하지만 더 세련된 접근법인 프로토타입 팩터리가 있다.  
+&nbsp;  
 
+밑은 아스가르드인과 지구인 객체를 많이 쓴다고 가정하고 만든 팩토리 클래스이다.  
+```c++
+class ContactFactory
+{
+    static std::unique_ptr<Contact> NewContact(std::string name, int suite, Contact &proto)
+    {
+        auto result = std::make_unique<Contact>(proto);
+        result->name = name;
+        result->address->suite = suite;
+        return result;
+    }
+
+public:
+    static std::unique_ptr<Contact> NewAsgardian(std::string name, int suite)
+    {
+        static Contact asgardian{"", new Address("459 Wood Town", "Asgard", 0)};
+        return NewContact(name, suite, asgardian);
+    }
+
+    static std::unique_ptr<Contact> NewTerran(std::string name, int suite)
+    {
+        static Contact terran{"", new Address("South Korea Seoul", "Earth", 0)};
+        return NewContact(name, suite, terran);
+    }
+};
+```
+해당 방식이 전역 변수를 사용하는 것보다 세련된 이유는 프로그래머가 전역 변수로 객체를 복제한 다음 몇몇 멤버 변수를 바꾸는 것을 실수로 누락하는 것을 방지해주기 때문이다.  
+위와 같이 팩토리 패턴을 사용하면 프로그래머가 바꾸길 원하는 멤버 변수들을 명시적으로 객체 생성 함수를 만들 때 인자로 넘겨버리게 유도하면 되기에 이러한 실수를 완전히 차단할 수 있다.  
+&nbsp;  
+
+팩토리 클래스를 사용하면 밑과 같은 모습일 것이다.  
+```c++
+auto Odin = ContactFactory::NewAsgardian("Lord of Asgard", 10);
+auto Thor = ContactFactory::NewAsgardian("Thunder God", 11);
+auto KyungJoon = ContactFactory::NewTerran("C++ Master", 7);
+```
+&nbsp;  
+
+## 요약  
+
+1. 프로토타입 패턴은 기존에 생성된 객체들을 해치지 않으면서 복제를 하기위한 패턴이다.  
+
+2. 프로토타입 패턴은 크게 복제 생성자 방식과 직렬화 방식으로 나뉘는데 속도는 복제 생성자 방식이 빠르다.  
+
+3. 애초에 클래스의 모든 멤버 변수를 포인터 대신 데이터 값으로 저장하면 객체를 복제하기 편하다.  
 
