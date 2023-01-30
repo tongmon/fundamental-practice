@@ -240,7 +240,13 @@ ex. ```add_compile_options(-g -Wall -std=c++11)```
 * **install**  
 ```${CMAKE_INSTALL_PREFIX}```에 지정된 위치에 빌드 파일을 설치하는데 쓰이는 함수이다.  
 자신의 프로젝트를 배포하는데 유용하기에 다른 목차에서 자세히 다룬다.  
-ex. ```install (FILES ${FETCHED_LIBS} DESTINATION lib)```
+ex. ```install(FILES ${FETCHED_LIBS} DESTINATION lib)```
+
+* **find_package**
+오픈 소스 라이브러리와 같은 외부 라이브러리들을 프로젝트와 연동하여 사용하고자 할 때 사용하게 된다.  
+보통 CMake와 vcpkg ,conan, git 등을 함께 이용할 때 사용한다.  
+밑은 Boost 라이브러리에서 serialization 모듈만 사용하고 싶을 때 find_package 함수를 이용하는 예시이다.  
+ex. ```find_package(Boost REQUIRED COMPONENTS serialization)```
 
 &NewLine;
 ## CMakeLists.txt 사전변수  

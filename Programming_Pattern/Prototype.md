@@ -178,9 +178,8 @@ public:
             return *this;
         name = other.name;
         if (address)
-            *address = *other.address;
-        else
-            address = new Address(*other.address);
+            delete address;
+        address = new Address(*other.address);
         return *this;
     }
     std::string name;
@@ -226,9 +225,9 @@ class Address
     template <typename Ar>
     void serialize(Ar &ar, const unsigned int version)
     {
-        ar &street;
-        ar &city;
-        ar &suite;
+        ar & street;
+        ar & city;
+        ar & suite;
     }
 
 public:
@@ -248,8 +247,72 @@ Address 복제 생성자가 없어지고 Boost를 이용한 직렬화 함수가 
 그리고 ```&``` 연산자를 이용하여 멤버 변수들을 연결시켜주면 된다.  
 &nbsp;  
 
+직렬화를 사용한 Contact 클래스는 밑과 같다.  
+```c++
+class Contact
+{
+    friend class boost::serialization::access;
 
+    template <typename Ar>
+    void serialize(Ar &ar, const unsigned int version)
+    {
+        ar & name;
+        ar & address;
+    }
 
+    void clone(const Contact &other)
+    {
+        if (address)
+            delete address;
+
+        std::ostringstream oss;
+        boost::archive::text_oarchive output_archive(oss);
+        output_archive << other;
+
+        // 이렇게 밑과 같이 스트링으로 추출도 가능하다.
+        // std::string other_string_data = other.str();
+
+        std::istringstream iss(oss.str());
+        boost::archive::text_iarchive input_archive(iss);
+        input_archive >> *this;
+    }
+
+public:
+    Contact(const std::string name = "", Address *address = nullptr)
+    {
+        this->name = name;
+        this->address = address;
+    }
+    Contact(const Contact &other)
+    {
+        clone(other);
+    }
+    ~Contact() { delete address; }
+    Contact &operator=(const Contact &other)
+    {
+        if (this == &other)
+            return *this;
+        clone(other);
+        return *this;
+    }
+    std::string name;
+    Address *address;
+};
+```
+복제 생성자를 사용한 Contact 클래스보다 코드는 더 많아진 감이 있다.  
+일단 serialize 함수에서 Contact 클래스를 직렬화하기 위해 멤버 변수들을 연동시키는데 주의해야 할 점은 address 멤버 변수는 포인터 멤버 변수이지만 ```ar & address;``` 이렇게 역참조를 하지 않고 주소 자체로 연동했다는 것이다. (이유는 Boost 라이브러리 관계자에게 물어보자...)  
+그리고 clone 함수에서 직렬화를 통해 객체 복사가 이루어진다.  
+인자로 주어진 객체를 문자열로 나타낸 뒤에 ```*this```가 가리키는 객체에 복제하여 넣는다. (객체를 문자열로 나타낼 수 있다는 점 덕분에 파일 저장이나 서버 전송이 용이하다.)  
+이제 clone 함수를 이용하여 복제 생성자와 이동 연산자 재정의 함수를 정의해주면 된다.  
+&nbsp;  
+
+그렇다면 서로 동일한 역할을 하는 직렬화와 복제 생성자 프로토타입 중 어느 것을 써야하는가?  
+그냥 프로그래머 자신이 선호하는 것을 선택해 구현하면 된다.  
+직렬화를 직접 구현하기도 싫고 Boost와 같은 외부 라이브러리에 의존하기도 싫다면 복제 생성자를 통해 프로토타입 패턴에 접근하면 된다.  
+프로젝트가 클래스를 저장, 전송하는 일이 많아 이미 직렬화를 쓰게 되었다면 굳이 복제 생성자를 쓸 필요없이 직렬화를 통해 프로토타입 패턴에 접근하면 된다.
+&nbsp;  
+
+## 프로토타입 팩터리  
 
 
 
