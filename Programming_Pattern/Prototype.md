@@ -74,8 +74,9 @@ public:
         this->name = name;
         this->address = address;
     }
+    ~Contact() { delete address; }
     std::string name;
-    Address *address;
+    Address *address = nullptr;
 };
 ```
 전에 사용하던 방법처럼 Asgardian과 같은 객체를 재사용하여 복제를 한다면 포인터를 공유하기 때문에 한쪽에서 값을 바꾸면 다른 객체의 값도 같이 바뀌는 문제가 발생할 것이다.  
@@ -100,7 +101,7 @@ public:
     }
     ~Contact() { delete address; }
     std::string name;
-    Address *address;
+    Address *address = nullptr;
 };
 ```
 하지만 범용적이지가 않다.
@@ -143,13 +144,12 @@ public:
     }
     Contact(const Contact &contact) : name(contact.name)
     {
-        if (address)
-            delete address;
+        delete address;
         address = new Address(*contact.address);
     }
     ~Contact() { delete address; }
     std::string name;
-    Address *address;
+    Address *address = nullptr;
 };
 ```
 중요한 건 Address 내부 구조가 어떻게 바뀌던 이제 Contact 내부 구조는 바뀌지 않는다.  
@@ -167,8 +167,7 @@ public:
     }
     Contact(const Contact &contact) : name(contact.name)
     {
-        if (address)
-            delete address;
+        delete address;
         address = new Address(*contact.address);
     }
     ~Contact() { delete address; }
@@ -176,14 +175,13 @@ public:
     {
         if (this == &other)
             return *this;
-        name = other.name;
-        if (address)
-            delete address;
+        delete address;
         address = new Address(*other.address);
+        name = other.name;
         return *this;
     }
     std::string name;
-    Address *address;
+    Address *address = nullptr;
 };
 ```
 이렇게 Address 클래스의 기반이 갖춰져 있기에 Address 클래스를 활용하는 Contact 클래스도 확장하기 매우 편해진다.  
@@ -262,8 +260,7 @@ class Contact
 
     void clone(const Contact &other)
     {
-        if (address)
-            delete address;
+        delete address;
 
         std::ostringstream oss;
         boost::archive::text_oarchive output_archive(oss);
@@ -296,7 +293,7 @@ public:
         return *this;
     }
     std::string name;
-    Address *address;
+    Address *address = nullptr;
 };
 ```
 복제 생성자를 사용한 Contact 클래스보다 코드는 더 많아진 감이 있다.  
