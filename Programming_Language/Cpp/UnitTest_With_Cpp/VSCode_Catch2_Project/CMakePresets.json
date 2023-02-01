@@ -1,0 +1,117 @@
+﻿{
+    "version": 4,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 23,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "description": "윈도우 빌드 전용 / 컴파일 빌드 폴더와 설치 폴더 지정",
+            "name": "windows-base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/Build/${presetName}",
+            "installDir": "${sourceDir}/Installed/${presetName}",
+            "toolchainFile": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "description": "Ninja와 Clang 컴파일러 사용",
+            "name": "clang",
+            "hidden": true,
+            "generator": "Ninja",
+            "inherits": "windows-base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "clang",
+                "CMAKE_CXX_COMPILER": "clang++"
+            }
+        },
+        {
+            "description": "Clang 컴파일러로 x64 디버그 빌드",
+            "name": "clang-x64-debug",
+            "displayName": "Clang x64 Debug",
+            "inherits": "clang",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+                "CMAKE_CXX_FLAGS": "-m64",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "description": "Clang 컴파일러로 x64 릴리즈 빌드",
+            "name": "clang-x64-release",
+            "displayName": "Clang x64 Release",
+            "inherits": "clang",
+            "architecture": {
+                "value": "x64",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+                "CMAKE_CXX_FLAGS": "-O3 -Wall -m64",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "description": "Clang 컴파일러로 x86 디버그 빌드",
+            "name": "clang-x86-debug",
+            "displayName": "Clang x86 Debug",
+            "inherits": "clang",
+            "architecture": {
+                "value": "x86",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x86-windows-static",
+                "CMAKE_CXX_FLAGS": "-m32",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "description": "Clang 컴파일러로 x86 릴리즈 빌드",
+            "name": "clang-x86-release",
+            "displayName": "Clang x86 Release",
+            "inherits": "clang",
+            "architecture": {
+                "value": "x86",
+                "strategy": "external"
+            },
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x86-windows-static",
+                "CMAKE_CXX_FLAGS": "-O3 -Wall -m32",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "clang-x64-debug-build",
+            "displayName": "Debug Build",
+            "configurePreset": "clang-x64-debug"
+        },
+        {
+            "name": "clang-x64-release-build",
+            "displayName": "Release Build",
+            "configurePreset": "clang-x64-release"
+        },
+        {
+            "name": "clang-x86-debug-build",
+            "displayName": "Debug Build",
+            "configurePreset": "clang-x86-debug"
+        },
+        {
+            "name": "clang-x86-release-build",
+            "displayName": "Release Build",
+            "configurePreset": "clang-x86-release"
+        }
+    ],
+    "testPresets": []
+}

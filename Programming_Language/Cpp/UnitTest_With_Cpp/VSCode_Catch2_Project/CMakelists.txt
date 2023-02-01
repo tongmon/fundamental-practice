@@ -1,12 +1,17 @@
 cmake_minimum_required(VERSION 3.16)
 
+add_custom_target(Graphviz ALL
+    COMMAND ${CMAKE_COMMAND} "--graphviz=${CMAKE_BINARY_DIR}/Graph_Info/graph.dot" .
+    COMMAND dot -Tpng ${CMAKE_BINARY_DIR}/Graph_Info/graph.dot -o ${CMAKE_BINARY_DIR}/../Graph_${CMAKE_BUILD_TYPE}.png
+)
+
 project(Catch2Sample VERSION 1.0.0 LANGUAGES C CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 
-set(EXECUTABLE_NAME UnitTest)
-set(MATH_LIBRARY_NAME MyMath)
-set(BENCHMARK_LIBRARY_NAME MyBenchMark)
+set(EXECUTABLE_NAME MainApp)
+set(MATH_LIBRARY_NAME MyMathLib)
+set(BENCHMARK_LIBRARY_NAME MyBenchMarkLib)
 
 # Catch2 3.2.1 버전 라이브러리 종속성 추가
 Include(FetchContent)

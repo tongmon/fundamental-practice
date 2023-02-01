@@ -99,3 +99,168 @@ static Singleton &get()
 
 ## 싱글턴의 문제  
 
+특정 싱글턴 클래스에서 다른 싱클턴 클래스를 사용할 때 단위 테스트가 껄끄럽다.
+예시를 들면서 설명할 것인데 단위 테스트는 Catch2 라이브러리를 사용한다. (Catch2 사용법은 따로 설명하지 않는다.)  
+&nbsp;  
+
+인구수를 반환하는 PeopleData 인터페이스가 밑과 같이 존재한다.  
+```c++
+class PeopleData
+{
+public:
+    virtual unsigned int get_population(const std::string &country_name) = 0;
+};
+```
+&nbsp;  
+
+PeopleData 인터페이스를 상속하는 싱글턴 클래스가 밑과 같이 존재한다.  
+```c++
+class SingletonPeopleData : public PeopleData
+{
+protected:
+    SingletonPeopleData() {}
+    std::unordered_map<std::string, unsigned int> countries;
+
+public:
+    static SingletonPeopleData &get()
+    {
+        static SingletonPeopleData singleton;
+        return singleton;
+    }
+    SingletonPeopleData(Singleton const &) = delete;
+    SingletonPeopleData(Singleton &&) = delete;
+    SingletonPeopleData &operator=(Singleton const &) = delete;
+    SingletonPeopleData &operator=(Singleton &&) = delete;
+
+    unsigned int get_population(const std::string &country_name)
+    {
+        return countries[country_name];
+    }
+};
+```
+특정 나라의 인구수를 획득하는 get_population 함수를 정의하였다.  
+&nbsp;  
+
+SingletonPeopleData 싱글턴 클래스를 사용하는 SingletonRecordFinder 클래스는 밑과 같다.  
+```c++
+class SingletonRecordFinder
+{
+protected:
+    SingletonRecordFinder() {}
+
+public:
+    static SingletonRecordFinder &get()
+    {
+        static SingletonRecordFinder singleton;
+        return singleton;
+    }
+    SingletonRecordFinder(SingletonRecordFinder const &) = delete;
+    SingletonRecordFinder(SingletonRecordFinder &&) = delete;
+    SingletonRecordFinder &operator=(SingletonRecordFinder const &) = delete;
+    SingletonRecordFinder &operator=(SingletonRecordFinder &&) = delete;
+
+    unsigned int total_population(const std::vector<std::string> &countries)
+    {
+        unsigned int result = 0;
+        for (const auto &country_name : countries)
+            result += SingletonPeopleData::get().get_population(country_name);
+        return result;
+    }
+};
+```
+해당 클래스도 싱글턴 패턴을 이용했다.  
+싱글턴에서 다른 싱글턴을 참조하는 상황이 발생했다.  
+테스트를 안하고 사용할 때는 문제가 없을 것이다.  
+만약 단위 테스트를 해야하는 경우가 생긴다면 어떨까?  
+&nbsp;  
+
+Korea에는 17000, Mexico에는 23000 인구수가 저장되어 있다고 해보자.  
+밑과 같이 Catch2를 이용해 단위 테스트를 진행해보자.  
+```c++
+TEST_CASE("Total Population Computation...", "[total_population]") {
+    REQUIRE(SingletonRecordFinder::get().total_population({"Korea", "Mexico"}) == (17000 + 23000));
+}
+```
+문제는 SingletonPeopleData 싱글턴 클래스의 멤버 변수인 countries 값들을 데이터베이스에서 끌어오는 경우이다.  
+데이터베이스에 저장된 국가별 인구수가 변경될 때마다 테스트 코드도 그에 따라 바뀌어야 한다.  
+이러한 소모적인 행위를 어떻게 해결해야 할까?  
+
+&nbsp;  
+
+이를 해결하기 위한 여러 방법이 존재하겠지만 싱글턴에서 싱글턴을 참조하고 있는 관계를 끊어주는 것이 제일 쉽고 명확하다.  
+SingletonRecordFinder 클래스를 밑과 같이 수정해준다.  
+```c++
+class SingletonRecordFinder
+{
+protected:
+    PeopleData *peopledata = nullptr;
+    SingletonRecordFinder() {}
+
+public:
+    static SingletonRecordFinder &get(PeopleData *peopledata = nullptr)
+    {
+        static SingletonRecordFinder singleton;
+        singleton.peopledata = peopledata;
+        return singleton;
+    }
+    SingletonRecordFinder(SingletonRecordFinder const &) = delete;
+    SingletonRecordFinder(SingletonRecordFinder &&) = delete;
+    SingletonRecordFinder &operator=(SingletonRecordFinder const &) = delete;
+    SingletonRecordFinder &operator=(SingletonRecordFinder &&) = delete;
+
+    unsigned int total_population(const std::vector<std::string> &countries)
+    {
+        unsigned int result = 0;
+
+        if (peopledata)
+            for (const auto &country_name : countries)
+                result += peopledata->get_population(country_name);
+        else
+            for (const auto &country_name : countries)
+                result += SingletonPeopleData::get().get_population(country_name);
+
+        return result;
+    }
+};
+```
+일단 get 함수에서 PeopleData 포인터를 인자로 받을 수가 있다.  
+멤버 변수 peopledata 포인터 유무에 따라서 total_population 방식이 유동적으로 변한다.  
+이렇게 바꾼 이유는 더미 데이터를 만들어 테스트에 사용하기 위함이다.  
+&nbsp;  
+
+밑과 같이 PeopleData를 상속하는 더미 데이터를 만들자.  
+```c++
+class DummyPeopleData : public PeopleData
+{
+    std::unordered_map<std::string, unsigned int> countries;
+
+public:
+    DummyPeopleData()
+    {
+        countries["Korea"] = 17000;
+        countries["America"] = 89000;
+    }
+
+    unsigned int get_population(const std::string &country_name)
+    {
+        return countries[country_name];
+    }
+};
+```
+이제 해당 더미 데이터를 프로그래머가 임의로 수정해주면서 편하게 테스트를 진행할 수가 있다.  
+&nbsp;  
+
+밑은 실제 테스트가 진행되는 코드이다.  
+```c++
+static DummyPeopleData dummy;
+
+TEST_CASE("Total Population Computation...", "[total_population]") {
+    REQUIRE(SingletonRecordFinder::get(&dummy).total_population({"Korea", "America"}) == (17000 + 89000));
+}
+```
+dummy 데이터를 사용해서 싱글턴에서 싱글턴을 참조하고 있는 관계를 끊어주니 데이터베이스에 저장된 값이 어떻게 바뀌던 테스트 코드는 바뀔 일이 없다.  
+이렇게 되면 테스트 코드는 total_population 로직에 이상이 있는지 없는지에 집중할 수 있다.  
+&nbsp;  
+
+## 싱글턴과 제어 역전  
+

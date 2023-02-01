@@ -856,4 +856,28 @@ static으로 빌드된 외부 라이브러리 등을 포함 시킬 때는 라이
 
 6. **Doxyfile이 있는 곳에서 터미널로 doxygen 명령을 수행하면 OUTPUT_DIRECTORY 옵션에 정의된 위치에 결과 파일이 생성되고 생성 파일 중에 index.html 파일을 웹으로 열어보면 주석 정보가 문서화되어 정리된 페이지를 볼 수 있다.**  
 
+&NewLine;
+### - **저명한 라이브러리 사용시 유의점**
+&NewLine;
 
+유명한 몇몇 라이브러리들을 CMake와 함께 사용할 때 유의점을 다룬다.  
+
+* **Boost**  
+	CMake는 FindBoost라는 기능이 있어서 Boost 라이브러리를 별도로 설치한 적이 있다면 그 경로를 찾아준다.  
+	해당 기능과 함께 주어지는 각종 매크로 정보들은 https://cmake.org/cmake/help/latest/module/FindBoost.html 링크에 정리되어 있다.  
+	Boost 라이브러리를 별도로 설치를 하던 Vcpkg나 Conan으로 패키지 연동을 시키던 프로젝트에서 Boost 라이브러리를 CMake와 함께 사용할 때는 	```header-only boost 라이브러리```와 ```boost 라이브러리```를 다르게 링크 시켜야 한다.  
+	예를 들어 Boost의 serialization 모듈은 ```boost 라이브러리```이기에 CMakeLists.txt에서 밑과 같이 링크를 시켜준다.  
+	```cmake
+	find_package(Boost REQUIRED COMPONENTS serialization)
+	add_executable(${PROJECT_NAME} ${SRC_FILES})
+	target_link_libraries(${PROJECT_NAME} PUBLIC Boost::serialization)
+	```
+	여기서 ```header-only boost 라이브러리```인 Boost의 multiprecision 모듈도 링크 시키려면 밑과 같이 CMakeLists.txt를 바꿔준다.  
+	```cmake
+	find_package(Boost REQUIRED COMPONENTS serialization)
+	add_executable(${PROJECT_NAME} ${SRC_FILES})
+	target_link_libraries(${PROJECT_NAME} PUBLIC Boost::boost Boost::serialization)
+	```
+	바뀐 점은 target_link_libraries 함수에 Boost::boost가 추가된 것 밖에 없다.  
+	어떠한 ```header-only boost 라이브러리```를 링크할 때는 find_package에 모듈을 적어줄 필요없이 target_link_libraries에 Boost::boost만 추가해주면 된다.  
+	즉 Boost::boost만 링크하면 설치된 모든 ```header-only boost 라이브러리```가 프로젝트와 연동되는 것이다.  
