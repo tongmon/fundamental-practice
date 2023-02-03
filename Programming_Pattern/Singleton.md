@@ -253,9 +253,12 @@ class Singleton
 public:
     static Singleton &get()
     {
-        std::lock_guard<std::mutex> lock(mut);
         if (!singleton.get())
-            singleton = std::shared_ptr<Singleton>(new Singleton(), Deleter{});
+        {
+            std::lock_guard<std::mutex> lock(mut);
+            if (!singleton.get())
+                singleton = std::shared_ptr<Singleton>(new Singleton(), Deleter{});
+        }
         return *singleton;
     }
 
@@ -286,9 +289,12 @@ class Singleton
 public:
     static Singleton &get()
     {
-        std::lock_guard<std::mutex> lock(mut);
         if (!singleton.get())
-            singleton.reset(new Singleton());
+        {
+            std::lock_guard<std::mutex> lock(mut);
+            if (!singleton.get())
+                singleton.reset(new Singleton());
+        }
         return *singleton;
     }
 
