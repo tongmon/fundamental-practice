@@ -40,8 +40,7 @@ static Singleton singleton{};
 위에서 말한 두가지 문제를 해결한 코드는 밑과 같다.  
 ```c++
 class Singleton
-{
-protected:  
+{ 
     Singleton() {}
     ~Singleton() {}
 
@@ -68,7 +67,6 @@ Singleton 객체가 여러개 생성되는 것을 막지 않고 있다.
 ```c++
 class Singleton
 {
-protected:
     Singleton() {}
     ~Singleton() {}
 
@@ -97,7 +95,6 @@ Singleton 클래스를 어떻게 사용하던 객체는 하나만 존재할 수 
 ```c++
 class Singleton
 {
-protected:
     Singleton() {}
     ~Singleton() {}
 
@@ -152,7 +149,6 @@ C++에서 포인터를 이용하는 싱글턴 클래스는 아래와 같다.
 ```c++
 class Singleton
 {
-protected:
     static std::shared_ptr<Singleton> singleton;
     static std::once_flag once;
     Singleton() {}
@@ -176,7 +172,7 @@ public:
 std::shared_ptr<Singleton> Singleton::singleton;
 std::once_flag Singleton::once;
 ```
-만약 해당 코드를 .h, .cpp로 분리시켜서 사용할 것이라면 헤더 파일이 아니라 소스 파일에서 ```std::shared_ptr<Singleton> Singleton::singleton; std::once_flag Singleton::once;```를 진행해줘야 한다.  
+만약 해당 싱글턴 클래스를 .h, .cpp로 분리시켜서 사용할 것이라면 헤더 파일이 아니라 소스 파일에서 ```std::shared_ptr<Singleton> Singleton::singleton; std::once_flag Singleton::once;```를 진행해줘야 한다.  
 once_flag와 call_once를 이용해서 포인터 방식의 싱글턴 클래스를 thread-safe하게 만들어주고 있다.  
 문제는 소멸자가 싱클턴 클래스 사용자들에게 공개되어 있다는 것이다.  
 소멸자를 숨기면 스마트 포인터의 Deleter가 싱글턴 객체의 소멸자에 접근할 수 없어 컴파일이 안된다.  
@@ -190,7 +186,6 @@ once_flag와 call_once를 이용해서 포인터 방식의 싱글턴 클래스�
 ```c++
 class Singleton
 {
-protected:
     struct Deleter
     {
         void operator()(Singleton *ptr) { delete ptr; }
@@ -234,11 +229,80 @@ std::once_flag Singleton::once;
 피닉스 싱글턴에서는 소멸 순서가 꼬이더라도 죽은 싱글턴 객체가 호출되면 다시 되살리는 방식으로 해당 문제를 해결한다.  
 &nbsp;  
 
-피닉스 싱글턴은 통제할 수 없는 전역 싱글턴은 사용하지 않고 포인터 싱글턴을 사용한다.  
-밑은 피닉스 싱글턴 예시이다.  
+피닉스 싱글턴은 싱글턴 객체가 소멸된 후에 다시 생성해야 하기 때문에 동적 할당을 사용한다.    
+밑은 shared_ptr을 사용한 피닉스 싱글턴 예시이다.  
 ```c++
+class Singleton
+{
+    struct Deleter
+    {
+        void operator()(Singleton *ptr)
+        {
+            delete ptr;
+            singleton = nullptr;
+        }
+    };
+    friend Deleter;
 
+    static std::shared_ptr<Singleton> singleton;
+    static std::mutex mut;
+
+    Singleton() {}
+    ~Singleton() {}
+
+public:
+    static Singleton &get()
+    {
+        std::lock_guard<std::mutex> lock(mut);
+        if (!singleton.get())
+            singleton = std::shared_ptr<Singleton>(new Singleton(), Deleter{});
+        return *singleton;
+    }
+
+    Singleton(Singleton const &) = delete;
+    Singleton(Singleton &&) = delete;
+    Singleton &operator=(Singleton const &) = delete;
+    Singleton &operator=(Singleton &&) = delete;
+};
+
+std::shared_ptr<Singleton> Singleton::singleton;
+std::mutex Singleton::mut;
 ```
+lock_guard를 사용하여 프로세스 전체에서 객체가 단 하나만 존재하도록 해준다.  
+&nbsp;  
+
+밑은 unique_ptr을 사용한 피닉스 싱글턴 예시이다.  
+```c++
+class Singleton
+{
+    friend std::unique_ptr<Singleton>::deleter_type;
+
+    static std::unique_ptr<Singleton> singleton;
+    static std::mutex mut;
+
+    Singleton() {}
+    ~Singleton() { singleton.release(); }
+
+public:
+    static Singleton &get()
+    {
+        std::lock_guard<std::mutex> lock(mut);
+        if (!singleton.get())
+            singleton.reset(new Singleton());
+        return *singleton;
+    }
+
+    Singleton(Singleton const &) = delete;
+    Singleton(Singleton &&) = delete;
+    Singleton &operator=(Singleton const &) = delete;
+    Singleton &operator=(Singleton &&) = delete;
+};
+
+std::unique_ptr<Singleton> Singleton::singleton;
+std::mutex Singleton::mut;
+```
+
+
 
 ## 싱글턴 단위 테스트  
 
@@ -260,7 +324,6 @@ PeopleData 인터페이스를 상속하는 싱글턴 클래스가 밑과 같이 
 ```c++
 class SingletonPeopleData : public PeopleData
 {
-protected:
     SingletonPeopleData() {}
     std::unordered_map<std::string, unsigned int> countries;
 
@@ -288,7 +351,6 @@ SingletonPeopleData 싱글턴 클래스를 사용하는 SingletonRecordFinder �
 ```c++
 class SingletonRecordFinder
 {
-protected:
     SingletonRecordFinder() {}
 
 public:
@@ -335,7 +397,6 @@ SingletonRecordFinder 클래스를 밑과 같이 수정해준다.
 ```c++
 class SingletonRecordFinder
 {
-protected:
     PeopleData *peopledata = nullptr;
     SingletonRecordFinder() {}
 
