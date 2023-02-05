@@ -253,11 +253,11 @@ class Singleton
 public:
     static Singleton &get()
     {
-        if (!singleton.get())
+        if (!std::atomic_load(&singleton))
         {
             std::lock_guard<std::mutex> lock(mut);
-            if (!singleton.get())
-                singleton = std::shared_ptr<Singleton>(new Singleton(), Deleter{});
+            if (!std::atomic_load(&singleton))
+                std::atomic_store(&singleton, std::shared_ptr<Singleton>(new Singleton(), Deleter{}));
         }
         return *singleton;
     }
