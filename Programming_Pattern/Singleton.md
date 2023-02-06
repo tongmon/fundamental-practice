@@ -32,9 +32,13 @@ public:
 
 static Singleton singleton{};
 ```
-일단 싱글톤 클래스 사용자들에게 전역 변수 객체가 있다는 것을 알아차리도록 따로 알려줘야 한다.   
-그리고 **굉장히 위험한 부분**은 특정 전역 객체가 다른 전역 객체를 참조할 때다.  
-전역 객체들의 초기화 순서는 무작위로 결정되기 때문에 이를 프로그래머가 통제하기는 굉장히 까다롭다.  
+발전했지만 아직 여러 문제가 남아있는데 그 중 두가지만 먼저 살펴보자.  
+1. 사용자들은 전역 객체 singleton이 존재하는지 알기 어렵다.  
+
+2. 전역 객체의 초기화 시점은 무작위로 결정되기에 프로그래머가 통제할 수 없다.  
+
+첫번째 문제는 작아보이지만 전역 객체 singleton의 존재를 사용자가 모르고 Singleton 객체를 여러개 생성해버린다면... 의도에도 맞지않고 비효율적이다.  
+두번째 문제는 특정 전역 객체의 생성자에서 전역 객체 singleton을 사용할 때 무슨 일이 일어날지 프로그래머는 예측할 수 없기에 굉장히 위험하다.  
 &nbsp;  
 
 위에서 말한 두가지 문제를 해결한 코드는 밑과 같다.  
@@ -95,8 +99,10 @@ Singleton 클래스를 어떻게 사용하던 객체는 하나만 존재할 수 
 ```c++
 class Singleton
 {
-    Singleton() {}
-    ~Singleton() {}
+    char* str;
+
+    Singleton() { str = new char[100]{"Hello World"}; }
+    ~Singleton() { delete str; }
 
 public:
     static Singleton &get()
@@ -110,7 +116,7 @@ public:
     Singleton &operator=(Singleton const &) = delete;
     Singleton &operator=(Singleton &&) = delete;
 
-    void print() { std::cout << "Called by Singleton!\n"; }
+    void print() { std::cout << "Called by Singleton! Str: " << str << "\n"; }
 };
 
 class StaticObj
@@ -131,17 +137,23 @@ int main()
     return 0;
 }
 ```
-일단 main() 함수 종료 시점에서 데이터 영역에 들어가 있는 전역 변수, 정적 변수들을 정리할 것이다.  
-이때 정적 변수의 소멸 시점은 프로그래머가 알 수가 없다...  
-만약 정적 변수 소멸 시점에서 singleton이 먼저 소멸된 뒤 obj가 소멸된다면?  
-StaticObj의 소멸자에서 singleton 변수를 참조하려는데 이미 singleton은 소멸이 되어서 참조 무효화 현상이 발생할 것이다.  
-결국 의도한 print() 함수는 수행되지 못할 것이고 최악의 상황에서는 크래쉬가 발생할 수도 있다.  
+프로그램이 돌아가는 순서를 한번 분석해보자.  
+1. StaticObj 자료형인 전역 변수 obj가 초기화된다.  
+   
+2. main() 함수에서 호출한 Singleton::get().print() 함수에 의해 지역적으로 선언된 전역 변수 singleton이 초기화되면서 ```Called by Singleton! Str: Hello World\n```가 출력된다.  
+
+3. main() 함수가 종료되면서 전역 변수들을 정리하는데 초기화의 역순으로 정리되기에 singleton이 소멸된 후 obj가 소멸된다.  
+
+4. obj가 소멸될 때 소멸자가 호출되며 singleton 객체를 사용하는데 문제는 singleton은 이미 소멸되었기에 Singleton 객체의 print() 함수가 호출되어도 정상적인 내용은 출력되지 않는다.  
+
+이를 해결하려면 소멸된 객체를 되살려줘야 하는데... 정적인 전역 변수로는 해결할 수 없고 포인터와 동적 할당을 이용해야 한다.  
+이에 대한 세부적인 구현은 피닉스 싱글턴 패턴 항목에서 알아보자.  
 &nbsp;  
 
 ## 포인터 싱글턴  
 
-전역 객체를 사용하지 않고 대신 포인터에 객체를 할당하는 싱글턴 패턴이다.  
-포인터를 사용하기 때문에 전역 객체와 다르게 소멸 시점을 프로그래머가 명확히 알 수 있지만 thread-safe 하지 않기에 이를 해결해주는 추가 로직이 붙는다.  
+전역 객체를 사용하지 않고 전역 포인터에 객체를 동적 할당하는 싱글턴 패턴이다.  
+포인터를 사용하기에 thread-safe를 보장하기 위한 추가 로직이 붙는다.  
 &nbsp;  
 
 가장 간단하게 해결해주는 방법은 mutex 헤더에 있는 call_once 함수를 이용하는 것이다.  
@@ -169,7 +181,7 @@ public:
     Singleton &operator=(Singleton &&) = delete;
 };
 
-std::shared_ptr<Singleton> Singleton::singleton;
+std::shared_ptr<Singleton> Singleton::singleton = nullptr;
 std::once_flag Singleton::once;
 ```
 만약 해당 싱글턴 클래스를 .h, .cpp로 분리시켜서 사용할 것이라면 헤더 파일이 아니라 소스 파일에서 ```std::shared_ptr<Singleton> Singleton::singleton; std::once_flag Singleton::once;```를 진행해줘야 한다.  
@@ -178,10 +190,9 @@ once_flag와 call_once를 이용해서 포인터 방식의 싱글턴 클래스�
 소멸자를 숨기면 스마트 포인터의 Deleter가 싱글턴 객체의 소멸자에 접근할 수 없어 컴파일이 안된다.  
 소멸자를 없애면 포인터 할당 해제를 OS에게 맡겨버리게 된다.  
 물론 싱글턴 객체는 애플리케이션 시작과 끝을 모두 함께하기에 따로 할당 해제를 해주지 않아도 운영체제가 알아서 힙 메모리 영역을 정리해주긴 할 것이다. (단순한 Embedded OS에서는 아닌 경우도 있다.)  
-이렇게 되면 싱글턴 객체 소멸 순서를 프로그래머가 알지못하기 때문에 전역 객체를 사용하는 싱글턴을 사용하는 것과 다를 것이 없다.  
 &nbsp;  
 
-소멸자를 숨기기 위해서는 사용자 정의 Deleter를 구현해주면 된다.  
+소멸자를 숨기기 위해서는 사용자 정의 Deleter를 구현해주고 이를 friend 처리하면 된다.  
 밑은 소멸자를 숨긴 싱글턴 클래스이다.  
 ```c++
 class Singleton
@@ -213,24 +224,23 @@ public:
     Singleton &operator=(Singleton &&) = delete;
 };
 
-std::shared_ptr<Singleton> Singleton::singleton;
+std::shared_ptr<Singleton> Singleton::singleton = nullptr;
 std::once_flag Singleton::once;
 ```
-이렇게 하면 프로그래머는 사용자들에게 소멸자는 숨기면서 싱글턴 객체의 소멸 시점을 명확히 파악할 수 있다.  
-이러한 포인터 싱글턴 방식은 객체의 생성, 소멸 시점이 명확하게 파악되어 완벽하다.  
-근데 이를 사용하는 프로그래머가 사람인지라 완벽하지 않다...  
-만약 특정 포인터 싱글턴 객체의 소멸자에서 다른 포인터 싱글턴 객체를 이용한다면 소멸 순서가 꼬여 null pointer 문제가 발생할 수 있다.   
-물론 전역 객체 싱글턴의 문제처럼 프로그래머가 통제를 할 수 없는 수준은 아니지만 각기 다른 싱글턴 클래스의 get() 함수 사용 순서를 프로그래머가 추적하는 것은 매우 까다롭다.  
+소멸자를 숨겨 사용자가 싱글턴 클래스를 올바르게 사용하도록 유도했다.  
+정적 객체를 이용한 싱글턴과 다른 점이라면 ```std::shared_ptr<Singleton> Singleton::singleton = nullptr;``` 요렇게 전역 포인터가 밖으로 나와있다는 것이다.  
+포인터를 이용한 동적 할당을 통해 초기화 시점은 알 수 있지만 전역 포인터를 사용했기에 소멸 시점은 제어할 수 없다...  
+결국 정적 객체를 이용한 싱글턴의 단점은 포인터를 이용한 싱글턴에서도 해결하지 못했다.  
 &nbsp;  
 
 ## 피닉스 싱글턴  
 
-전역 싱글턴과 포인터 싱글턴 모두 대부분의 문제는 해결했지만 싱글턴 객체의 소멸 순서가 꼬여 발생하는 문제는 해결하지 못했다.  
+전역 객체 싱글턴과 포인터 싱글턴 모두 대부분의 문제는 해결했지만 전역 객체의 소멸자에서 싱글턴이 사용될 때 소멸 순서가 꼬여 발생하는 문제는 해결하지 못했다.  
 피닉스 싱글턴에서는 소멸 순서가 꼬이더라도 죽은 싱글턴 객체가 호출되면 다시 되살리는 방식으로 해당 문제를 해결한다.  
 &nbsp;  
 
-피닉스 싱글턴은 싱글턴 객체가 소멸된 후에 다시 생성해야 하기 때문에 동적 할당을 사용한다.    
-밑은 shared_ptr을 사용한 피닉스 싱글턴 예시이다.  
+피닉스 싱글턴은 싱글턴 객체가 소멸된 후에 다시 생성해야 하기에 포인터를 사용한다.    
+밑은 C++17 이하에서 작동하는 피닉스 싱글턴 예시이다.  
 ```c++
 class Singleton
 {
@@ -238,8 +248,9 @@ class Singleton
     {
         void operator()(Singleton *ptr)
         {
+            std::lock_guard<std::mutex> lock(mut);
             delete ptr;
-            singleton = nullptr;
+            singleton.reset();
         }
     };
     friend Deleter;
@@ -268,34 +279,44 @@ public:
     Singleton &operator=(Singleton &&) = delete;
 };
 
-std::shared_ptr<Singleton> Singleton::singleton;
+std::shared_ptr<Singleton> Singleton::singleton = nullptr;
 std::mutex Singleton::mut;
 ```
-lock_guard를 사용하여 프로세스 전체에서 객체가 단 하나만 존재하도록 해준다.  
+C++20에서 atomic_load, atomic_store 등이 Deprecated 처리되었기에 위 코드는 작동하지 않는다.  
 &nbsp;  
 
-밑은 unique_ptr을 사용한 피닉스 싱글턴 예시이다.  
+대신 ```std::atomic<std::shared_ptr<Type>>```을 지원한다.  
+밑은 C++20 이상에서 작동하는 피닉스 싱글턴 패턴이다.  
 ```c++
 class Singleton
 {
-    friend std::unique_ptr<Singleton>::deleter_type;
+    struct Deleter
+    {
+        void operator()(Singleton *ptr)
+        {
+            std::lock_guard<std::mutex> lock(mut);
+            delete ptr;
+            singleton.store(nullptr);
+        }
+    };
+    friend Deleter;
 
-    static std::unique_ptr<Singleton> singleton;
+    static std::atomic<std::shared_ptr<Singleton>> singleton;
     static std::mutex mut;
 
     Singleton() {}
-    ~Singleton() { singleton.release(); }
+    ~Singleton() {}
 
 public:
     static Singleton &get()
     {
-        if (!singleton.get())
+        if (!singleton.load())
         {
             std::lock_guard<std::mutex> lock(mut);
-            if (!singleton.get())
-                singleton.reset(new Singleton());
+            if (!singleton.load())
+                singleton.store(std::shared_ptr<Singleton>(new Singleton(), Deleter{}));
         }
-        return *singleton;
+        return *singleton.load();
     }
 
     Singleton(Singleton const &) = delete;
@@ -304,11 +325,24 @@ public:
     Singleton &operator=(Singleton &&) = delete;
 };
 
-std::unique_ptr<Singleton> Singleton::singleton;
+std::atomic<std::shared_ptr<Singleton>> Singleton::singleton = nullptr;
 std::mutex Singleton::mut;
 ```
+C++17 이하에서 작동하는 피닉스 싱글턴 코드를 기준으로 설명하겠다.  
+구현이 어려워보이는 이유는 thread-safe하게 만들기 위해 atomic과 mutex를 사용했기 때문이다.  
+그런 부분들을 제외하고 중요한 점은 Deleter에서 singleton 포인터를 nullptr로 만들어 주는 ```singleton.reset()```이 추가되었다는 점이다.  
+이 때문에 singleton 객체가 해제되었는지를 nullptr 유무를 통해 확인할 수 있다.  
+get() 함수가 호출될 때 처음 객체를 생성하거나 객체가 소멸된 상태라면 singleton이 nullptr이기 때문에 동적 할당으로 객체가 새로 생성된다.  
+따라서 다른 전역 객체의 생성자, 소멸자 어디든지 피닉스 싱글턴을 사용하면 싱글턴 객체가 죽어있는 경우가 없다.  
+&nbsp;  
 
-
+이러한 피닉스 싱글턴도 단점이 있다.  
+첫번째는 다른 전역 객체의 소멸자에 피닉스 싱글턴을 사용한 경우 피닉스 싱글턴이 되살린 객체에 대한 소멸자는 따로 호출되지 않아서 힙 영역에 할당된 싱글턴 객체에 대한 할당 해제는 운영체제가 해줘야 한다는 것이다.  
+전에 설명했듯이 대부분의 운영체제에서는 프로세스가 종료되면 그 프로세스에 딸려있던 힙 메모리도 정리하기에 특정 Embedded OS가 아닌이상 문제가 되지 않는다.  
+두번째는 되살린 싱글턴 객체는 모든 값이 초기화되기에 예전 싱글턴 객체에 저장해놓던 값을 다시 이용하지 못한다는 것이다.  
+이는 프로그래머가 유의하여 로직을 구현하면 충분히 피해갈 수 있는 문제다.  
+이러한 문제는 모두 전역 객체의 소멸 시점을 프로그래머가 통제할 수 없기 때문에 발생된 것이라 이를 해결하기 위해서는 프로그래머가 모든 전역 객체의 생명주기를 직접 관리하는 로직을 따로 구현하던지 전역 객체의 사용을 최소화하던지 하는 방향으로 나아가야 할 것이다.  
+&nbsp;  
 
 ## 싱글턴 단위 테스트  
 
