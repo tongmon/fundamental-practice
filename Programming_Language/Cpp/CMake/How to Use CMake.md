@@ -169,6 +169,11 @@ else문, else if문은 else(), elseif()로 사용한다.
 	    COMMAND ${CMAKE_COMMAND} 
 	    -E copy <특정 dll의 경로> <특정 dll을 복사하여 옮겨 놓을 경로>
 	)
+	# 또는
+	add_custom_command(TARGET MyExecutable POST_BUILD
+	    COMMAND ${CMAKE_COMMAND} 
+	    -E copy <특정 dll들의 경로가 담긴 리스트> <특정 dll을 복사하여 옮겨 놓을 폴더>
+	)
 	```
 	위 예시에 대해 간략히 설명을 추가하자면 POST_BUILD는 특정 타켓의 빌드 후라는 것을 나타내고 PRE_BUILD, PRE_LINK와 같이 다른 빌드 시점도 존재한다.  
 	```<특정 dll의 경로>```를 적는 경우 ```${CMAKE_SOURCE_DIR}/Library/FMOD/x64/fmodstudio.dll```이와 같이 dll의 이름까지 모두 적어줘야 한다.  
@@ -248,6 +253,25 @@ ex. ```install(FILES ${FETCHED_LIBS} DESTINATION lib)```
 밑은 Boost 라이브러리에서 serialization 모듈만 사용하고 싶을 때 find_package 함수를 이용하는 예시이다.  
 ex. ```find_package(Boost REQUIRED COMPONENTS serialization)```
 
+* **get_filename_component**
+full path에서 파일 이름만 획득해주는게 가능한 함수다.  
+그 외에도 옵션에 따라 주어진 문자열에 대해 폴더명, 확장자 등을 추출할 수도 있다.  
+밑은 특정 경로에서 파일 이름을 추출해서 FILE_NAME 변수에 저장하는 예제이다.  
+ex. ```get_filename_component(FILE_NAME "C:/vcpkg/vcpkg.exe" NAME)```
+
+* **foreach**
+각종 스크립트 언어의 foreach 문과 비슷하다.  
+밑 예시를 보는 게 이해가 빠를 것이다.  
+	```cmake
+	foreach (LIB_NAME IN LISTS LIST_1 LIST_2)
+	    # LIB_NAME은 리스트에서 획득한 원소
+		# IN LISTS를 사용해서 여러 개의 리스트를 묶음으로 순회 가능
+		# LIST_1, LIST_2 등 주어진 리스트의 구분자는 공백이나 세미콜론이여야 함
+		# 공백이나 세미콜론으로 구분된 문자열을 직접 제공해줘도 순회함
+	endforeach()
+	```
+	자세한 정보는 https://cmake.org/cmake/help/latest/command/foreach.html 를 참조하자.  
+
 &NewLine;
 ## CMakeLists.txt 사전변수  
 &NewLine;
@@ -290,6 +314,18 @@ make install 명령어가 정의되어 있는 경우 최종 생성물을 복사�
 
 * **ARCHIVE_OUTPUT_DIRECTORY**   
 빌드 완료한 Static 라이브러리를 저장할 디렉토리가 저장되어 있는 변수.(Archive를 다른 말로 Static 라이브러리라고도 한다.)
+
+* **BUILD_SHARED_LIBS**  
+BUILD_SHARED_LIBS가 TRUE면 ```add_library()```가 수행될 때 명시적으로 STATIC | SHARED | MODULE 선언이 되어있지 않다면 SHARED 옵션을 사용하여 빌드한다. (외부 라이브러리를 사용할 때 정적 라이브러리로 사용하고 싶다면 FALSE로 해놓자.)  
+
+* **CMAKE_CXX_COMPILER_ID**  
+C++ 빌드할 때 사용되는 컴파일러 이름이 세팅되어 있다.  
+Visual Studio는 MSVC, Clang은 Clang, GCC는 GNU이다.  
+
+* **```$<CONFIG>```**
+CMake 빌드 수행시 --config에 전달한 인자가 저장되어 있다.  
+위 변수와 같이 ```$<변수 이름>``` 이렇게 생긴 녀석들은 조건식도 만들 수 있고 환경변수도 참조가 가능해서 유용하게 써먹을 수 있다.  
+자세한 내용은 https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html 여기를 참조하자.  
 
 &NewLine;
 ## CMake 명령어 문법  
@@ -522,7 +558,13 @@ GIT_TAG를 주의해야 하는데 태그 주소를 보고 적어야 한다. (htt
 
 &NewLine;
 
-5. **해당 방법의 장점은 특정 라이브러리만 빌드 타겟으로 정해 그것만 빌드할 수 있다는 것이다.**  
+5. **간혹 FetchContent를 했는데도 #include 경로가 업데이트되지 않는 경우가 존재한다**  
+이러한 경우 ```include_directories(${<소문자 라이브러리 이름>_SOURCE_DIR}/include ${<소문자 라이브러리 이름>_BINARY_DIR}/include)```를 추가적으로 적어줘야 한다.  
+예를들어 의존성 주입 라이브러리인 fruit는 v3.7.1 버전 기준으로 FetchContent를 이용해 라이브러리를 추가해도 #include 경로가 자동으로 추가되지 않는데 이때 ```include_directories(${fruit_SOURCE_DIR}/include ${fruit_BINARY_DIR}/include)```를 해주면 포함 파일 경로가 잘 출력된다.  
+
+&NewLine;
+
+1. **해당 방법의 장점은 특정 라이브러리만 빌드 타겟으로 정해 그것만 빌드할 수 있다는 것이다.**  
 단점은 재빌드를 수행할 때 외부 라이브러리들까지 모두 빌드하기 때문에 빌드 시간이 오래걸린다는 것도 있고 GitHub에 공개되어 있지 않거나 CMake를 사용하여 빌드하지 않는 오픈 소스 라이브러리들은 사용이 불가능하다.  
 
 &NewLine;
