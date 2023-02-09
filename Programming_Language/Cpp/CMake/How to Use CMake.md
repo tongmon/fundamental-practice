@@ -323,7 +323,7 @@ BUILD_SHARED_LIBS가 ON이면 ```add_library()```가 수행될 때 명시적으�
 C++ 빌드할 때 사용되는 컴파일러 이름이 세팅되어 있다.  
 Visual Studio는 MSVC, Clang은 Clang, GCC는 GNU이다.  
 
-* **```$<CONFIG>```**
+* **```$<CONFIG>```**  
 CMake 빌드 수행시 --config에 전달한 인자가 저장되어 있다.  
 위 변수와 같이 ```$<변수 이름>``` 이렇게 생긴 녀석들은 조건식도 만들 수 있고 환경변수도 참조가 가능해서 유용하게 써먹을 수 있다.  
 자세한 내용은 https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html 여기를 참조하자.  
