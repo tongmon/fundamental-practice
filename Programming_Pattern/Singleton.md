@@ -371,10 +371,10 @@ public:
         static SingletonPeopleData singleton;
         return singleton;
     }
-    SingletonPeopleData(Singleton const &) = delete;
-    SingletonPeopleData(Singleton &&) = delete;
-    SingletonPeopleData &operator=(Singleton const &) = delete;
-    SingletonPeopleData &operator=(Singleton &&) = delete;
+    SingletonPeopleData(SingletonPeopleData const &) = delete;
+    SingletonPeopleData(SingletonPeopleData &&) = delete;
+    SingletonPeopleData &operator=(SingletonPeopleData const &) = delete;
+    SingletonPeopleData &operator=(SingletonPeopleData &&) = delete;
 
     unsigned int get_population(const std::string &country_name)
     {
@@ -430,7 +430,7 @@ TEST_CASE("Total Population Computation...", "[total_population]") {
 
 &nbsp;  
 
-이를 해결하기 위한 여러 방법이 존재하겠지만 싱글턴에서 싱글턴을 참조하고 있는 관계를 끊어주는 것이 제일 쉽고 명확하다.  
+이를 해결하기 위한 여러 방법이 존재하겠지만 싱글턴에서 싱글턴을 참조하고 있는 관계를 느슨하게 만드는 것이 제일 쉽고 명확하다.  
 SingletonRecordFinder 클래스를 밑과 같이 수정해준다.  
 ```c++
 class SingletonRecordFinder
@@ -439,7 +439,7 @@ class SingletonRecordFinder
     SingletonRecordFinder() {}
 
 public:
-    static SingletonRecordFinder &get(PeopleData *peopledata = nullptr)
+    static SingletonRecordFinder &get(PeopleData *peopledata)
     {
         static SingletonRecordFinder singleton;
         singleton.peopledata = peopledata;
@@ -453,20 +453,14 @@ public:
     unsigned int total_population(const std::vector<std::string> &countries)
     {
         unsigned int result = 0;
-
-        if (peopledata)
-            for (const auto &country_name : countries)
-                result += peopledata->get_population(country_name);
-        else
-            for (const auto &country_name : countries)
-                result += SingletonPeopleData::get().get_population(country_name);
-
+        for (const auto &country_name : countries)
+            result += peopledata->get_population(country_name);
         return result;
     }
 };
 ```
 일단 get() 함수에서 PeopleData 포인터를 인자로 받을 수가 있다.  
-멤버 변수 peopledata 포인터 유무에 따라서 total_population 방식이 유동적으로 변한다.  
+멤버 변수 peopledata 포인터 값에 따라서 total_population 방식이 유동적으로 변한다.  
 이렇게 바꾼 이유는 더미 데이터를 만들어 테스트에 사용하기 위함이다.  
 &nbsp;  
 
@@ -500,13 +494,93 @@ TEST_CASE("Total Population Computation...", "[total_population]") {
     REQUIRE(SingletonRecordFinder::get(&dummy).total_population({"Korea", "America"}) == (17000 + 89000));
 }
 ```
-dummy 데이터를 사용해서 싱글턴에서 싱글턴을 참조하고 있는 관계를 끊어주니 데이터베이스에 저장된 값이 어떻게 바뀌던 테스트 코드는 바뀔 일이 없다.  
+dummy 데이터를 사용해서 싱글턴에서 싱글턴을 참조하고 있는 관계를 약화시키니 데이터베이스에 저장된 값이 어떻게 바뀌던 테스트 코드는 바뀔 일이 없다.  
 이렇게 되면 테스트 코드는 total_population 로직에 이상이 있는지 없는지에 집중할 수 있다.  
 &nbsp;  
 
 ## 의존성 주입  
 
 싱글턴 패턴을 잘 사용하면 많은 생산성이 올라가지만 사용할 수록 종속성이 깊어진다는 문제가 있다.  
-[싱글턴 단위 테스트](#싱글턴-단위-테스트) 목차에서도 봤듯이 단위 테스트를 하기 위해서 기존에 사용하고 있던 SingletonRecordFinder 클래스의 내부 로직도 바꿨으며 테스트 데이터를 DummyPeopleData 클래스를 따로 정의하였다.  
-DummyPeopleData 클래스를 만드는 것은 어쩔 수 없다고 쳐도 기존에 사용하고 있던 SingletonRecordFinder 클래스의 로직을 테스트를 같이 범용하기 위해 바꾸는 것은 문제가 있다.  
-의존성 주입을 사용하여 싱글턴 클래스 SingletonPeopleData와 SingletonRecordFinder 클래스의 관계를 약하게 만들어 해당 문제를 해결해 보겠다.  
+[싱글턴 단위 테스트](#싱글턴-단위-테스트) 목차에서 싱글턴과 싱글턴 사이의 의존성을 느슨하게는 해주어 해당 문제를 해결하였다.  
+여기서 더 나아가 의존성 주입 프레임워크를 사용해 싱글턴을 직접 구현하지 않지만 테스트 기능은 [싱글턴 단위 테스트](#싱글턴-단위-테스트) 목차의 것과 동일한 코드를 구현해보자.  
+의존성 주입 프레임워크는 https://github.com/boost-ext/di 라이브러리를 이용한다.  
+자세한 설명은 https://boost-ext.github.io/di/user_guide.html 링크에 모두 쓰여있으니 Boost.DI를 깊게 사용해보고 싶다면 참고하자.  
+&nbsp;  
+
+일단 SingletonPeopleData, SingletonRecordFinder 클래스를 밑과 같이 변경해보자.  
+```c++
+class SingletonPeopleData : public PeopleData
+{
+    std::unordered_map<std::string, unsigned int> countries;
+
+public:
+    SingletonPeopleData() {}
+
+    unsigned int get_population(const std::string &country_name)
+    {
+        return countries[country_name];
+    }
+};
+
+class SingletonRecordFinder
+{
+    std::shared_ptr<PeopleData> peopledata = nullptr;
+
+public:
+    SingletonRecordFinder(std::shared_ptr<PeopleData> peopledata = nullptr)
+    {
+        this->peopledata = peopledata;
+    }
+
+    unsigned int total_population(const std::vector<std::string> &countries)
+    {
+        unsigned int result = 0;
+        for (const auto &country_name : countries)
+            result += peopledata->get_population(country_name);
+        return result;
+    }
+};
+```
+SingletonPeopleData, SingletonRecordFinder 클래스 모두 싱글턴에 대한 구현이 모두 없어지고 생성자가 public으로 노출되었다.  
+SingletonRecordFinder에서는 원래 raw pointer였던 peopledata가 std::shared_ptr로 변경되었다.  
+생성자 인자로도 std::shared_ptr을 받도록 하였다.  
+Boost.DI에게 각 클래스의 생명주기를 관리하도록 넘겨주기 위해 이러한 작업을 선행하였다.  
+&nbsp;  
+
+밑은 실제 사용 예시이다.  
+```c++
+auto injector = boost::di::make_injector(boost::di::bind<PeopleData>()
+                                             .to<SingletonPeopleData>()
+                                             .in(boost::di::singleton));
+
+auto copied = injector.create<SingletonRecordFinder>();   
+auto pointer = std::make_shared<SingletonRecordFinder>(injector.create<SingletonRecordFinder>());   
+```
+```boost::di::make_injector()``` 함수는 특수하게 정의된 바인딩 규칙에 따라 의존성을 주입할 수 있게 해준다.  
+```boost::di::bind<PeopleData>().to<SingletonPeopleData>()``` 의미는 PeopleData를 상속한 SingletonPeopleData 클래스를 다루는 경우를 고려하겠다는 것이다.  
+```.in(boost::di::singleton)```는 생명주기로 boost::di::singleton가 사용되었다면 싱글턴 멤버 변수를 생성하겠다는 것이다.  
+해당 설명을 조합해보면 ```boost::di::make_injector(boost::di::bind<PeopleData>().to<SingletonPeopleData>().in(boost::di::singleton))``` 이 부분은 다음을 의미한다.  
+> make_injector로 생성된 의존성 주입기를 이용해 어떤 객체를 생성할 때 그 객체는 PeopleData을 상속한 SingletonPeopleData를 멤버 변수로 가지고 있어야 하며 그 멤버 변수는 싱글턴 SingletonPeopleData 객체를 참조한 것이 되어 의존성 주입기를 통해 생성된 모든 객체는 동일한 싱글턴 SingletonPeopleData 객체를 멤버 변수로 가지고 있는 것이 된다.  
+
+쉽게 말해 ```.to<SingletonPeopleData>()``` 요거면 ```SingletonRecordFinder(싱글턴 SingletonPeopleData 객체)``` 생성자를 호출한 것이고 ```.to<DummyPeopleData>()``` 요거면 ```SingletonRecordFinder(싱글턴 DummyPeopleData 객체)``` 생성자를 호출한 것이다.  
+이때 thread-safe한 싱글턴 객체를 Boost.DI에서 생성하고 관리하기 때문에 개발자는 매우 편해진다.  
+```injector.create()```를 사용해 인자를 생성한다.  
+&nbsp;  
+
+Boost.DI를 사용한 테스트 코드는 밑과 같다.  
+```c++
+auto injector = boost::di::make_injector(boost::di::bind<PeopleData>()
+                                             .to<DummyPeopleData>()
+                                             .in(boost::di::singleton));
+
+TEST_CASE("Total Population Computation...", "[total_population]") {
+    REQUIRE(injector.create<SingletonRecordFinder>().total_population({"Korea", "America"}) == (17000 + 89000));
+}
+```
+만약 더미 데이터 말고 실제 사용하는 데이터로 테스트하고 싶다면 ```.to<DummyPeopleData>()```를 ```.to<SingletonPeopleData>()```로 바꾸면 된다.  
+이렇게 Boost.DI와 같은 의존성 주입 라이브러리를 이용하면 따로 싱글턴 패턴을 구현하지 않아도 동일한 기능을 사용할 수 있다.  
+&nbsp;  
+
+## 모노스테이트  
+
+싱글턴 패턴의 변형인 모노스테이트에 대해 알아보자.  
