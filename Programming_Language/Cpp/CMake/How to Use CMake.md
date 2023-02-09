@@ -143,6 +143,7 @@ ex. ```set(CMAKE_CXX_STANDARD 17)```
 * **option**  
 CMake에서 bool형 변수를 생성할 때 사용된다.    
 변수명, 변수 설명, 디폴트 값 순으로 정의한다.  
+```set()```과의 큰 차이점은 ```option()```으로 초기화된 변수는 캐시가 남아서 만약 해당 변수 값을 ON에서 OFF로 바꾸었다면 CMakeCache.txt를 지우고 다시 CMake 명령을 수행해야 한다.  
 ex. ```option(COMPILE_EXECUTABLE "This is COMPILE_EXECUTABLE hint!" OFF)```
 
 * **add_definitions**   
@@ -316,7 +317,7 @@ make install 명령어가 정의되어 있는 경우 최종 생성물을 복사�
 빌드 완료한 Static 라이브러리를 저장할 디렉토리가 저장되어 있는 변수.(Archive를 다른 말로 Static 라이브러리라고도 한다.)
 
 * **BUILD_SHARED_LIBS**  
-BUILD_SHARED_LIBS가 TRUE면 ```add_library()```가 수행될 때 명시적으로 STATIC | SHARED | MODULE 선언이 되어있지 않다면 SHARED 옵션을 사용하여 빌드한다. (외부 라이브러리를 사용할 때 정적 라이브러리로 사용하고 싶다면 FALSE로 해놓자.)  
+BUILD_SHARED_LIBS가 ON이면 ```add_library()```가 수행될 때 명시적으로 STATIC | SHARED | MODULE 선언이 되어있지 않다면 SHARED 옵션을 사용하여 빌드한다. (외부 라이브러리를 사용할 때 정적 라이브러리로 사용하고 싶다면 OFF로 해놓자.)  
 
 * **CMAKE_CXX_COMPILER_ID**  
 C++ 빌드할 때 사용되는 컴파일러 이름이 세팅되어 있다.  
