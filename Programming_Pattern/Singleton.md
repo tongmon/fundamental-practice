@@ -339,8 +339,59 @@ get() 함수가 호출될 때 처음 객체를 생성하거나 객체가 소멸�
 전에 설명했듯이 대부분의 운영체제에서는 프로세스가 종료되면 그 프로세스에 딸려있던 힙 메모리도 정리하기에 특정 Embedded OS가 아닌이상 문제가 되지 않는다.  
 **두번째**는 되살린 싱글턴 객체는 모든 값이 초기화되기에 예전 싱글턴 객체에 저장해놓던 값을 다시 이용하지 못한다는 것이다.  
 이는 프로그래머가 유의하여 로직을 구현하면 충분히 피해갈 수 있는 문제다.  
-이러한 문제는 모두 전역 객체의 소멸 시점을 프로그래머가 통제할 수 없기 때문에 발생된 것이라 이를 해결하기 위해서는 프로그래머가 모든 전역 객체의 생명주기를 직접 관리하는 로직을 따로 구현하던지 전역 객체의 사용을 최소화하던지 하는 방향으로 나아가야 할 것이다.  
+이러한 문제는 모두 전역 객체의 소멸 시점을 프로그래머가 통제할 수 없기 때문에 발생된 것이라 이를 해결하기 위해서는 프로그래머가 싱글턴 객체의 생명주기를 직접 관리하는 IoC 컨테이너 로직을 따로 구현하던지 전역 객체의 사용을 최소화하던지 하는 방향으로 나아가야 할 것이다.  
 &nbsp;  
+
+## 템플릿 싱글턴  
+
+싱글턴을 좀 더 generic하게 만들어보자.  
+&nbsp;  
+
+```c++
+template <typename T>
+class Singleton
+{
+    struct Deleter
+    {
+        void operator()(T *ptr)
+        {
+            delete ptr;
+            singleton.reset();
+        }
+    };
+    friend Deleter;
+
+    static std::shared_ptr<T> singleton;
+    static std::mutex mut;
+
+protected:
+    Singleton() {}
+    ~Singleton() {}
+
+public:
+    static T &get()
+    {
+        if (!std::atomic_load(&singleton))
+        {
+            std::lock_guard<std::mutex> lock(mut);
+            if (!std::atomic_load(&singleton))
+                std::atomic_store(&singleton, std::shared_ptr<T>(new T(), Deleter{}));
+        }
+        return *singleton;
+    }
+
+    Singleton(Singleton const &) = delete;
+    Singleton(Singleton &&) = delete;
+    Singleton &operator=(Singleton const &) = delete;
+    Singleton &operator=(Singleton &&) = delete;
+};
+
+template <typename T>
+std::shared_ptr<T> Singleton<T>::singleton = nullptr;
+
+template <typename T>
+std::mutex Singleton<T>::mut;
+```
 
 ## 싱글턴 단위 테스트  
 
@@ -507,7 +558,7 @@ dummy 데이터를 사용해서 싱글턴에서 싱글턴을 참조하고 있는
 자세한 설명은 https://boost-ext.github.io/di/user_guide.html 링크에 모두 쓰여있으니 Boost.DI를 깊게 사용해보고 싶다면 참고하자.  
 &nbsp;  
 
-일단 Boost.DI를 간단히 사용해보며 의존성 주입이 무엇인지에 대해 알아보자.  
+먼저 Boost.DI를 간단히 사용해보며 의존성 주입이 무엇인지에 대해 알아보자.  
 밑과 같이 간단한 인터페이스가 있다.  
 ```c++
 struct ILogger
@@ -631,7 +682,7 @@ auto injector = boost::di::make_injector(boost::di::bind<int>().named(w_cnt).to(
                                          boost::di::bind<ILogger>().to<Warning>(),
                                          boost::di::bind<int>().to(0));
 ```
-의존성 주입을 할 때 사용할 생성자를 BOOST_DI_INJECT() 매크로를 이용해 정의해준다.  
+의존성 주입을 할 때 사용할 생성자를 ```BOOST_DI_INJECT()``` 매크로를 이용해 정의해준다.  
 주입기를 만들 때 ```boost::di::bind<int>().named(w_cnt).to(0)```를 추가하여 w_cnt 별명이 붙은 생성자 인자에 해당 값을 넘겨준다.  
 &nbsp;  
 
