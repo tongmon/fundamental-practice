@@ -507,7 +507,135 @@ dummy 데이터를 사용해서 싱글턴에서 싱글턴을 참조하고 있는
 자세한 설명은 https://boost-ext.github.io/di/user_guide.html 링크에 모두 쓰여있으니 Boost.DI를 깊게 사용해보고 싶다면 참고하자.  
 &nbsp;  
 
-일단 SingletonPeopleData, SingletonRecordFinder 클래스를 밑과 같이 변경해보자.  
+일단 Boost.DI를 간단히 사용해보며 의존성 주입이 무엇인지에 대해 알아보자.  
+밑과 같이 간단한 인터페이스가 있다.  
+```c++
+struct ILogger
+{
+    virtual void log(const std::string &s) = 0;
+};
+```
+&nbsp;  
+
+ILogger를 사용하는 두 클래스가 있다.  
+```c++
+class Warning : public ILogger
+{
+public:
+    void log(const std::string &s) override
+    {
+        std::cout << "WARNING: " << s.c_str() << std::endl;
+    }
+};
+
+class Fatal : public ILogger
+{
+public:
+    void log(const std::string &s) override
+    {
+        std::cout << "FATAL: " << s.c_str() << std::endl;
+    }
+};
+```
+&nbsp;  
+
+ILogger를 멤버 변수로 갖는 클래스가 밑과 같이 존재한다.  
+```c++
+class Logger
+{
+    ILogger &logger;
+
+public:
+    Logger(ILogger &logger) : logger(logger) {}
+    void print(const std::string &s) { logger.log(s); }
+};
+```
+Logger는 어떤 종류의 ILogger를 생성자에 넘겨 받느냐에 따라 print() 함수의 작동 방식이 달라진다.  
+예를 들어 경고 로그를 찍고 싶다면 ```Warning warning_log; Logger logger(warning_log);``` 이렇게 해줘야 한다.  
+&nbsp;  
+
+Boost.DI에서는 생성자를 직접 호출하지 않고 밑과 같이 의존성 주입을 통해 객체를 생성한다.  
+```c++
+auto injector = boost::di::make_injector(boost::di::bind<ILogger>().to<Warning>());
+```
+만약 경로 로그 대신에 치명적 오류 로그를 Logger에 주입하고 싶다면 ```.to<Warning>()``` 부분은 ```.to<Fatal>()```로 변경하면 된다.  
+Boost.DI에서는 사용된 자료형에 따라 객체의 생명주기가 달라진다.  
+지금 Logger의 logger 멤버 변수는 ```ILogger &``` 자료형이라 Boost.DI는 해당 멤버 변수에 주입되는 객체를 싱글턴으로 생성한다.  
+이렇게 생성된 싱글턴 객체의 생명주기는 Boost.DI가 어플리케이션 시작부터 끝까지 관리하게 된다. (```std::shared_ptr<ILogger>```도 싱글턴 객체를 생성한다.)   
+멤버 변수 자료형에 참조나 포인터가 쓰이지 않았다면 Boost.DI는 객체를 복사 생성하여 해당 변수에 주입해준다.  
+&nbsp;  
+
+이는 주입기로 객체를 획득할 때도 마찬가지다.  
+```c++
+injector.create<Logger>();
+injector.create<Logger &>();
+```
+```create<Logger>```는 복사 생성된 Logger 객체가 반환된다.  
+```create<Logger&>```는 싱글턴 Logger 객체가 반환된다.  
+&nbsp;  
+
+만약 생성자 파라메터가 여럿이면 밑과 같이 대처한다.  
+```c++
+class Logger
+{
+    ILogger &logger;
+    int start_line = 0;
+
+public:
+    Logger(ILogger &logger, int start_line) : logger(logger), start_line(start_line) {}
+    void print(const std::string &s)
+    {
+        std::cout << start_line++ << ": ";
+        logger.log(s);
+    }
+};
+
+auto injector = boost::di::make_injector(boost::di::bind<ILogger>().to<Warning>(),
+                                         boost::di::bind<int>().to(0));
+```
+주입기를 생성할 때 ```boost::di::bind<int>().to(0)```를 추가해서 넘겨주었다.  
+이러면 start_line 멤버 변수가 0으로 초기화된다.  
+&nbsp;  
+
+만약 ILogger를 상속하는 클래스도 멤버 변수가 있다면 밑과 같이 Annotation을 사용해 대처한다.  
+```c++
+auto w_cnt = [] {};
+class Warning : public ILogger
+{
+    int warning_cnt = 0;
+
+public:
+    BOOST_DI_INJECT(Warning, (named = w_cnt) int cnt) : warning_cnt(cnt) {}
+    void log(const std::string &s) override
+    {
+        std::cout << "WARNING: " << s.c_str() << "/ Warning Counter: " << warning_cnt++ << std::endl;
+    }
+};
+
+auto f_cnt = [] {};
+class Fatal : public ILogger
+{
+    int fatal_cnt = 0;
+
+public:
+    BOOST_DI_INJECT(Fatal, (named = f_cnt) int cnt) : fatal_cnt(cnt) {}
+    void log(const std::string &s) override
+    {
+        std::cout << "FATAL: " << s.c_str() << "/ Fatal Counter: " << fatal_cnt++ << std::endl;
+    }
+};
+
+// Logger 정의부 생략
+
+auto injector = boost::di::make_injector(boost::di::bind<int>().named(w_cnt).to(0),
+                                         boost::di::bind<ILogger>().to<Warning>(),
+                                         boost::di::bind<int>().to(0));
+```
+의존성 주입을 할 때 사용할 생성자를 BOOST_DI_INJECT() 매크로를 이용해 정의해준다.  
+주입기를 만들 때 ```boost::di::bind<int>().named(w_cnt).to(0)```를 추가하여 w_cnt 별명이 붙은 생성자 인자에 해당 값을 넘겨준다.  
+&nbsp;  
+
+Boost.DI를 이용하기 위해 SingletonPeopleData, SingletonRecordFinder 클래스를 밑과 같이 변경해보자.  
 ```c++
 class SingletonPeopleData : public PeopleData
 {
@@ -541,40 +669,16 @@ public:
     }
 };
 ```
-SingletonPeopleData, SingletonRecordFinder 클래스 모두 싱글턴에 대한 구현이 모두 없어지고 생성자가 public으로 노출되었다.  
-SingletonRecordFinder에서는 원래 raw pointer였던 peopledata가 std::shared_ptr로 변경되었다.  
-생성자 인자로도 std::shared_ptr을 받도록 하였다.  
-Boost.DI에게 각 클래스의 생명주기를 관리하도록 넘겨주기 위해 이러한 작업을 선행하였다.  
-&nbsp;  
-
-밑은 실제 사용 예시이다.  
-```c++
-auto injector = boost::di::make_injector(boost::di::bind<PeopleData>()
-                                             .to<SingletonPeopleData>()
-                                             .in(boost::di::singleton));
-
-auto copied = injector.create<SingletonRecordFinder>();   
-auto pointer = std::make_shared<SingletonRecordFinder>(injector.create<SingletonRecordFinder>());   
-```
-```boost::di::make_injector()``` 함수는 특수하게 정의된 바인딩 규칙에 따라 의존성을 주입할 수 있게 해준다.  
-```boost::di::bind<PeopleData>().to<SingletonPeopleData>()``` 의미는 PeopleData를 상속한 SingletonPeopleData 클래스를 다루는 경우를 고려하겠다는 것이다.  
-```.in(boost::di::singleton)```는 생명주기로 boost::di::singleton가 사용되었다면 싱글턴 멤버 변수를 생성하겠다는 것이다.  
-해당 설명을 조합해보면 ```boost::di::make_injector(boost::di::bind<PeopleData>().to<SingletonPeopleData>().in(boost::di::singleton))``` 이 부분은 다음을 의미한다.  
-> make_injector로 생성된 의존성 주입기를 이용해 어떤 객체를 생성할 때 그 객체는 PeopleData을 상속한 SingletonPeopleData를 멤버 변수로 가지고 있어야 하며 그 멤버 변수는 싱글턴 SingletonPeopleData 객체를 참조한 것이 되어 의존성 주입기를 통해 생성된 모든 객체는 동일한 싱글턴 SingletonPeopleData 객체를 멤버 변수로 가지고 있는 것이 된다.  
-
-쉽게 말해 ```.to<SingletonPeopleData>()``` 요거면 ```SingletonRecordFinder(싱글턴 SingletonPeopleData 객체)``` 생성자를 호출한 것이고 ```.to<DummyPeopleData>()``` 요거면 ```SingletonRecordFinder(싱글턴 DummyPeopleData 객체)``` 생성자를 호출한 것이다.  
-이때 thread-safe한 싱글턴 객체를 Boost.DI에서 생성하고 관리하기 때문에 개발자는 매우 편해진다.  
-```injector.create()```를 사용해 인자를 생성한다.  
+싱글턴을 갖추기 위한 구현부를 전부 날렸다.  
+멤버 변수 peopledata가 shared_ptr 자료형이기 때문에 Boost.DI는 싱글턴 객체를 생성해 해당 변수에 주입할 것이다.  
 &nbsp;  
 
 Boost.DI를 사용한 테스트 코드는 밑과 같다.  
 ```c++
-auto injector = boost::di::make_injector(boost::di::bind<PeopleData>()
-                                             .to<DummyPeopleData>()
-                                             .in(boost::di::singleton));
+auto injector = boost::di::make_injector(boost::di::bind<PeopleData>().to<DummyPeopleData>());
 
 TEST_CASE("Total Population Computation...", "[total_population]") {
-    REQUIRE(injector.create<SingletonRecordFinder>().total_population({"Korea", "America"}) == (17000 + 89000));
+    REQUIRE(injector.create<SingletonRecordFinder &>().total_population({"Korea", "America"}) == (17000 + 89000));
 }
 ```
 만약 더미 데이터 말고 실제 사용하는 데이터로 테스트하고 싶다면 ```.to<DummyPeopleData>()```를 ```.to<SingletonPeopleData>()```로 바꾸면 된다.  
@@ -584,3 +688,48 @@ TEST_CASE("Total Population Computation...", "[total_population]") {
 ## 모노스테이트  
 
 싱글턴 패턴의 변형인 모노스테이트에 대해 알아보자.  
+&nbsp;  
+
+밑과 같은 녀석을 모노스테이트라고 한다.  
+```c++
+class Monostate
+{
+    static int m_state;
+
+public:
+    const int &state() const { return m_state; }
+    int &state() { return m_state; }
+};
+```
+싱글턴은 아닌데 멤버 변수 state가 정적 클래스 멤버 변수라 Monostate를 상속한 녀석이던 새로 생성된 Monostate던 모두 같은 녀석을 가리키고 있어 마치 싱글턴과 같은 효과가 발생한다.  
+&nbsp;  
+
+모노스테이트는 장단점이 확실하기에 해당 내용만 정리하고 넘어간다.  
+
+**장점**
+
+1. 상속이 쉬워 다형성을 활용하기 좋다.  
+
+2. 이미 존재하는 객체를 다시 활용하기 좋다.  
+   별다른 코드 없이 모노스테이트를 상속하거나 새로 생성하면 이미 존재하는 객체를 활용할 수 있다.  
+
+3. 정적 변수이기에 대부분의 경우에서 적절한 생존주기를 유지한다.  
+
+**단점**
+
+1. getter / setter 를 통해서만 멤버 변수 접근이 가능하다.  
+
+2. 정적 변수라 어느 정도의 메모리를 차지하고 있다.  
+
+3. 상속이나 객체 생성을 통해 이용되기에 의존성이 커진다.  
+
+4. 일반 객체를 모노스테이트로 변환하는 것은 어렵다.  
+&nbsp;  
+
+## 요약  
+
+1. 싱글턴 패턴을 사용할 때 테스트와 리펙터링 용이성을 해치지만 않는다면 괜찮다.  
+
+2. ```Singleton::get().do_something()```과 같은 직접적인 호출로 싱글턴을 사용하는 것은 피하자.  
+
+3. 싱글턴 패턴을 꼭 사용해야 한다면 생성자 인자로 객체를 넘겨 의존성을 약화시켜주던지, Boost.DI와 같은 라이브러리로 종속성을 주입하는 방식 등을 활용하자.  
