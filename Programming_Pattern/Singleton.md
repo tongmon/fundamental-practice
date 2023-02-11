@@ -342,15 +342,19 @@ get() 함수가 호출될 때 처음 객체를 생성하거나 객체가 소멸�
 이러한 문제는 모두 전역 객체의 소멸 시점을 프로그래머가 통제할 수 없기 때문에 발생된 것이라 이를 해결하기 위해서는 프로그래머가 싱글턴 객체의 생명주기를 직접 관리하는 IoC 컨테이너 로직을 따로 구현하던지 전역 객체의 사용을 최소화하던지 하는 방향으로 나아가야 할 것이다.  
 &nbsp;  
 
-## 템플릿 싱글턴  
+## 범용적인 싱글턴  
 
 싱글턴을 좀 더 generic하게 만들어보자.  
 &nbsp;  
 
+밑은 CRTP 기법을 이용한 템플릿 싱글턴이다.  
 ```c++
 template <typename T>
 class Singleton
 {
+    static std::shared_ptr<T> singleton;
+    static std::mutex mut;
+
     struct Deleter
     {
         void operator()(T *ptr)
@@ -360,9 +364,6 @@ class Singleton
         }
     };
     friend Deleter;
-
-    static std::shared_ptr<T> singleton;
-    static std::mutex mut;
 
 protected:
     Singleton() {}
@@ -392,6 +393,82 @@ std::shared_ptr<T> Singleton<T>::singleton = nullptr;
 template <typename T>
 std::mutex Singleton<T>::mut;
 ```
+해당 클래스를 상속한 클래스는 싱글턴 역할을 수행하게 된다.  
+&nbsp;  
+
+사용법은 밑과 같다.  
+```c++
+class SomeObj : public Singleton<SomeObj>
+{
+    friend Singleton;
+
+    SomeObj() { /* 생성자 로직 */ }
+    ~SomeObj() { /* 소멸자 로직 */ }
+
+public:
+    // 각종 필요한 로직
+};
+```
+중요한 점은 Singleton 클래스를 친구 클래스로 등록해줘야 private에 존재하는 SomeObj의 생성자와 소멸자를 Singleton 클래스에서 활용할 수 있게 되어 정상적인 빌드가 가능하다.  
+&nbsp;  
+
+매크로를 이용한 싱글턴 사용법도 알아보자.  
+```c++
+#define DELARE_SINGLETON(type)                                                               \
+private:                                                                                     \
+    static std::shared_ptr<type> singleton;                                                  \
+    static std::mutex mut;                                                                   \
+    struct Deleter                                                                           \
+    {                                                                                        \
+        void operator()(type *ptr)                                                           \
+        {                                                                                    \
+            delete ptr;                                                                      \
+            singleton.reset();                                                               \
+        }                                                                                    \
+    };                                                                                       \
+    friend Deleter;                                                                          \
+                                                                                             \
+public:                                                                                      \
+    static type &get()                                                                       \
+    {                                                                                        \
+        if (!std::atomic_load(&singleton))                                                   \
+        {                                                                                    \
+            std::lock_guard<std::mutex> lock(mut);                                           \
+            if (!std::atomic_load(&singleton))                                               \
+                std::atomic_store(&singleton, std::shared_ptr<type>(new type(), Deleter{})); \
+        }                                                                                    \
+        return *singleton;                                                                   \
+    }                                                                                        \
+    type(type const &) = delete;                                                             \
+    type(type &&) = delete;                                                                  \
+    type &operator=(type const &) = delete;                                                  \
+    type &operator=(type &&) = delete;
+
+#define INIT_SINGLETON(type)                         \
+    std::shared_ptr<type> type::singleton = nullptr; \
+    std::mutex type::mut;
+```
+&nbsp;  
+
+실제 사용법은 밑과 같다.  
+```c++
+class SomeObj
+{
+    DELARE_SINGLETON(SomeObj)
+
+    SomeObj() { /* 생성자 로직 */ }
+    ~SomeObj() { /* 소멸자 로직 */ }
+
+public:
+    // 각종 필요한 로직
+};
+
+INIT_SINGLETON(SomeObj)
+```
+DELARE_SINGLETON 매크로를 클래스 내부에, INIT_SINGLETON 매크로를 클래스 외부에 선언해주면 된다.  
+INIT_SINGLETON 매크로는 정적 클래스 멤버 변수를 초기화하는 것이기에 .h, .cpp 파일로 나누어 클래스를 생성할 것이라면 .cpp 파일에 선언해줘야 한다.  
+확장성이나 유연성 모두 템플릿 싱글턴이 우세하기 때문에 왠만하면 매그로를 활용하기 보다는 상속을 이용한 템플릿 싱글턴을 사용하자.  
+&nbsp;  
 
 ## 싱글턴 단위 테스트  
 
