@@ -299,8 +299,8 @@ class Singleton
     };
     friend Deleter;
 
-    static std::atomic<std::shared_ptr<Singleton>> singleton;
-    static std::mutex mut;
+    static inline std::atomic<std::shared_ptr<Singleton>> singleton = nullptr;
+    static inline std::mutex mut;
 
     Singleton() {}
     ~Singleton() {}
@@ -322,9 +322,6 @@ public:
     Singleton &operator=(Singleton const &) = delete;
     Singleton &operator=(Singleton &&) = delete;
 };
-
-std::atomic<std::shared_ptr<Singleton>> Singleton::singleton = nullptr;
-std::mutex Singleton::mut;
 ```
 C++17 이하에서 작동하는 피닉스 싱글턴 코드를 기준으로 설명하겠다.  
 구현이 어려워보이는 이유는 thread-safe하게 만들기 위해 atomic과 mutex를 사용했기 때문이다.  
@@ -345,6 +342,7 @@ get() 함수가 호출될 때 처음 객체를 생성하거나 객체가 소멸�
 ## 범용적인 싱글턴  
 
 싱글턴을 좀 더 generic하게 만들어보자.  
+밑에서 소개할 범용적인 싱글턴들은 전역 멤버 변수를 inline으로 초기화하기에 C++17 이상부터 사용가능하다. (C++20 이상에서 사용하려면 atomic_load, atomic_store에 대한 수정이 이뤄져야 한다.)  
 &nbsp;  
 
 밑은 CRTP 기법을 이용한 템플릿 싱글턴이다.  
@@ -352,8 +350,8 @@ get() 함수가 호출될 때 처음 객체를 생성하거나 객체가 소멸�
 template <typename T>
 class Singleton
 {
-    static std::shared_ptr<T> singleton;
-    static std::mutex mut;
+    static inline std::shared_ptr<T> singleton = nullptr;
+    static inline std::mutex mut;
 
     struct Deleter
     {
@@ -386,12 +384,6 @@ public:
     Singleton &operator=(Singleton const &) = delete;
     Singleton &operator=(Singleton &&) = delete;
 };
-
-template <typename T>
-std::shared_ptr<T> Singleton<T>::singleton = nullptr;
-
-template <typename T>
-std::mutex Singleton<T>::mut;
 ```
 해당 클래스를 상속한 클래스는 싱글턴 역할을 수행하게 된다.  
 &nbsp;  
@@ -415,19 +407,6 @@ public:
 매크로를 이용한 싱글턴 사용법도 알아보자.  
 ```c++
 #define DELARE_SINGLETON(type)                                                               \
-private:                                                                                     \
-    static std::shared_ptr<type> singleton;                                                  \
-    static std::mutex mut;                                                                   \
-    struct Deleter                                                                           \
-    {                                                                                        \
-        void operator()(type *ptr)                                                           \
-        {                                                                                    \
-            delete ptr;                                                                      \
-            singleton.reset();                                                               \
-        }                                                                                    \
-    };                                                                                       \
-    friend Deleter;                                                                          \
-                                                                                             \
 public:                                                                                      \
     static type &get()                                                                       \
     {                                                                                        \
@@ -442,11 +421,20 @@ public:                                                                         
     type(type const &) = delete;                                                             \
     type(type &&) = delete;                                                                  \
     type &operator=(type const &) = delete;                                                  \
-    type &operator=(type &&) = delete;
-
-#define INIT_SINGLETON(type)                         \
-    std::shared_ptr<type> type::singleton = nullptr; \
-    std::mutex type::mut;
+    type &operator=(type &&) = delete;                                                       \
+                                                                                             \
+private:                                                                                     \
+    static inline std::shared_ptr<type> singleton = nullptr;                                 \
+    static inline std::mutex mut;                                                            \
+    struct Deleter                                                                           \
+    {                                                                                        \
+        void operator()(type *ptr)                                                           \
+        {                                                                                    \
+            delete ptr;                                                                      \
+            singleton.reset();                                                               \
+        }                                                                                    \
+    };                                                                                       \
+    friend Deleter;
 ```
 &nbsp;  
 
@@ -462,11 +450,8 @@ class SomeObj
 public:
     // 각종 필요한 로직
 };
-
-INIT_SINGLETON(SomeObj)
 ```
-DELARE_SINGLETON 매크로를 클래스 내부에, INIT_SINGLETON 매크로를 클래스 외부에 선언해주면 된다.  
-INIT_SINGLETON 매크로는 정적 클래스 멤버 변수를 초기화하는 것이기에 .h, .cpp 파일로 나누어 클래스를 생성할 것이라면 .cpp 파일에 선언해줘야 한다.  
+DELARE_SINGLETON 매크로를 클래스 내부에 선언해주면 된다.  
 확장성이나 유연성 모두 템플릿 싱글턴이 우세하기 때문에 왠만하면 매그로를 활용하기 보다는 상속을 이용한 템플릿 싱글턴을 사용하자.  
 &nbsp;  
 
