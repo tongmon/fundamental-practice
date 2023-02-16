@@ -198,29 +198,62 @@ GraphicObject 인터페이스를 사용하는 객체들은 서로 자료형이 �
 생명체들의 구조를 보면 세포들이 모여 조직이되고 조직이 모여 기관이 된다.  
 세포, 조직, 기관을 묶어 처리하기 위해 밑과 같은 인터페이스를 만든다.  
 ```c++
-struct Origin
+struct ICell
 {
-    template <typename T>
-    void connect_to(T &other) {}
+    virtual void connect_to(ICell &) = 0;
 };
 ```
+&nbsp;  
 
 밑과 같은 세포 클래스가 있다.  
 ```c++
-class Cell
+class Cell : public ICell
 {
     unsigned int id;
+    std::vector<Cell *> in, out;
 
 public:
-    std::vector<Cell *> in, out;
     Cell()
     {
         static int n = 1;
         id = n++;
     }
 
-    void connect_to(Cell &other)
+    void connect_to(ICell &cell)
     {
+        Cell *other = dynamic_cast<Cell *>(&cell);
+        if (other)
+        {
+            out.push_back(other);
+            other->in.push_back(this);
+        }
+    }
+};
+```
+세포를 생성할 때마다 각 세포를 구별하기 위한 고유한 id가 매겨진다.  
+서로의 세포를 연결하기 위해 connect_to() 함수를 정의해준다.  
+&nbsp;  
+
+세포가 모인 조직 클래스를 밑과 같이 만들어주자.  
+```c++
+class Tissue : public ICell, public std::vector<Cell>
+{
+public:
+    Tissue(int amount)
+    {
+        while (amount-- > 0)
+            push_back(Cell{});
+    }
+
+    void connect_to(ICell &tissue)
+    {
+        Tissue *other = dynamic_cast<Tissue *>(&tissue);
+        if (other)
+        {
+            for (Cell &in : *this)
+                for (Cell &out : *other)
+                    in.connect_to(out);
+        }
     }
 };
 ```
