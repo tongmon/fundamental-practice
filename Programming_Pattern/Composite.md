@@ -234,26 +234,62 @@ public:
 서로의 세포를 연결하기 위해 connect_to() 함수를 정의해준다.  
 &nbsp;  
 
-세포가 모인 조직 클래스를 밑과 같이 만들어주자.  
+세포가 모인 조직 클래스를 밑과 같이 만들어주자.   
 ```c++
 class Tissue : public ICell, public std::vector<Cell>
 {
 public:
-    Tissue(int amount)
+    Tissue(const std::vector<Cell> &cells = {})
     {
-        while (amount-- > 0)
-            push_back(Cell{});
+        for (const auto &cell : cells)
+            push_back(cell);
     }
 
-    void connect_to(ICell &tissue)
+    void connect_to(ICell &other)
     {
-        Tissue *other = dynamic_cast<Tissue *>(&tissue);
-        if (other)
+        Tissue *tissue = dynamic_cast<Tissue *>(&other);
+        if (tissue)
         {
             for (Cell &in : *this)
-                for (Cell &out : *other)
+                for (Cell &out : *tissue)
                     in.connect_to(out);
+            return;
+        }
+
+        Cell *cell = dynamic_cast<Cell *>(&other);
+        if (cell)
+        {
+            for (Cell &in : *this)
+                in.connect_to(*cell);
         }
     }
 };
+```
+std::vector<>를 상속하는 덕 타이핑 기법은 그닥 좋진 않지만 이번 예시에서는 사용한다.  
+Tissue의 connect_to 함수를 보면 Tissue.connect_to(Cell), Tissue.connect_to(Tissue) 두 가지를 고려해야 하기에 구현부가 비대해졌다.  
+&nbsp;  
+
+문제는 Cell의 connect_to 함수도 Cell.connect_to(Tissue) 상황을 고려해줘야 하기에 밑과 같이 변경해야 한다.  
+그리고 이 시점부터 전방 참조로 인해 종속성이 꼬이지 않게 ICell은 헤더 파일에, Cell과 Tissue는 .h, .cpp 파일로 분리해서 구현해야 한다.  
+```c++
+void connect_to(ICell &other)
+{
+    Cell *cell = dynamic_cast<Cell *>(&other);
+    if (cell)
+    {
+        out.push_back(cell);
+        cell->in.push_back(this);
+        return;
+    }
+
+    Tissue *tissue = dynamic_cast<Tissue *>(&other);
+    if (tissue)
+        tissue->connect_to(*this);
+}
+```
+&nbsp;  
+
+여기서 Organ 클래스까지 추가해보자. (실제로 구현은 .h, .cpp로 나눠져 있지만 설명 편의상 한번에 나타낸다.)  
+```c++
+
 ```
