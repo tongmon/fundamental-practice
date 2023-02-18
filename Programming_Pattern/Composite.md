@@ -214,9 +214,10 @@ struct Interactor
 class Tissue : public Interactor
 {
     int id;
-    std::vector<Tissue *> in, out;
 
 public:
+    std::vector<Tissue *> in, out;
+
     Tissue();
     void connect_to(Interactor &);
 };
@@ -377,7 +378,62 @@ void Lung::Exhale(float amount_of_oxygen_for_exhale)
 Lung 클래스만 해도 Lung.connect_to(Lung), Lung.connect_to(Heart), Lung.connect_to(Tissue) 이렇게 3가지 연결 상황을 고려하고 있는데 Heart, Tissue 클래스도 새로 생긴 Lung을 연결하는 상황에 대한 구현부를 따로 또 작성해줘야 한다.  
 &nbsp;  
 
-이를 해결하기 위해 밑과 같은 템플릿을 이용한 공통 인터페이스 구현부를 작성한다.  
+이를 해결하기 위해 밑과 같이 템플릿을 이용해 인터페이스 구조를 바꿔준다.   
 ```c++
+template <typename Self>
+struct Interactor
+{
+    template <typename T>
+    void connect_to(T &other)
+    {
+        for (Tissue &from : *static_cast<Self *>(this))
+        {
+            for (Tissue &to : other)
+            {
+                from.out.push_back(&to);
+                to.in.push_back(&from);
+            }
+        }
+    }
+};
+```
+위 코드는 굉장히 교묘하게 각종 문제들을 잘 피해가고 있다.  
 
+```c++
+class Tissue : public Interactor<Tissue>
+{
+    int id;
+
+public:
+    std::vector<Tissue *> in, out;
+
+    Tissue();
+    Tissue *begin() { return this; }
+    Tissue *end() { return this + 1; }
+};
+```
+이제 Interactor를 상속할 때 템플릿 타입에 자신의 타입을 넘겨준다.  
+그리고 Tissue 클래스의 단일 객체를 마치 배열인 듯 범위기반 for문을 속이기 위해 begin(), end() 함수도 정의해준다.  
+
+```c++
+class Lung : public Interactor<Lung>, public std::vector<Tissue>
+{
+    float oxygen_content;
+
+public:
+    Lung(const std::vector<Tissue> &tissues = {});
+    void Inhale(float);
+    void Exhale(float);
+};
+```
+
+```c++
+class Heart : public Interactor<Heart>, public std::vector<Tissue>
+{
+    int pump_count;
+
+public:
+    Heart(const std::vector<Tissue> &tissues = {});
+    void pump();
+};
 ```
