@@ -195,101 +195,189 @@ GraphicObject 인터페이스를 사용하는 객체들은 서로 자료형이 �
 이번에는 각기 다른 자료형이 똑같은 구현부를 가진 인터페이스를 사용한다.  
 &nbsp;  
 
-생명체들의 구조를 보면 세포들이 모여 조직이되고 조직이 모여 기관이 된다.  
-세포, 조직, 기관을 묶어 처리하기 위해 밑과 같은 인터페이스를 만든다.  
+생명체의 몸은 여러 기관들이 역할을 나누어 맡아 돌아간다.  
+기관은 여러 조직들이 합쳐져 돌아간다.  
+이런 생명체 기관, 조직들을 이용한 예시로 설명하겠다.  
+먼저 밑과 같은 인터페이스를 만들자.  
 ```c++
-struct ICell
+struct Interactor
 {
-    virtual void connect_to(ICell &) = 0;
+    virtual void connect_to(Interactor &) = 0;
 };
 ```
 &nbsp;  
 
-밑과 같은 세포 클래스가 있다.  
+밑과 같은 조직 클래스도 있다.  
+모든 구현은 종속성이 꼬이지 않도록 .h, .cpp로 나누어 전방 선언 등을 이용해 진행한다.  
 ```c++
-class Cell : public ICell
+// 헤더 파일 구현부
+class Tissue : public Interactor
 {
-    unsigned int id;
-    std::vector<Cell *> in, out;
+    int id;
+    std::vector<Tissue *> in, out;
 
 public:
-    Cell()
-    {
-        static int n = 1;
-        id = n++;
-    }
-
-    void connect_to(ICell &cell)
-    {
-        Cell *other = dynamic_cast<Cell *>(&cell);
-        if (other)
-        {
-            out.push_back(other);
-            other->in.push_back(this);
-        }
-    }
+    Tissue();
+    void connect_to(Interactor &);
 };
+
+// 소스 파일 구현부
+Tissue::Tissue()
+{
+    static int id = 1;
+    this->id = id++;
+}
+
+void Tissue::connect_to(Interactor &other)
+{
+    Tissue *tissue = dynamic_cast<Tissue *>(&other);
+    if (tissue)
+    {
+        out.push_back(tissue);
+        tissue->in.push_back(this);
+    }
+}
 ```
-세포를 생성할 때마다 각 세포를 구별하기 위한 고유한 id가 매겨진다.  
-서로의 세포를 연결하기 위해 connect_to() 함수를 정의해준다.  
+조직을 생성할 때마다 각 조직을 구별하기 위한 고유한 id가 매겨진다.  
+서로 다른 두 조직을 연결하기 위해 connect_to() 함수를 구현한다.  
 &nbsp;  
 
-세포가 모인 조직 클래스를 밑과 같이 만들어주자.   
+생명체 기관인 심장 클래스를 만들어보자.  
 ```c++
-class Tissue : public ICell, public std::vector<Cell>
+// 헤더 파일 구현부
+class Heart : public Interactor, public std::vector<Tissue>
 {
+    int pump_count;
+
 public:
-    Tissue(const std::vector<Cell> &cells = {})
-    {
-        for (const auto &cell : cells)
-            push_back(cell);
-    }
-
-    void connect_to(ICell &other)
-    {
-        Tissue *tissue = dynamic_cast<Tissue *>(&other);
-        if (tissue)
-        {
-            for (Cell &in : *this)
-                for (Cell &out : *tissue)
-                    in.connect_to(out);
-            return;
-        }
-
-        Cell *cell = dynamic_cast<Cell *>(&other);
-        if (cell)
-        {
-            for (Cell &in : *this)
-                in.connect_to(*cell);
-        }
-    }
+    Heart(const std::vector<Tissue> &tissues = {});
+    void connect_to(Interactor &other);
 };
-```
-std::vector<>를 상속하는 덕 타이핑 기법은 그닥 좋진 않지만 이번 예시에서는 사용한다.  
-Tissue의 connect_to 함수를 보면 Tissue.connect_to(Cell), Tissue.connect_to(Tissue) 두 가지를 고려해야 하기에 구현부가 비대해졌다.  
-&nbsp;  
 
-문제는 Cell의 connect_to 함수도 Cell.connect_to(Tissue) 상황을 고려해줘야 하기에 밑과 같이 변경해야 한다.  
-그리고 이 시점부터 전방 참조로 인해 종속성이 꼬이지 않게 ICell은 헤더 파일에, Cell과 Tissue는 .h, .cpp 파일로 분리해서 구현해야 한다.  
-```c++
-void connect_to(ICell &other)
+// 소스 파일 구현부
+Heart::Heart(const std::vector<Tissue> &tissues)
 {
-    Cell *cell = dynamic_cast<Cell *>(&other);
-    if (cell)
+    pump_count = 0;
+    this->assign(tissues.begin(), tissues.end());
+}
+
+void Heart::connect_to(Interactor &other)
+{
+    Heart *heart = dynamic_cast<Heart *>(&other);
+    if (heart)
     {
-        out.push_back(cell);
-        cell->in.push_back(this);
+        for (auto &in : *this)
+            for (auto &out : *heart)
+                in.connect_to(out);
         return;
     }
 
     Tissue *tissue = dynamic_cast<Tissue *>(&other);
     if (tissue)
-        tissue->connect_to(*this);
+    {
+        for (auto &in : *this)
+            in.connect_to(*tissue);
+    }
+}
+
+void Heart::pump()
+{
+    std::cout << "Current Pump Count: " << ++pump_count << std::endl;
+}
+```
+std::vector<>를 상속하는 덕 타이핑은 그닥 좋진 않지만 이번 예시에서는 사용한다.  
+Heart의 connect_to 함수를 보면 Heart.connect_to(Tissue), Heart.connect_to(Heart) 두 가지를 고려해야 하기에 구현부가 비대해졌다.  
+&nbsp;  
+
+문제는 Tissue의 connect_to 함수도 Tissue.connect_to(Heart) 상황을 추가적으로 고려해줘야 하기에 밑과 같이 변경해야 한다.  
+```c++
+void Tissue::connect_to(Interactor &other)
+{
+    Tissue *tissue = dynamic_cast<Tissue *>(&other);
+    if (tissue)
+    {
+        out.push_back(tissue);
+        tissue->in.push_back(this);
+        return;
+    }
+
+    Heart *heart = dynamic_cast<Heart *>(&other);
+    if (heart)
+        heart->connect_to(*this);
 }
 ```
 &nbsp;  
 
-여기서 Organ 클래스까지 추가해보자. (실제로 구현은 .h, .cpp로 나눠져 있지만 설명 편의상 한번에 나타낸다.)  
+여기서 폐 기관 클래스를 추가해보자.  
+```c++
+// 헤더 파일 구현부
+class Lung : public Interactor, public std::vector<Tissue>
+{
+    float oxygen_content;
+
+public:
+    Lung(const std::vector<Tissue> &tissues = {});
+    void connect_to(Interactor &other);
+    void Inhale(float);
+    void Exhale(float);
+};
+
+// 소스 파일 구현부
+Lung::Lung(const std::vector<Tissue> &tissues)
+{
+    oxygen_content = 0.f;
+    this->assign(tissues.begin(), tissues.end());
+}
+
+void Lung::connect_to(Interactor &other)
+{
+    Lung *lung = dynamic_cast<Lung *>(&other);
+    if (lung)
+    {
+        for (auto &in : *this)
+            for (auto &out : *lung)
+                in.connect_to(out);
+        return;
+    }
+
+    Heart *heart = dynamic_cast<Heart *>(&other);
+    if (heart)
+    {
+        for (auto &in : *this)
+            for (auto &out : *heart)
+                in.connect_to(out);
+        return;
+    }
+
+    Tissue *tissue = dynamic_cast<Tissue *>(&other);
+    if (tissue)
+    {
+        for (auto &in : *this)
+            in.connect_to(*tissue);
+    }
+}
+
+void Lung::Inhale(float oxygen_from_outside)
+{
+    oxygen_content += oxygen_from_outside;
+    std::cout
+        << "Inhale... " << oxygen_from_outside
+        << "amount of oxygen from outside.\nTotal Oxygen in body: "
+        << oxygen_content << std::endl;
+}
+
+void Lung::Exhale(float amount_of_oxygen_for_exhale)
+{
+    oxygen_content = std::max(oxygen_content - amount_of_oxygen_for_exhale, 0.f);
+    std::cout << "Exhale... Total Oxygen in body: " << oxygen_content << std::endl;
+}
+```
+구현 상태를 보면서 비효율적인 부분을 확인할 수 있다.  
+공통 인터페이스인 connect_to() 함수가 Lung 클래스를 추가하면서 더 비대해졌다.  
+Lung 클래스만 해도 Lung.connect_to(Lung), Lung.connect_to(Heart), Lung.connect_to(Tissue) 이렇게 3가지 연결 상황을 고려하고 있는데 Heart, Tissue 클래스도 새로 생긴 Lung을 연결하는 상황에 대한 구현부를 따로 또 작성해줘야 한다.  
+&nbsp;  
+
+이를 해결하기 위해 밑과 같은 템플릿을 이용한 공통 인터페이스 구현부를 작성한다.  
 ```c++
 
 ```
