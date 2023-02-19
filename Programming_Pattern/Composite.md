@@ -332,20 +332,11 @@ Lung::Lung(const std::vector<Tissue> &tissues)
 
 void Lung::connect_to(Interactor &other)
 {
-    Lung *lung = dynamic_cast<Lung *>(&other);
-    if (lung)
+    std::vector<Tissue> *vec = dynamic_cast<std::vector<Tissue> *>(&other);
+    if (vec)
     {
         for (auto &in : *this)
-            for (auto &out : *lung)
-                in.connect_to(out);
-        return;
-    }
-
-    Heart *heart = dynamic_cast<Heart *>(&other);
-    if (heart)
-    {
-        for (auto &in : *this)
-            for (auto &out : *heart)
+            for (auto &out : *vec)
                 in.connect_to(out);
         return;
     }
@@ -373,13 +364,62 @@ void Lung::Exhale(float amount_of_oxygen_for_exhale)
     std::cout << "Exhale... Total Oxygen in body: " << oxygen_content << std::endl;
 }
 ```
-구현 상태를 보면서 비효율적인 부분을 확인할 수 있다.  
-공통 인터페이스인 connect_to() 함수가 Lung 클래스를 추가하면서 더 비대해졌다.  
-Lung 클래스만 해도 Lung.connect_to(Lung), Lung.connect_to(Heart), Lung.connect_to(Tissue) 이렇게 3가지 연결 상황을 고려하고 있는데 Heart, Tissue 클래스도 새로 생긴 Lung을 연결하는 상황에 대한 구현부를 따로 또 작성해줘야 한다.  
+구현 상태를 보면 connect_to() 함수에서 std::vector<>를 공통적으로 상속하고 있는 Heart, Lung 자료형을 묶어서 처리하는 것을 볼 수 있다.  
+&nbsp;  
+
+클래스 Lung이 추가됨에 따라 Tissue, Heart 클래스의 connect_to() 함수 구현부도 밑처럼 바뀌어야 한다.  
+```c++
+void Tissue::connect_to(Interactor &other)
+{
+    Tissue *tissue = dynamic_cast<Tissue *>(&other);
+    if (tissue)
+    {
+        out.push_back(tissue);
+        tissue->in.push_back(this);
+        return;
+    }
+
+    Heart *heart = dynamic_cast<Heart *>(&other);
+    if (heart)
+    {
+        heart->connect_to(*this);
+        return;
+    }
+
+    Lung *lung = dynamic_cast<Lung *>(&other);
+    if (lung)
+        lung->connect_to(*this);
+}
+
+void Heart::connect_to(Interactor &other)
+{
+    std::vector<Tissue> *vec = dynamic_cast<std::vector<Tissue> *>(&other);
+    if (vec)
+    {
+        for (auto &in : *this)
+            for (auto &out : *vec)
+                in.connect_to(out);
+        return;
+    }
+
+    Tissue *tissue = dynamic_cast<Tissue *>(&other);
+    if (tissue)
+    {
+        for (auto &in : *this)
+            in.connect_to(*tissue);
+    }
+}
+```
+Heart 클래스의 connect_to() 구현부는 Lung 클래스와 동일하다.  
+문제는 Tissue 클래스인데 해당 클래스는 std::vector<>를 상속하는 것이 아니기에 Lung, Heart 클래스의 connect_to() 함수와 구현부가 달라질 수 밖에 없다.  
+게다가 std::vector<>에는 connect_to() 멤버 함수가 없기 때문에 Lung, Heart 클래스를 묶어 처리할 방법이 없다.  
+결국엔 ```std::vector<Tissue>```를 상속하는 새로운 클래스가 탄생할 수록 Tissue의 connect_to() 함수 구현부는 새로운 연결 상황을 고려하기 위해 비대해질 수 밖에 없다.  
 &nbsp;  
 
 이를 해결하기 위해 밑과 같이 템플릿을 이용해 인터페이스 구조를 바꿔준다.   
 ```c++
+class Tissue;
+
 template <typename Self>
 struct Interactor
 {
@@ -398,6 +438,16 @@ struct Interactor
 };
 ```
 위 코드는 굉장히 교묘하게 각종 문제들을 잘 피해가고 있다.  
+일단 Interactor는 이제 인터페이스에서 추상 클래스로 바뀌었다.  
+connect_to()를 템플릿 함수로 구현해서 다양한 자료형으로 전달되는 함수 인자를 동일한 방식으로 처리한다.  
+어떤 자료형이 오던 범위 기반 for문을 이중으로 돌릴 뿐이다.  
+for문에서 Tissue의 멤버 변수인 out, in이 사용되었는데 템플릿 함수이기에 실제 Tissue 멤버 변수에 out, in이 존재하는지 아닌지는 검사하지 않는다.  
+단지 Tissue라는 자료형이 있다는 것을 컴파일러에게 알려줄 필요가 있다.  
+중요한 점은 ```static_cast<Self *>(this)``` 이 부분으로  
+
+
+
+
 
 ```c++
 class Tissue : public Interactor<Tissue>
