@@ -1,6 +1,7 @@
 # Composite Pattern  
 
-특정 객체들의 집합을 동일한 인터페이스를 이용해 순회 처리하기 위한 패턴이다.  
+다양한 자료형들에게 동일한 인터페이스를 제공하는 패턴이다.  
+보통 각기 다른 자료형을 묶어서 순회 처리하기 위해 많이 사용된다.  
 배열을 이용한 방법, ```begin() / end()``` 함수를 재정의하는 방법, ```std::vector<T>```를 상속하는 방법 등 여러가지가 존재한다.  
 이 방식 중... ```begin() / end()``` 함수를 재정의하는 덕 타이핑 기법은 숨겨진 인터페이스에 의존하는 것이기에 위험한 상황이 발생될 수 있어서 추천되지 않는다.   
 &nbsp;  
@@ -441,14 +442,24 @@ struct Interactor
 일단 Interactor는 이제 인터페이스에서 추상 클래스로 바뀌었다.  
 connect_to()를 템플릿 함수로 구현해서 다양한 자료형으로 전달되는 함수 인자를 동일한 방식으로 처리한다.  
 어떤 자료형이 오던 범위 기반 for문을 이중으로 돌릴 뿐이다.  
-for문에서 Tissue의 멤버 변수인 out, in이 사용되었는데 템플릿 함수이기에 실제 Tissue 멤버 변수에 out, in이 존재하는지 아닌지는 검사하지 않는다.  
-단지 Tissue라는 자료형이 있다는 것을 컴파일러에게 알려줄 필요가 있다.  
-중요한 점은 ```static_cast<Self *>(this)``` 이 부분으로  
+&nbsp;  
 
+첫번째 교묘한 점은 템플릿의 특성을 이용한 것이다.  
+템플릿 함수는 컴파일이 진행되면서 생성되는 함수이기에 실제 사용되지 않으면 껍데기만 존재한다.  
+따라서 내부에 말도 안되는 문법이 적혀있어도 함수가 실제 사용되지만 않으면 컴파일이 정상적으로 처리된다! (예를 들어 ```Tissue tissue = 1;```과 같은 구문)  
+물론 ```"특정 자료형이 존재는 한다."```라는 것을 증명해야 하여 ```class Tissue;``` 전방 선언을 해야 한다.  
+이와 같은 특성 덕분에 ```#include "Tissue.h"```를 하지 않고 전방 선언만 해도 컴파일 에러가 발생하지 않는다.  
+즉 connect_to() 함수의 구현부에서 Tissue의 멤버 변수로 out, in이 존재하는지 여부는 별로 중요하지 않다.  
+중요한 것은 connect_to() 함수가 사용되는 순간으로 그 때 컴파일러가 Tissue 클래스에 대한 정보를 알고 있으면 코드가 정상적으로 작동하게 된다.    
+&nbsp;  
 
+두번째 교묘한 점은 ```static_cast<Self *>(this)``` 부분이다.  
+Interactor 클래스 자체는 범위 기반 for문이 순회할 때 미리 정의된 begin(), end() 함수가 없어 대응이 불가능하다.  
+따라서 자식 클래스 자료형으로 형변환을 시켜 ```begin() / end()``` 함수 구현부를 자식 클래스에게 떠넘기기 위해 Interactor 클래스를 템플릿 클래스로 만들었다.  
+즉 자식 클래스들은 begin(), end() 함수가 구비되어 있어야 connect_to()를 사용할 수 있다.  
+&nbsp;  
 
-
-
+먼저 Tissue 클래스의 변화를 살펴보자.  
 ```c++
 class Tissue : public Interactor<Tissue>
 {
@@ -463,8 +474,15 @@ public:
 };
 ```
 이제 Interactor를 상속할 때 템플릿 타입에 자신의 타입을 넘겨준다.  
-그리고 Tissue 클래스의 단일 객체를 마치 배열인 듯 범위기반 for문을 속이기 위해 begin(), end() 함수도 정의해준다.  
+connect_to() 함수의 구현부도 없어졌다.  
+그리고 배열형이 아닌 Tissue 클래스는 기본적으로 구비되어 있는 begin(), end() 함수가 따로 없기 때문에 따로 구현해준다.  
+이렇게 begin(), end()를 정의해주면 Tissue 객체를 이용하여 배열처럼 범위 기반 for문을 돌릴 수 있다.    
+특이한 점은 ```this + 1``` 부분일 텐데 얼핏보면 이상한 주소값을 참조할 수 있는 위험한 구현(UB : Undefined Behavior)으로 보이지만 실상은 아니다.  
+```this + 1```은 단지 다음 객체를 가리키는 역할을 하는데 Tissue 자료형은 배열 형태가 아니라 ```this + 1```은 바로 배열의 끝을 나타낸다.  
+즉 범위 기반 for의 마침표를 찍기 위한 표현일 뿐이다.  
+&nbsp;  
 
+Lung, Heart 클래스의 변화를 살펴보자.  
 ```c++
 class Lung : public Interactor<Lung>, public std::vector<Tissue>
 {
@@ -475,9 +493,7 @@ public:
     void Inhale(float);
     void Exhale(float);
 };
-```
 
-```c++
 class Heart : public Interactor<Heart>, public std::vector<Tissue>
 {
     int pump_count;
@@ -487,3 +503,32 @@ public:
     void pump();
 };
 ```
+Interactor를 상속할 때 템플릿 타입에 자신의 타입을 넘겨주었고 connect_to() 함수의 구현부도 없다.  
+Lung, Heart 클래스는 애초에 std::vector<> 형을 상속하였기에 따로 begin(), end() 함수를 정의할 필요가 없다.  
+&nbsp;  
+
+밑은 실제 사용 예시이다.  
+```c++
+Tissue tissue_01, tissue_02, tissue_03;
+Heart heart({Tissue{}, Tissue{}, Tissue{}});
+Lung lung({Tissue{}, Tissue{}});
+
+tissue_01.connect_to(tissue_02);
+tissue_02.connect_to(tissue_03);
+
+heart.connect_to(tissue_01);
+lung.connect_to(heart);
+
+tissue_03.connect_to(heart);
+```
+하나의 템플릿 함수만 잘 구현하여 다양한 상황에 써먹을 수 있다.  
+
+## 요약  
+
+1. 컴포지트 패턴은 여러 자료형에게 동일한 인터페이스를 제공하는 패턴이다.  
+
+2. 명시적으로 인터페이스 멤버를 두는 방식이 있다.  
+
+3. begin(), end() 멤버 함수를 이용해 덕-타이핑하는 방식이 있는데 특히 이 경우에 단일 객체를 배열처럼 다루는 기법이 유용하게 사용된다.  
+
+4. 같은 자료형의 멤버 변수를 배열로 묶어 처리하는 방식이 있다.  
