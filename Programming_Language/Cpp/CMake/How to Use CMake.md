@@ -773,7 +773,7 @@ ex. ```conan install . -if ./build```
 	해당 값은 vcpkg가 설치되어 있는 폴더로 들어가 ```git rev-parse HEAD``` 명령어를 수행하면 출력되는 값으로 설정하면 된다.  
 	vcpkg를 업데이트할 때마다 갱신해줘야 한다.  
 	```builtin-baseline```를 추가하는 또 다른 방법은 프로젝트 최상위 폴더 위치의 터미널에서 ```vcpkg x-update-baseline --add-initial-baseline```를 수행하는 것이다.  
-	해당 명령어는 baseline 업데이트는 물론 baseline 항목이 vcpkg.json에 없다면 새로 추가도 해준다. (물론 사전에 vcpkg.json 파일에 프로젝트 최상위 폴더에 존재해야한다.)
+	해당 명령어는 baseline 업데이트는 물론 baseline 항목이 vcpkg.json에 없다면 새로 추가도 해준다. (물론 사전에 vcpkg.json 파일이 프로젝트 최상위 폴더에 존재해야한다.)
 	  
 	* ```version>=```  
 	```version>=```은 사용할 라이브러리의 최하위 버전을 정의한다.  
@@ -820,7 +820,11 @@ static으로 빌드된 외부 라이브러리 등을 포함 시킬 때는 라이
 
 &NewLine;
 
-11.   **만약 8번 9번에서 라이브러리 이름이 잘못되었거나 8번에서 CONFIG REQUIRED인데 그냥 REQUIRED로 적었거나 하면 오류가 나면서 터미널에 어떻게 고쳐야 하는지 출력되니 그걸 따라서 CMakeLists.txt 내용을 바꾸면 된다.**  
+11. **만약 8번 9번에서 라이브러리 이름이 잘못되었거나 8번에서 CONFIG REQUIRED인데 그냥 REQUIRED로 적었거나 하면 오류가 나면서 터미널에 어떻게 고쳐야 하는지 출력되니 그걸 따라서 CMakeLists.txt 내용을 바꾸면 된다.**  
+
+&NewLine;
+
+12. **간혹 vcpkg 라이브러리 설치 경로 lib 폴더 내에 추가로 manual-link 폴더가 존재하는데 해당 폴더 내에 존재하는 라이브러리들은 vcpkg가 자동으로 링크 시켜주지 않기에 CMakeLists.txt에 직접 링크시켜줘야 한다.**  
 
 &NewLine;
 ## CMake와 Doxygen 같이 사용하기
