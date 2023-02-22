@@ -83,3 +83,147 @@ ColoredAndTransparentCircle 클래스만 해도 이미 다이아몬드 상속 �
 ## 동적 데코레이터  
 
 위에서 발생된 문제를 동적 데코레이터 패턴으로 해결해보자.  
+먼저 Circle 클래스를 밑과 같이 바꿔보자.  
+```c++
+class Circle : public Shape
+{
+    float radius;
+
+public:
+    Circle() {}
+
+    explicit Circle(const float radius)
+        : radius{radius}
+    {
+    }
+
+    std::string str()
+    {
+        std::ostringstream oss;
+        oss << "A circle of radius " << radius;
+        return oss.str();
+    }
+};
+```
+거의 같다고 봐도 무방할 정도로 달라진 것이 없다.  
+생성자와 str() 함수의 구현이 살짝 변했을 뿐이다.  
+&nbsp;  
+
+그 다음 ColoredShape 클래스를 밑과 같이 변경해보자.  
+```c++
+class ColoredShape : public Shape
+{
+    using Color = std::tuple<unsigned char, unsigned char, unsigned char>;
+    Color rgb;
+    Shape &shape;
+
+public:
+    ColoredShape(Shape &shape, const Color &rgb)
+        : shape{shape},
+          rgb{rgb}
+    {
+    }
+
+    std::string str()
+    {
+        std::ostringstream oss;
+        oss << shape.str() << " has the color"
+            << " R: " << static_cast<short>(std::get<0>(rgb))
+            << " G: " << static_cast<short>(std::get<1>(rgb))
+            << " B: " << static_cast<short>(std::get<2>(rgb));
+        return oss.str();
+    }
+};
+```
+다른 자잘한 구현부는 신경쓰지말고 생성자를 유심히 봐라.  
+ColoredShape 클래스는 자기 자신도 Shape를 상속하고 있는데 생성자로 Shape을 받고 그 참조를 자기가 들고 있는다.  
+&nbsp;  
+
+왜 이런 구조를 취하는지에 대한 궁금증은 뒤로하고 TransparentShape 클래스도 밑과 같이 바꿔보자.  
+```c++
+class TransparentShape : public Shape
+{
+    Shape &shape;
+    unsigned char alpha;
+
+public:
+    TransparentShape(Shape &shape, const unsigned char alpha)
+        : shape{shape},
+          alpha{alpha}
+    {
+    }
+
+    std::string str()
+    {
+        std::ostringstream oss;
+        oss << shape.str() << " has "
+            << static_cast<float>(alpha) / 255.f
+            << "% transparency";
+        return oss.str();
+    }
+};
+```
+이 녀석도 마찬가지로 생성자로 Shape을 받고 그 참조를 들고 있는다.  
+&nbsp;  
+
+이런 구조가 갖춰지면 밑과 같은 행위가 가능해진다.  
+```c++
+// 그냥 원
+Circle circle{5};
+
+// 빨간색 원
+ColoredShape red_circle{circle, {255, 0, 0}};
+
+// 반투명 빨간색 원
+TransparentShape red_half_visible_circle{red_circle, 128};
+```
+반투명 빨간색 원을 ColoredAndTransparentCircle와 같은 새로운 자료형을 만들지 않고도 생성해냈다.  
+즉 추가적인 자료형 생성 없이 기존에 있던 베이스 속성들로만 조합을 나타낼 수 있다.  
+&nbsp;  
+
+하지만 문제가 없는 것은 아니다.  
+밑은 봐보자.  
+```c++
+// 그냥 원
+Circle circle{5};
+
+// 빨간색 원
+ColoredShape red_circle{circle, {255, 0, 0}};
+
+// 빨간색이면서 녹색 원
+ColoredShape green_red_circle{red_circle, {0, 255, 0}};
+```
+마지막에 빨간색이면서 녹색 원이 말이 되는가?  
+이런 말도 안되는 조합을 만들 수 있다는 것이 문제가 된다.  
+물론 이러한 문제는 프로그래머가 상식적으로 데코레이터 패턴을 이용한다면 발생하지 않을 것이다.  
+&nbsp;  
+
+## 정적 데코레이터  
+
+만약 Circle에 resize()라는 멤버 함수가 있다고 해보자.  
+```c++
+class Circle : public Shape
+{
+    // 나머지 구현부 생략
+
+    void resize(float factor)
+    {
+        radius *= factor;
+    }
+};
+```
+&nbsp;  
+
+밑 상황을 보자.  
+```c++
+// 그냥 원
+Circle circle{5};
+
+// 빨간색 원
+ColoredShape red_circle{circle, {255, 0, 0}};
+
+// red_circle.resize()를 어떻게 쓸 수 있을까...?
+```
+주석에서도 쓰여있듯이 resize() 함수는 Circle 클래스의 멤버 함수이기에 ColoredShape에서는 호출할 수가 없다.  
+&nbsp;  
+
