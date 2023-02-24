@@ -90,9 +90,7 @@ class Circle : public Shape
     float radius;
 
 public:
-    Circle() {}
-
-    explicit Circle(const float radius)
+    Circle(const float radius = 0)
         : radius{radius}
     {
     }
@@ -228,30 +226,107 @@ ColoredShape red_circle{circle, {255, 0, 0}};
 &nbsp;  
 
 이를 해결하기 위해 MixIn 상속 방식을 이용한다.  
-밑과 같이 ColoredShape을 템플릿 클래스로 바꿔보자.  
+밑과 같이 ColoredShape과 TransparentShape을 템플릿 클래스로 바꿔보자.  
 ```c++
-template<typename T>
+template <typename T>
 class ColoredShape : public T
 {
     using Color = std::tuple<unsigned char, unsigned char, unsigned char>;
     Color rgb;
-    Shape &shape;
 
 public:
-    ColoredShape(Shape &shape, const Color &rgb)
-        : shape{shape},
-          rgb{rgb}
+    ColoredShape(const Color &rgb = {0, 0, 0})
+        : rgb{rgb}
     {
     }
 
     std::string str()
     {
         std::ostringstream oss;
-        oss << shape.str() << " has the color"
+        oss << T::str() << " has the color"
             << " R: " << static_cast<short>(std::get<0>(rgb))
             << " G: " << static_cast<short>(std::get<1>(rgb))
             << " B: " << static_cast<short>(std::get<2>(rgb));
         return oss.str();
     }
 };
+
+template <typename T>
+class TransparentShape : public T
+{
+    unsigned char alpha;
+
+public:
+    TransparentShape(const unsigned char alpha = 0)
+        : alpha{alpha}
+    {
+    }
+
+    std::string str()
+    {
+        std::ostringstream oss;
+        oss << T::str() << " has "
+            << static_cast<float>(alpha) / 255.f
+            << "% transparency";
+        return oss.str();
+    }
+};
 ```
+동적으로 속성을 추가하는 상황에 대한 고려를 할 필요가 없기에 멤버 변수에서 ```Shape& shape```가 제거되었고 생성자도 그에 맞춰서 바뀌었다.  
+str() 함수에서도 ```shape.str()```이 ```T::str()```로 바뀌었다.  
+&nbsp;  
+
+이렇게 되면 밑과 같이 사용이 가능하다.  
+```c++
+ColoredShape<TransparentShape<Circle>> blue_circle{{0, 255, 0}};
+red_circle.resize(10);
+```
+```ColoredShape<TransparentShape<Circle>>```처럼 여러 속성이 조합된 자료형을 손쉽게 정의할 수 있다.  
+게다가 해당 자료형은 Circle을 상속하고 있는 구조를 취하므로 Circle의 멤버 함수인 resize()도 호출할 수 있다.  
+주의할 점은 템플릿 클래스에서 상속할 자료형 T는 무조건 Shape 자료형을 품고 있어야 한다는 것이다.  
+해당 주의사항을 조합 자료형 선언 과정에 녹여내고 싶다면 Circle 클래스도 MixIn 상속 방식의 템플릿 클래스로 바꿔주면 된다.   
+그러면 ```ColoredShape<TransparentShape<Circle<Shape>>>```, ```Circle<TransparentShape<ColoredShape<Shape>>>``` 이렇게 속성 순서와 무관하게 조합 자료형을 만들 수 있다.  
+&nbsp;  
+
+아직 문제가 하나 남았다.  
+사용 예시에서 blue_circle은 색상과 투명도 그리고 원이라는 특성이 있는 모양인데 생성자를 보니 색상만 초기화하고 있다.  
+다른 속성 클래스의 생성자들을 이용하고 싶어도 현재 구현 상태로는 힘들어보인다.  
+생성자도 템플릿을 이용해 바꿔보자.  
+```c++
+template <typename T>
+class ColoredShape : public T
+{
+public:
+    ColoredShape(const Color &rgb = {0, 0, 0}) : rgb{rgb}
+    {
+    }
+
+    template <typename... Args>
+    ColoredShape(const Color &rgb, Args... args)
+        : T(std::forward<Args>(args)...), rgb{rgb}
+    {
+    }
+
+    // 구현부 생략
+};
+
+template <typename T>
+class TransparentShape : public T
+{
+public:
+    TransparentShape(const unsigned char alpha = 0)
+        : alpha{alpha}
+    {
+    }
+
+    template <typename... Args>
+    TransparentShape(const unsigned char alpha, Args... args)
+        : T(std::forward<Args>(args)...), alpha{alpha}
+    {
+    }
+
+    // 구현부 생략
+};
+```
+```<typename... Args>```를 이용해 생성자의 여러 인자들이 전달되는 상황에 대처할 수 있다.  
+&nbsp;  
