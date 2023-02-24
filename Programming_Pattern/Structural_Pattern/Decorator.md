@@ -227,3 +227,31 @@ ColoredShape red_circle{circle, {255, 0, 0}};
 주석에서도 쓰여있듯이 resize() 함수는 Circle 클래스의 멤버 함수이기에 ColoredShape에서는 호출할 수가 없다.  
 &nbsp;  
 
+이를 해결하기 위해 MixIn 상속 방식을 이용한다.  
+밑과 같이 ColoredShape을 템플릿 클래스로 바꿔보자.  
+```c++
+template<typename T>
+class ColoredShape : public T
+{
+    using Color = std::tuple<unsigned char, unsigned char, unsigned char>;
+    Color rgb;
+    Shape &shape;
+
+public:
+    ColoredShape(Shape &shape, const Color &rgb)
+        : shape{shape},
+          rgb{rgb}
+    {
+    }
+
+    std::string str()
+    {
+        std::ostringstream oss;
+        oss << shape.str() << " has the color"
+            << " R: " << static_cast<short>(std::get<0>(rgb))
+            << " G: " << static_cast<short>(std::get<1>(rgb))
+            << " B: " << static_cast<short>(std::get<2>(rgb));
+        return oss.str();
+    }
+};
+```
