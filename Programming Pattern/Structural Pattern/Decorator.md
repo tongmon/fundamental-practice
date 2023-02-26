@@ -442,4 +442,97 @@ BenchMarking([&]() -> void { result = is_prime(num); }, "is_prime()")();
 특정 숫자가 소수인지 아닌지 판별해주는 함수는 bool 형을 반환하고 숫자를 인자로 받기 때문에 람다 함수를 따로 구현하여 BenchMarking 클래스에 전달해야 한다.  
 &nbsp;  
 
-이러한 번거로운 문제를 템플릿 클래스를 만들어 해결이 가능하다.  
+이러한 번거로운 문제를 밑과 같은 템플릿 클래스를 만들어 해결이 가능하다.  
+템플릿 명시화와 함수 자료형에 대한 학습이 안되어 있다면 문법이 다소 난해하게 느껴질 수 있다.  
+```c++
+template <typename>
+struct BenchMarking;
+
+template <typename Return, typename... Args>
+class BenchMarking<Return(Args...)>
+{
+    std::function<Return(Args...)> func;
+    std::string name;
+
+public:
+    BenchMarking(std::function<Return(Args...)> func, const std::string &name)
+        : func{func}, name{name}
+    {
+    }
+
+    Return operator()(Args... args)
+    {
+        std::cout << "BenchMark of " << name << " Function" << std::endl;
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now(), end;
+
+        Return ret = func(args...);
+
+        end = std::chrono::system_clock::now();
+        std::cout << (end - start).count() * 1e-9 << "s" << std::endl;
+
+        return ret;
+    }
+};
+```
+먼저 템플릿 명시화를 하려면 본래의 템플릿 클래스 원형이 필요하기에 ```template <typename> struct BenchMarking;```를 위에 선언해준다.  
+그 다음 BenchMarking 클래스를 보면 템플릿 인자 Return, Args를 조합한 새로운 자료형인 Return(Args...)를 명시화하고 있다.  
+```Return(Args...)```는 ```std::function<>```과 함께 사용되어 다양한 형태의 함수가 생성자 인자로 들어와도 유연한 대처가 가능하다.  
+&nbsp;  
+
+문제는 BenchMarking 클래스를 사용할 때 컴파일러가 템플릿 인수를 추론할 수 없어 번거롭게 밑과 같이 함수 형태를 명시해줘야 한다.  
+```c++
+// 밑은 템플릿 인수를 추론할 수 없기에 컴파일 과정에서 에러가 발생함.
+BenchMarking(is_prime, "is_prime()")(13);
+
+// 밑과 같은 명시적 인수 사용은 번거로움.
+BenchMarking<bool(int)>(is_prime, "is_prime()")(7);
+```
+&nbsp;  
+
+이러한 문제를 해결하기 위해 추가적인 함수를 만들어 준다.  
+```c++
+template <typename Return, typename... Args>
+auto make_benchmarking(Return (*func)(Args...), const std::string &name)
+{
+    return BenchMarking<Return(Args...)>(std::function<Return(Args...)>(func), name);
+}
+```
+&nbsp;  
+
+사용법은 밑과 같다.  
+```c++
+auto benchmark = make_benchmarking(is_prime, "is_prime()");
+benchmark(5);
+
+make_benchmarking(is_prime, "is_prime()")(23);
+```
+&nbsp;  
+
+아니면 그냥 바로 함수 포인터를 이용한 템플릿 클래스를 사용해도 된다.  
+```c++
+template <typename Return, typename... Args>
+class BenchMarking
+{
+    Return (*func)(Args...);
+    std::string name;
+
+public:
+    BenchMarking(Return (*func)(Args...), const std::string &name)
+        : func{func}, name{name}
+    {
+    }
+
+    Return operator()(Args... args)
+    {
+        std::cout << "BenchMark of " << name << " Function" << std::endl;
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now(), end;
+
+        Return ret = func(args...);
+
+        end = std::chrono::system_clock::now();
+        std::cout << (end - start).count() * 1e-9 << "s" << std::endl;
+
+        return ret;
+    }
+};
+```

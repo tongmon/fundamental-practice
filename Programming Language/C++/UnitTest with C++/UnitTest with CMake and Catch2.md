@@ -2,11 +2,11 @@
 
 일단 Catch2는 C++ 프로젝트의 단위 테스트, 벤치마킹을 도와주는 오픈 소스 라이브러리이다.  
 v2 버전까지는 header-only 라이브러리였지만 기능이 많이 추가된 v3 부터는 헤더 파일만 포함해서는 작동하지 않으니 CMake의 FetchContent나 Vcpkg 등을 이용하자.  
-사용법은 VSCode_Catch2_Project 프로젝트 구성을 따라 설명하겠다.  
+사용법은 Catch2.Project 프로젝트 구성을 따라 설명하겠다.  
 Catch2는 CMake를 구성으로 하는 것을 추천하므로 해당 프로젝트는 VSCode와 CMake를 이용한다.  
 해당 프로젝트는 밑과 같이 구성되어 있다.  
 ```
-VSCode_Catch2_Project
+Catch2.Project
 |- App
 	|- CMakelists.txt
 	|- main.cpp
@@ -39,14 +39,14 @@ VSCode_Catch2_Project
 ```UnitTest``` 프로젝트는 Catch2의 REQUIRE를 활용해 단위 테스트를 진행한다.  
 ```BenchmarkTest``` 프로젝트는 Catch2의 BENCHMARK를 통해 함수의 퍼포먼스를 알아낸다.  
   
-VSCode_Catch2_Project 프로젝트를 빌드하기 위해서는 ```clang```, ```ninja```가 사전에 설치되어 있어야 하며 ```CMakePresets.json``` 기반으로 빌드 세팅이 구성되어 있기에 VS Code 사용이 권장된다.  
+Catch2.Project 프로젝트를 빌드하기 위해서는 ```clang```, ```ninja```가 사전에 설치되어 있어야 하며 ```CMakePresets.json``` 기반으로 빌드 세팅이 구성되어 있기에 VS Code 사용이 권장된다.  
 
 빌드 후 ```UnitTest``` 타겟을 실행하면 단위 테스트가 수행되고 ```BenchmarkTest``` 타겟을 실행하면 벤치마크가 수행된다.  
   
-VSCode_Catch2_Project 프로젝트에서 Catch2를 사용하기 위해 유의할 점만 설명한다.  
+Catch2.Project 프로젝트에서 Catch2를 사용하기 위해 유의할 점만 설명한다.  
 나머지 자잘한 CMake C++ 프로젝트에 근본적으로 필요한 부분은 스킵한다.  
   
-* ```VSCode_Catch2_Project/CMakelists.txt```에서 볼 점은 밑과 같이 Catch2 라이브러리를 빌드 종속성에 추가하는 것이다.
+* ```Catch2.Project/CMakelists.txt```에서 볼 점은 밑과 같이 Catch2 라이브러리를 빌드 종속성에 추가하는 것이다.
 	```cmake
 	Include(FetchContent)
 
