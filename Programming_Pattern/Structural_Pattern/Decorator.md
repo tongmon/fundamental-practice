@@ -278,7 +278,7 @@ str() 함수에서도 ```shape.str()```이 ```T::str()```로 바뀌었다.
 
 이렇게 되면 밑과 같이 사용이 가능하다.  
 ```c++
-ColoredShape<TransparentShape<Circle>> blue_circle{{0, 255, 0}};
+ColoredShape<TransparentShape<Circle>> blue_circle{{0, 0, 255}};
 red_circle.resize(10);
 ```
 ```ColoredShape<TransparentShape<Circle>>```처럼 여러 속성이 조합된 자료형을 손쉽게 정의할 수 있다.  
@@ -328,5 +328,118 @@ public:
     // 구현부 생략
 };
 ```
-```<typename... Args>```를 이용해 생성자의 여러 인자들이 전달되는 상황에 대처할 수 있다.  
+템플릿 파라메터팩을 이용해 생성자에 여러 인자들이 전달되는 상황에 대처할 수 있다.  
+템플릿을 이용한 가변 인자를 생성자 인자로 사용하기에 타입 추론이 발생한다.  
+따라서 생성자 인자를 참조 연산자인 &&로 받을 때 보편 참조가 발생하기 때문에 기존 참조 방식 그대로를 유지하면서 부모의 생성자 인자로 넘겨주기 위해 ```std::forward()```를 사용했다.  
 &nbsp;  
+
+최종적으로 밑과 같이 사용할 수 있다.  
+```c++
+ColoredShape<TransparentShape<Circle>> blue_half_visible_circle{{0, 0, 255}, 128, 5.f};
+TransparentShape<Circle> transparent_circle = {255, 10.f};
+```
+너무 손쉽고 깔끔하게 속성을 조합할 수 있다.  
+해당 방식의 한 가지 유의점은 암시적 형변환을 방지하는 explicit 키워드를 속성으로 사용되는 클래스의 생성자에 사용하면 안된다는 것이다.  
+&nbsp;  
+
+## 함수형 데코레이터  
+
+클래스말고 함수에도 기능을 부착할 수 있다.  
+만약에 밑과 같은 함수가 있다고 하자.  
+```c++
+void print_million_hello_world()
+{
+    for (int i = 0; i < 1000000; i++)
+        std::cout << "hello world\n";
+}
+```
+hello world를 백만번 출력하는 함수다.  
+&nbsp;  
+
+해당 함수가 작동하는 데 걸리는 시간을 알고 싶다면 밑과 같이 구현해야 할 것이다.  
+```c++
+void print_million_hello_world(int cnt, const std::string &repeat)
+{
+    std::chrono::system_clock::time_point start = std::chrono::system_clock::now(), end;
+
+    for (int i = 0; i < 1000000; i++)
+        std::cout << "hello world" << std::endl;
+
+    end = std::chrono::system_clock::now();
+    std::cout << (end - start).count() * 1e-9 << "s" << std::endl;
+}
+```
+하지만 함수 작동 시간을 알려주는 기능까지 print_million_hello_world() 함수에 포함하는 것이 맞을까?  
+이는 단일 책임 원칙을 위배하기 때문에 추후 코드 유지보수를 생각해서라도 바꿔줘야 한다.  
+&nbsp;  
+
+먼저 밑과 같은 함수형 데코레이터 클래스를 정의한다.  
+```c++
+class BenchMarking
+{
+    std::function<void()> func;
+    std::string name;
+
+public:
+    BenchMarking(const std::function<void()> &func, const std::string &name)
+        : func{func}, name{name}
+    {
+    }
+
+    void operator()() const
+    {
+        std::cout << "BenchMark of " << name << " Function" << std::endl;
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now(), end;
+
+        func();
+
+        end = std::chrono::system_clock::now();
+        std::cout << (end - start).count() * 1e-9 << "s" << std::endl;
+    }
+};
+```
+std::function과 연산자```()```를 오버로딩한 Functor를 이용한 벤치마킹 클래스이다.  
+Functor가 실행될 때 함수 앞 뒤로 시간 측정을 위한 로직을 수행한다.  
+&nbsp;  
+
+실제 사용법은 밑과 같다.  
+```c++
+// 객체 생성하면서 바로 Functor 수행
+BenchMarking(print_million_hello_world, "print_million_hello_world()")();
+
+// 객체 생성하고 필요할 때 Functor 수행
+auto benchmarker = BenchMarking(print_million_hello_world, "print_million_hello_world()");
+benchmarker();
+```
+하지만 해당 벤치마크 클래스는 고정된 ```std::function<void()>``` 자료형을 이용하기 때문에 반환 값이 존재하거나 인자가 존재하는 함수가 전달되었을 경우 대처하기 까다롭다.  
+
+&nbsp;  
+
+예를 들어 밑과 같은 상황이 있다.  
+```c++
+bool is_prime(unsigned long long num)
+{
+    if (num <= 1)
+        return false;
+
+    if (!(num % 2))
+        return num == 2;
+
+    for (unsigned long long i = 3; i <= sqrt(num); i += 2)
+    {
+        if (!(num % i))
+            return false;
+    }
+
+    return true;
+}
+
+// 사용법
+unsigned long long num = 79554645354252345;
+bool result;
+BenchMarking([&]() -> void { result = is_prime(num); }, "is_prime()")();
+```
+특정 숫자가 소수인지 아닌지 판별해주는 함수는 bool 형을 반환하고 숫자를 인자로 받기 때문에 람다 함수를 따로 구현하여 BenchMarking 클래스에 전달해야 한다.  
+&nbsp;  
+
+이러한 번거로운 문제를 템플릿 클래스를 만들어 해결이 가능하다.  
