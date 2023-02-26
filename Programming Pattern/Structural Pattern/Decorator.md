@@ -536,3 +536,32 @@ public:
     }
 };
 ```
+&nbsp;  
+
+아니면 바로 템플릿 인자로 함수를 넘겨버리는 방법도 있다.  
+```c++
+template <typename F>
+class BenchMarking
+{
+    F func;
+    std::string name;
+
+public:
+    BenchMarking(F func, const std::string &name)
+        : func{func}, name{name} {}
+
+    template <typename... Args>
+    auto operator()(Args... args)
+    {
+        std::cout << "BenchMark of " << name << " Function" << std::endl;
+        std::chrono::system_clock::time_point start = std::chrono::system_clock::now(), end;
+
+        auto ret = func(args...);
+
+        end = std::chrono::system_clock::now();
+        std::cout << (end - start).count() * 1e-9 << "s" << std::endl;
+
+        return ret;
+    }
+};
+```
