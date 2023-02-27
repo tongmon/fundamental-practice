@@ -152,7 +152,7 @@ services.push_back(OrderingService{"Yogiyo", restaurants, delivery_men});
 식당 2개, 배달원 3명, 배달 서비스 업체 2곳이 있다.  
 &nbsp;  
 
-손님이 배달을 하는 프로세스를 작성해보자.  
+손님이 주문을 하는 프로세스를 작성해보자.  
 (30, 1) 위치가 집이고 pizza town에서 potato pizza를 BeaMin 서비스 업체를 통해 주문하려 한다.  
 ```c++
 std::string service_name = "BeaMin";
@@ -179,7 +179,7 @@ Cuisine &&delivered_food = delivery_man.delivery(restaurants[restaurant].make_cu
                              restaurants[restaurant].location,
                              home);
 ```
-손님이 배달을 할 때마다 이렇게 식당, 배달원, 배달 서비스 업체가 얽혀있는 번잡한 프로세스를 구현해야 할까?  
+손님이 주문을 할 때마다 이렇게 식당, 배달원, 배달 서비스 업체가 얽혀있는 번잡한 프로세스를 구현해야 할까?  
 손님은 단순히 식당 이름, 음식 이름, 서비스 업체 이름, 집 주소만 알려주면 음식이 배달와야 한다.  
 &nbsp;  
 
@@ -228,24 +228,15 @@ public:
 
     Cuisine &&order(std::string &&service_name, std::string &&restaurant_name, std::string &&food_name, std::pair<float, float> &&home)
     {
-        int restaurant = 0, service = 0;
-        for (size_t i = 0; i < restaurants.size(); i++)
-            if (restaurant_name == restaurants[i].name)
-            {
-                restaurant = i;
-                break;
-            }
+        auto restaurant = std::find_if(restaurants.begin(), restaurants.end(), [&](auto &r) -> bool
+                                       { return restaurant_name == r.name; });
 
-        for (size_t i = 0; i < services.size(); i++)
-            if (service_name == services[i].name)
-            {
-                service = i;
-                break;
-            }
+        auto service = std::find_if(services.begin(), services.end(), [&](auto &r) -> bool
+                                    { return service_name == r.name; });
 
-        DeliveryMan &delivery_man = services[service].matching(restaurants[restaurant]);
-        return delivery_man.delivery(restaurants[restaurant].make_cuisine(food_name),
-                                     restaurants[restaurant].location,
+        DeliveryMan &delivery_man = service->matching(*restaurant);
+        return delivery_man.delivery(restaurant->make_cuisine(food_name),
+                                     restaurant->location,
                                      home);
     }
 };
@@ -273,24 +264,15 @@ struct OrderData
 
 Cuisine &&order(const OrderData &orderdata = OrderData())
 {
-    int restaurant = 0, service = 0;
-    for (size_t i = 0; i < restaurants.size(); i++)
-        if (orderdata.restaurant_name == restaurants[i].name)
-        {
-            restaurant = i;
-            break;
-        }
+    auto restaurant = std::find_if(restaurants.begin(), restaurants.end(), [&](auto &r) -> bool
+                                   { return orderdata.restaurant_name == r.name; });
 
-    for (size_t i = 0; i < services.size(); i++)
-        if (orderdata.service_name == services[i].name)
-        {
-            service = i;
-            break;
-        }
-
-    DeliveryMan &delivery_man = services[service].matching(restaurants[restaurant]);
-    return delivery_man.delivery(restaurants[restaurant].make_cuisine(orderdata.food_name),
-                                 restaurants[restaurant].location,
+    auto service = std::find_if(services.begin(), services.end(), [&](auto &r) -> bool
+                                { return orderdata.service_name == r.name; });
+                                
+    DeliveryMan &delivery_man = service->matching(*restaurant);
+    return delivery_man.delivery(restaurant->make_cuisine(orderdata.food_name),
+                                 restaurant->location,
                                  orderdata.home);
 }
 ```
