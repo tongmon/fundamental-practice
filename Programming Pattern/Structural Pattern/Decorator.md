@@ -474,18 +474,18 @@ public:
     }
 };
 ```
-먼저 템플릿 명시화를 하려면 본래의 템플릿 클래스 원형이 필요하기에 ```template <typename> struct BenchMarking;```를 위에 선언해준다.  
-그 다음 BenchMarking 클래스를 보면 템플릿 인자 Return, Args를 조합한 새로운 자료형인 Return(Args...)를 명시화하고 있다.  
+템플릿 명시화를 하려면 본래의 템플릿 클래스 원형이 필요하기에 ```template <typename> struct BenchMarking;```를 먼저 선언해준다.  
+그 다음 BenchMarking 클래스를 보면 템플릿 인자 Return, Args를 조합한 새로운 자료형인 Return(Args...)를 부분 명시화하고 있다.  
 ```Return(Args...)```는 ```std::function<>```과 함께 사용되어 다양한 형태의 함수가 생성자 인자로 들어와도 유연한 대처가 가능하다.  
 &nbsp;  
 
-문제는 BenchMarking 클래스를 사용할 때 컴파일러가 템플릿 인수를 추론할 수 없어 번거롭게 밑과 같이 함수 형태를 명시해줘야 한다.  
+문제는 컴파일러가 템플릿 인수를 추론할 수 없기에 밑과 같이 함수 형태를 명시해줘야 한다.  
 ```c++
 // 밑은 템플릿 인수를 추론할 수 없기에 컴파일 과정에서 에러가 발생함.
 BenchMarking(is_prime, "is_prime()")(13);
 
-// 밑과 같은 명시적 인수 사용은 번거로움.
-BenchMarking<bool(int)>(is_prime, "is_prime()")(7);
+// 하지만 템플릿 인수를 명시적으로 표시하는 것은 번거로움.
+BenchMarking<bool(unsigned long long)>(is_prime, "is_prime()")(7);
 ```
 &nbsp;  
 
@@ -497,6 +497,7 @@ auto make_benchmarking(Return (*func)(Args...), const std::string &name)
     return BenchMarking<Return(Args...)>(std::function<Return(Args...)>(func), name);
 }
 ```
+함수 포인터를 인자로 받아 템플릿 인수를 명시적으로 표시해주지 않아도 된다.  
 &nbsp;  
 
 사용법은 밑과 같다.  
@@ -506,9 +507,10 @@ benchmark(5);
 
 make_benchmarking(is_prime, "is_prime()")(23);
 ```
+이렇게 함수를 따로 만들고 싶지도 않고 템플릿 부분 특수화도 싫다면 밑의 두 가지 방법이 추천된다.  
 &nbsp;  
 
-아니면 그냥 바로 함수 포인터를 이용한 템플릿 클래스를 사용해도 된다.  
+함수 포인터를 멤버 변수로 가지고 이를 활용하는 접근법이다.  
 ```c++
 template <typename Return, typename... Args>
 class BenchMarking
@@ -536,9 +538,11 @@ public:
     }
 };
 ```
+함수 포인터를 이용하기에 ```Return(Args...)```와 같은 새로운 자료형을 만들 필요가 없다.  
+문제라면 생성자 인자로 함수 포인터말고 ```std::function<>``` 자료형을 넘기는 경우에 대처하지 못한다는 것이다.  
 &nbsp;  
 
-아니면 바로 템플릿 인자로 함수를 넘겨버리는 방법도 있다.  
+템플릿 인자로 함수를 바로 넘겨버리는 방법도 있다.  
 ```c++
 template <typename F>
 class BenchMarking
@@ -565,3 +569,19 @@ public:
     }
 };
 ```
+함수 포인터와 ```std::function<>``` 자료형을 모두 처리할 수 있어 유연하다.  
+&nbsp;  
+
+이러한 개선된 방법을 사용하면 ```BenchMarking(is_prime, "is_prime()")(5);``` 이렇게 템플릿 인수를 명시하지 않고도 사용이 가능하다.  
+&nbsp;  
+
+## 요약  
+
+1. 데코레이터 패턴은 클래스나 함수에 기능을 손쉽게 부착하기 위한 패턴이다.  
+
+2. 데코레이션 할 객체의 참조를 멤버 변수로 두고 있는 동적 데코레이터 방식이 있는데 동적이지만 데코레이션 할 객체의 멤버들에 접근하기 어렵다는 단점이 있다.  
+
+3. 믹스인 상속 방식을 이용한 정적 데코레이터 방식은 동적이진 않지만 상속을 이용하기에 데코레이션 할 객체의 멤버들에 접근하기 쉽다.  
+
+4. 함수형 데코레이터는 특정 코드 블록이나 함수에 다른 동작을 추가하기에 유용하다.  
+
