@@ -781,15 +781,16 @@ ex. ```conan install . -if ./build```
 	해당 명령어는 baseline 업데이트는 물론 baseline 항목이 vcpkg.json에 없다면 새로 추가도 해준다. (물론 사전에 vcpkg.json 파일이 프로젝트 최상위 폴더에 존재해야한다.)
 	  
 	* ```version>=```  
-	```version>=```은 사용할 라이브러리의 최하위 버전을 정의한다.  
-	vcpkg는 최하위 버전이 존재하면 해당 버전을 우선순위로 받는다.  
-	위 예시에서는 zlib의 최하위 버전은 ```1.2.11```라고 되어있다.  
-	정의한 버전이 존재하지 않을 경우 버전 리스트들이 터미널에 출력되면서 오류가 난다.
+	```version>=```은 사용할 라이브러리 버전에 우선 순위를 적용한다.    
+	명시된 라이브러리 버전이 존재하면 해당 버전을 우선 순위로 받는다.  
+	만약 fmt 라이브러리 버전이 ```"version>=" : "6.1.3#1"```라고 명시되어 있는데 같이 사용하려는 spdlog 라이브러리가 7.0.0 버전의 fmt 라이브러리를 요구한다면 fmt 라이브러리에 6.1.3#1 버전이 우선 순위로 설정되어 있어도 더 최신이고 spdlog와 양립할 수 있는 7.0.0버전의 fmt를 설치한다.  
+	위 예시에서는 zlib의 버전 우선 순위는 ```1.2.11```라고 되어있다.  
+	정의한 버전이 존재하지 않을 경우 기입 가능한 버전 리스트들이 터미널에 출력되면서 오류가 난다.
 	  
 	* ```default-features```  
 	```default-features```는 기본적으로 true이지만 가끔 false를 사용할 때가 있는데 이 경우 특정 ```features```를 이용하기 위해서이다.
 	  
-   * ```features```  
+    * ```features```  
 	```features```는 라이브러리의 디폴트 값을 사용하지 않고 특정 기능을 사용할 때 정의하게 된다.  
 	위 예시에서는 arrow 라이브러리에 "features"가 json으로 되어있다.  
 	이것이 무슨 의미인지 확인하기 위해서 ```.\vcpkg.exe search arrow```를 해보면 여러가지 arrow 라이브러리들이 출력되는데 arrow[csv] 얘는 csv를 지원하는 arrow, arrow[filesystem] 얘는 파일 시스템을 지원하는 arrow, arrow[json] 얘는 json을 지원하는 arrow 등 많은데 여기서 json과 filesystem을 지원하는 arrow 라이브러리만 가져오기 위해서 vcpkg.json 파일에  ```"features": [ "json", "filesystem" ]``` 라고 선언한 것이다.
