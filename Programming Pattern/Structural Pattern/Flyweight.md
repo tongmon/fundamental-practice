@@ -41,6 +41,7 @@ class UserManager
 
 private:
     inline static std::vector<std::string> nickname_list = {};
+    // 나머지 멤버 생략
 };
 ```
 이제 같은 닉네임의 유저가 생성될 때 nickname_list에서 이미 존재하는 닉네임인지 여부를 확인하면 된다.  
@@ -56,7 +57,7 @@ struct User
 {
     int id;
     long long nickname_key;
-    std::string nickname() { return nickname_list[nickname_key]; }
+    const std::string &nickname() const { return nickname_list[nickname_key]; }
 };
 ```
 이제 User의 nickname은 nickname_key를 통해 접근하게 된다.  
@@ -76,9 +77,10 @@ void add_user(const std::string &nickname)
     user_list.push_back(User{++id, target - nickname_list.begin()});
 }
 ```
-만약 nickname_list에 이미 존재하는 닉네임이라면 해당 닉네임을 가리키는 인덱스를 User가 알고 있으면 된다.  
-새로운 nickname이 등장할 때마다 nickname_list에 정렬해 추가되어야 한다.  
+만약 nickname_list에 이미 존재하는 닉네임이라면 해당 닉네임의 인덱스를 User가 가지고 있으면 된다.    
+새로운 nickname이 등장할 때마다 nickname_list에 정렬해 추가해줘야 한다.  
 nickname_list에 새로운 값이 추가될 때마다 User 구조체에서 특정 이름을 가리키고 있던 인덱스 값들도 바뀌어야 해서 삽입시 O(N)의 복잡도가 도출된다.  
+인덱스를 통해 객체를 가리키기 때문에 새로운 객체가 많이 생성되지 않는 상황에서는 인덱스의 자료형을 short, char 등으로 사용해 용량을 더욱 줄일 수 있다.  
 &nbsp;  
 
 다음으로 해쉬맵 방식을 사용해보자.  
@@ -89,28 +91,39 @@ class UserManager
     // 구현부 생략
 
 private:
-    inline static std::unordered_map<std::string, long long> nickname_indexs = {};
-    inline static std::vector<std::string> nickname_list = {};
+    inline static std::unordered_set<std::string> nickname_list = {};
+    // 나머지 멤버 생략
 };
 ```
-해쉬맵을 사용하기에 nickname_list는 정렬되어 있을 필요가 없다.  
+&nbsp;  
+
+이진 탐색에서는 인덱스를 사용했다면 해쉬맵에서는 포인터를 사용해서 nickname을 가리킨다.  
+```c++
+struct User
+{
+    int id;
+    const std::string *nickname_ptr;
+    const std::string &nickname() const { return *nickname_ptr; }
+};
+```
 &nbsp;  
 
 add_user() 함수의 로직도 이에 맞춰 바꿔보자.  
 ```c++
 void add_user(const std::string &nickname)
 {
-    if (nickname_indexs.find(nickname) == nickname_indexs.end())
-    {
-        nickname_indexs[nickname] = nickname_list.size();
-        nickname_list.push_back(nickname);
-    }
-    user_list.push_back(User{++id, nickname_indexs[nickname]});
+    auto iter = nickname_list.find(nickname);
+    if (iter == nickname_list.end())
+        iter = nickname_list.insert(nickname).first;
+    user_list.push_back(User{++id, &*iter});
 }
 ```
-새로운 nickname이 등장해도 nickname_list 끝 부분에 추가만 해주면 되기에 User 구조체에서 특정 이름을 가리키고 있던 인덱스 값들에 변동이 없다.  
+새로운 nickname이 등장해서 nickname_list에 추가된다 하더라도 nickname을 가리키던 포인터에는 영향이 없다.  
 따라서 삽입시 O(1)의 복잡도가 도출된다.  
-문제는 해쉬맵과 std::vector에 nickname이 쌍으로 존재하기 때문에 이진 탐색 방식보단 메모리 소비가 크다는 단점이 있다.  
+문제는 포인터의 크기가 64-bit 운영체제에서 8byte, 32-bit 운영체제에서 4byte로 작은 크기는 아니다.  
+처리 속도에서 조금 손해를 보더라도 메모리를 많이 줄이고 싶다면 이진 탐색 방식이 더 좋다.  
+속도와 메모리 사용량 둘 다 적절하게 잡고 싶다면 
+&nbsp;  
 
 ## Boost의 Flyweight  
 
