@@ -169,6 +169,7 @@ else문, else if문은 else(), elseif()로 사용한다.
 
 * **add_custom_command**  
 특정 타켓의 빌드 시점에 따라 터미널 명령어를 수행하거나 통상적인 빌드 절차로 생성할 수 없는 별도의 파일들을 관리하는 경우 사용된다.  
+빌드 시점도 POST_BUILD, PRE_LINK, POST_BUILD 이렇게 세분화하여 지정할 수 있다.  
 예를 들어 특정 경로에 존재하는 dll을 MyExecutable이라는 타켓이 빌드된 후 특정 폴더로 옮기고 싶다면 아래와 같이 ```add_custom_command()```를 사용한다.  
 	```cmake
 	add_custom_command(TARGET MyExecutable POST_BUILD
@@ -181,9 +182,32 @@ else문, else if문은 else(), elseif()로 사용한다.
 	    -E copy <특정 dll들의 경로가 담긴 리스트> <특정 dll을 복사하여 옮겨 놓을 폴더>
 	)
 	```
-	위 예시에 대해 간략히 설명을 추가하자면 POST_BUILD는 특정 타켓의 빌드 후라는 것을 나타내고 PRE_BUILD, PRE_LINK와 같이 다른 빌드 시점도 존재한다.  
 	```<특정 dll의 경로>```를 적는 경우 ```${CMAKE_SOURCE_DIR}/Library/FMOD/x64/fmodstudio.dll```이와 같이 dll의 이름까지 모두 적어줘야 한다.  
+	  
+	다른 예시로 iconmaker.py라는 파이썬 파일이 png 파일을 이용해 ico 파일을 생성해주는 역할을 한다고 하자.  
+	이러한 iconmaker.py를 빌드 시점에 활용하기 위해 ```add_custom_command```를 이용한 예시는 밑과 같다.  
+	```cmake
+	add_custom_command(
+		OUTPUT MyApp.ico
+		COMMENT "MyApp.ico 생성"
+    	DEPENDS MyApp.png
+    	COMMAND python iconmaker.py MyApp.ico MyApp.png
+	)
+	```
+	OUTPUT과 DEPENDS 조건에 따라 COMMAND 수행 여부가 결정된다.  
+	DEPENDS에 명시된 MyApp.png의 존재 여부(혹은 해당 파일에 딸린 빌드 종속성)에 따라 명령어가 수행된다.  
+	OUTPUT에 명시된 MyApp.ico 파일이 최신이 아닌 경우에만 명령어가 수행된다.  
 	```add_custom_command()```는 이외에도 훨씬 더 많은 활용 방법이 있으니 공식 CMake 문서를 참고하자.  
+
+* **execute_process**  
+```add_custom_command()```가 빌드 시점에 명령어를 수행한다면 ```execute_process()``` CMake 설정 시점에 명령어를 수행한다.  
+	```cmake
+	execute_process(
+		COMMAND vcpkg x-update-baseline --add-initial-baseline
+		WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		RESULT_VARIABLE VCPKG_UPDATE_RESULT)
+	```
+	위는 ```vcpkg x-update-baseline --add-initial-baseline``` 명령어를 ```${CMAKE_SOURCE_DIR}``` 위치에서 수행하고 발생한 출력 값을 ```VCPKG_UPDATE_RESULT``` 	변수에 저장하는 예시이다.   
 
 * **add_custom_target**  
 통상적인 빌드 모듈이 아닌 것을 타겟에 추가한다.  
