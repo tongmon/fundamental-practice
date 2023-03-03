@@ -4,279 +4,277 @@
 말보다 예시가 더 간단할 정도로 단순한 패턴이다.  
 &nbsp;  
 
-우리가 요리를 배달시키는 경우 많은 과정을 거친다.  
-식당에서 요리를 만들어야 하고 배달해야 하며 배달원과 식당을 연결해주는 배달의 민족, 요기요와 같은 배달 서비스 업체가 있어야 한다.  
-어러한 배경의 음식 배달 시스템을 구축해보자.  
+일단 필자는 집을 나갈 때 전등을 껏는지 컴퓨터를 껏는지 여름에는 에어컨을 껏는지 겨울에는 히터를 껏는지를 확인한다.  
+집에 돌아올 때에도 전등 키고 컴퓨터 키고 여름에는 에어컨을, 겨울에는 히터를 작동시킨다.  
+이러한 상황을 코드로 구현해보자.  
 &nbsp;  
 
-일단 밑과 같은 요리 클래스가 있다.  
+전등 클래스는 밑과 같다.  
 ```c++
-struct Cuisine
+class Light
 {
-    std::string food_name;
-    std::vector<std::string> ingredients;
-};
-```
-요리는 이름과 각종 재료들로 이루어져 있다.  
-&nbsp;  
+    int brightness;
+    bool on;
 
-식당 클래스는 밑과 같다.  
-```c++
-struct Restaurant
-{
-    std::string name;
-    std::unordered_map<std::string, std::vector<std::string>> menu;
-    std::pair<float, float> location;
-
-    Restaurant(const std::string name, const std::unordered_map<std::string, std::vector<std::string>> menu, const std::pair<float, float> location) : name{name}, menu{menu}, location{location}
+public:
+    Light(bool on = false, int brightness = 10) : on{on}, brightness{brightness} {}
+    bool is_on() { return on; }
+    void light_on()
     {
+        on = true;
+        std::cout << "Light On!, Brightness: " << brightness << std::endl;
     }
-
-    Cuisine &&make_cuisine(const std::string &food_name)
+    void light_off()
     {
-        Cuisine cuisine;
-        if (menu.find(food_name) == menu.end())
-            return std::move(cuisine);
-
-        cuisine.food_name = food_name;
-        cuisine.ingredients = menu[food_name];
-        return std::move(cuisine);
+        on = false;
+        std::cout << "Light Off!\n";
     }
 };
 ```
-식당은 이름, 메뉴, 위치가 멤버 변수로 존재하며 메뉴에 있는 음식을 제공할 수 있어야 한다.  
-세부 구현보다 전체적인 구조를 봐라.  
 &nbsp;  
 
-배달원 클래스는 밑과 같다.  
+컴퓨터와 에어컨, 히터 클래스도 밑과 같다.  
 ```c++
-struct DeliveryMan
+class Computer
 {
-    std::string name;
-    std::pair<float, float> location;
+    int core_num;
+    bool on;
 
-    DeliveryMan(const std::string name, const std::pair<float, float> &location) : name{name}, location{location}
+public:
+    Computer(bool on = false, int core_num = 8) : on{on}, core_num{core_num} {}
+    bool is_on() { return on; }
+    void computer_on()
+    {
+        on = true;
+        std::cout << "Computer On!\n";
+    }
+    void computer_off()
+    {
+        on = false;
+        std::cout << "Computer Off!\n";
+    }
+};
+
+class AirConditioner
+{
+    bool on;
+    float celsius_setting;
+
+public:
+    AirConditioner(bool on = false, float celsius_setting = 23) : on{on}, celsius_setting{celsius_setting}
     {
     }
-
-    Cuisine &&delivery(Cuisine &&cuisine, const std::pair<float, float> &restaurant_location, const std::pair<float, float> &destination)
+    bool is_on() { return on; }
+    void airconditioner_on()
     {
-        auto get_distance = [](const std::pair<float, float> &a, const std::pair<float, float> &b) -> float
-        {
-            return std::sqrtf(std::powf(a.first - b.first, 2) + std::powf(a.second - b.second, 2));
-        };
+        on = true;
+        std::cout << "AirConditioner On! Current Temperature Setting:" << celsius_setting << " celsius.\n";
+    }
+    void airconditioner_off()
+    {
+        on = false;
+        std::cout << "AirConditioner Off!\n";
+    }
+    void set_temperature(float celsius)
+    {
+        celsius_setting = celsius;
+        std::cout << "Temperature setted to " << celsius << " celsius.\n";
+    }
+};
 
-        float distance = get_distance(location, restaurant_location) + get_distance(restaurant_location, destination);
+class Heater
+{
+    bool on;
+    float celsius_setting;
 
-        for (float i = 0; i < distance; i += 0.5)
-            std::cout << "Delivering... " << distance - i << "m left!\n";
-
-        return std::move(cuisine);
+public:
+    Heater(bool on = false, float celsius_setting = 19) : on{on}, celsius_setting{celsius_setting} {}
+    bool is_on() { return on; }
+    void heater_on()
+    {
+        on = true;
+        std::cout << "Heater On! Current Temperature Setting:" << celsius_setting << " celsius.\n";
+    }
+    void heater_off()
+    {
+        on = false;
+        std::cout << "Heater Off!\n";
+    }
+    void set_temperature(float celsius)
+    {
+        celsius_setting = celsius;
+        std::cout << "Temperature setted to " << celsius << " celsius.\n";
     }
 };
 ```
-배달원은 이름과 현재 위치가 멤버 변수로 존재한다.  
-식당에서 음식을 받고 도착지에 배달할 수 있어야 한다.  
+구현은 별거 없다.  
+히터와 에어컨은 추가적으로 온도 조절 함수가 멤버로 존재한다.  
 &nbsp;  
 
-요기요와 배달의 민족과 같은 배달 서비스 업체에 대한 클래스는 밑과 같다.  
+이제 여름에 외출 하는 상황을 생각해보자.  
+필자의 루틴 대로 전등을 키고 컴퓨터를 키고 에어컨을 켜보자.  
 ```c++
-struct OrderingService
-{
-    std::string name;
-    std::vector<Restaurant> &restaurants;
-    std::vector<DeliveryMan> &delivery_men;
+std::string season = "summer";
 
-    OrderingService(const std::string &name, std::vector<Restaurant> &restaurants, std::vector<DeliveryMan> &delivery_men)
-        : name{name}, restaurants{restaurants}, delivery_men{delivery_men}
+Light light;
+Computer computer;
+AirConditioner airconditioner;
+Heater heater;
+
+if (!light.is_on())
+    light.light_on();
+
+if (!computer.is_on())
+    computer.computer_on();
+
+if (season == "summer")
+    if (!airconditioner.is_on())
     {
+        airconditioner.airconditioner_on();
+        airconditioner.set_temperature(23);
     }
 
-    DeliveryMan &matching(const Restaurant &restaurant)
+if (season == "winter")
+    if (!heater.is_on())
     {
-        auto get_distance = [](const std::pair<float, float> &a, const std::pair<float, float> &b) -> float
-        {
-            return std::sqrtf(std::powf(a.first - b.first, 2) + std::powf(a.second - b.second, 2));
-        };
-
-        float min_dist = std::numeric_limits<float>::max();
-        int closest_delivery_man = 0;
-        for (size_t i = 0; i < delivery_men.size(); i++)
-        {
-            float dist = get_distance(restaurant.location, delivery_men[i].location);
-            if (min_dist > dist)
-            {
-                min_dist = dist;
-                closest_delivery_man = i;
-            }
-        }
-        return delivery_men[closest_delivery_man];
+        heater.heater_on();
+        airconditioner.set_temperature(19);
     }
-};
 ```
-배달 서비스 업체는 빠른 배달을 위해 음식점과 가장 가까운 배달원을 매칭시킬 수 있어야 한다.  
+외출이라는 동작을 할 때마다 난잡하게 해당 코드 블럭을 사용해야 한다.  
 &nbsp;  
 
-식당, 배달원, 배달 서비스 업체에 대한 정보를 모두 알게 되었으니 이를 토대로 배달 시스템을 구축해보자.  
-일단 초기화를 진행하자.  
+겨울에 집에 오는 상황도 한 번 고려해보자.  
 ```c++
-std::vector<Restaurant> restaurants;
-std::vector<DeliveryMan> delivery_men;
-std::vector<OrderingService> services;
+std::string season = "winter";
 
-// 식당 초기화
-restaurants.push_back(Restaurant{
-    "pizza town",
-    {{"potato pizza", {"dough", "potato", "oil", "water", "salt"}}},
-    {51.38f, 104.1f}});
-restaurants.push_back(Restaurant{
-    "pasta mall",
-    {{"tomato pasta", {"noodle", "tomato", "oil", "water", "sugar", "parsley"}}},
-    {-20.5f, -77.22f}});
+Light light;
+Computer computer;
+AirConditioner airconditioner;
+Heater heater;
 
-// 배달원 초기화
-delivery_men.push_back(DeliveryMan{
-    "Iron Man",
-    {103.f, 58.76f}});
-delivery_men.push_back(DeliveryMan{
-    "Captin America",
-    {-42.f, 13.6f}});
-delivery_men.push_back(DeliveryMan{
-    "Thor",
-    {55.4f, 11.2f}});
+if (light.is_on())
+    light.light_off();
 
-// 배달 서비스 초기화
-services.push_back(OrderingService{"BeaMin", restaurants, delivery_men});
-services.push_back(OrderingService{"Yogiyo", restaurants, delivery_men});
+if (computer.is_on())
+    computer.computer_on();
+
+if (season == "summer")
+    if (airconditioner.is_on())
+        airconditioner.airconditioner_off();
+
+if (season == "winter")
+    if (heater.is_on())
+        heater.heater_off();
 ```
-식당 2개, 배달원 3명, 배달 서비스 업체 2곳이 있다.  
-&nbsp;  
-
-손님이 주문을 하는 프로세스를 작성해보자.  
-(30, 1) 위치가 집이고 pizza town에서 potato pizza를 BeaMin 서비스 업체를 통해 주문하려 한다.  
-```c++
-std::string service_name = "BeaMin";
-std::string restaurant_name = "pizza town";
-std::string food_name = "potato pizza";
-std::pair<float, float> home = {30.f, 1.f};
-
-int restaurant = 0, service = 0;
-for (size_t i = 0; i < restaurants.size(); i++)
-    if (restaurant_name == restaurants[i].name)
-    {
-        restaurant = i;
-        break;
-    }
-for (size_t i = 0; i < services.size(); i++)
-    if (service_name == services[i].name)
-    {
-        service = i;
-        break;
-    }
-DeliveryMan &delivery_man = services[service].matching(restaurants[restaurant]);
-
-Cuisine &&delivered_food = delivery_man.delivery(restaurants[restaurant].make_cuisine(food_name),
-                             restaurants[restaurant].location,
-                             home);
-```
-손님이 주문을 할 때마다 이렇게 식당, 배달원, 배달 서비스 업체가 얽혀있는 번잡한 프로세스를 구현해야 할까?  
-손님은 단순히 식당 이름, 음식 이름, 서비스 업체 이름, 집 주소만 알려주면 음식이 배달와야 한다.  
+집에 오는 상황이 발생할 때마다 이러한 코드 블럭을 계속 구성해야 한다.  
+집에서 나가거나 들어올 상황이 생길 때마다 비효율적이게 비슷한 코드 블럭이 늘어난다.  
 &nbsp;  
 
 ## 단순한 인터페이스  
 
-퍼사드 패턴을 통해 식당, 배달원, 배달 서비스 업체의 복잡한 프로세스는 숨기고 단순한 인터페이스를 제공해보자.  
+퍼사드 패턴을 사용해보자.  
 ```c++
-class OrderFacade
+class Home
 {
-    std::vector<Restaurant> restaurants;
-    std::vector<DeliveryMan> delivery_men;
-    std::vector<OrderingService> services;
+    std::string season;
+
+    Light light;
+    Computer computer;
+    AirConditioner airconditioner;
+    Heater heater;
 
 public:
-    OrderFacade()
+    Home(const std::string &season, Light &light, Computer &computer, AirConditioner &airconditioner, Heater &heater)
+        : season{season}, light{light}, computer{computer}, airconditioner{airconditioner}, heater{heater} {}
+
+    void home_out()
     {
-        // 식당 초기화
-        restaurants.push_back(Restaurant{
-            "pizza town",
-            {{"potato pizza", {"dough", "potato", "oil", "water", "salt"}}},
-            {51.38f, 104.1f}});
+        if (light.is_on())
+            light.light_off();
 
-        restaurants.push_back(Restaurant{
-            "pasta mall",
-            {{"tomato pasta", {"noodle", "tomato", "oil", "water", "sugar", "parsley"}}},
-            {-20.5f, -77.22f}});
+        if (computer.is_on())
+            computer.computer_off();
 
-        // 배달원 초기화
-        delivery_men.push_back(DeliveryMan{
-            "Iron Man",
-            {103.f, 58.76f}});
+        if (season == "summer")
+            if (airconditioner.is_on())
+                airconditioner.airconditioner_off();
 
-        delivery_men.push_back(DeliveryMan{
-            "Captin America",
-            {-42.f, 13.6f}});
-
-        delivery_men.push_back(DeliveryMan{
-            "Thor",
-            {55.4f, 11.2f}});
-
-        // 배달 서비스 초기화
-        services.push_back(OrderingService{"BeaMin", restaurants, delivery_men});
-
-        services.push_back(OrderingService{"Yogiyo", restaurants, delivery_men});
+        if (season == "winter")
+            if (heater.is_on())
+                heater.heater_off();
     }
 
-    Cuisine &&order(std::string &&service_name, std::string &&restaurant_name, std::string &&food_name, std::pair<float, float> &&home)
+    void home_in()
     {
-        auto restaurant = std::find_if(restaurants.begin(), restaurants.end(), [&](auto &r) -> bool
-                                       { return restaurant_name == r.name; });
+        if (!light.is_on())
+            light.light_on();
 
-        auto service = std::find_if(services.begin(), services.end(), [&](auto &r) -> bool
-                                    { return service_name == r.name; });
+        if (!computer.is_on())
+            computer.computer_on();
 
-        DeliveryMan &delivery_man = service->matching(*restaurant);
-        return delivery_man.delivery(restaurant->make_cuisine(food_name),
-                                     restaurant->location,
-                                     home);
+        if (season == "summer")
+            if (!airconditioner.is_on())
+            {
+                airconditioner.airconditioner_on();
+                airconditioner.set_temperature(23);
+            }
+
+        if (season == "winter")
+            if (!heater.is_on())
+            {
+                heater.heater_on();
+                airconditioner.set_temperature(19);
+            }
     }
 };
 ```
-식당, 배달원, 배달 서비스 업체가 얽혀 진행되는 복잡한 프로세스는 모두 order() 함수 속에 숨겨져있다.  
+여기서 Home은 퍼사드 클래스이다.  
+비슷한 코드 블럭을 다시 사용할 필요 없이 집을 나갈 때는 home_out() 함수를, 들어올 때는 home_in() 함수를 사용하면 된다.  
+즉 home_out(), home_in()으로 인터페이스를 단순화 한 것이다.  
+사용자는 home_out(), home_in() 함수 내부에서 복잡하게 돌아가는 과정을 신경 쓸 필요가 없다.  
 &nbsp;  
 
-사용자는 단순히 밑과 같이 주문만 하면 될 뿐이다.  
+Home의 생성자를 보면 넘기는 인자들이 많은데 이 경우 구조체를 정의해 사용하면 편하다.  
 ```c++
-OrderFacade order_system;
-Cuisine &&delivered_food = order_system.order("BeaMin", "pizza town", "potato pizza", {30.f, 1.f});
-```
-내부에서 진행되는 복잡한 과정은 알필요가 없다.  
-&nbsp;  
-
-order() 함수의 인자로 구조체를 넘기는 방식도 있다.  
-```c++
-struct OrderData
+struct Objects
 {
-    std::string service_name{"BeaMin"};
-    std::string restaurant_name{"pizza town"};
-    std::string food_name{"potato pizza"};
-    std::pair<float, float> home{30.f, 1.f};
+    std::string season;
+    Light light;
+    Computer computer;
+    AirConditioner airconditioner;
+    Heater heater;
+
+    Objects()
+    {
+        season = "summer";
+        light = {false, 20};
+        computer = {true, 16};
+        airconditioner = {true, 24.f};
+        heater = {false, 20.f};
+    }
 };
-
-Cuisine &&order(const OrderData &orderdata = OrderData())
-{
-    auto restaurant = std::find_if(restaurants.begin(), restaurants.end(), [&](auto &r) -> bool
-                                   { return orderdata.restaurant_name == r.name; });
-
-    auto service = std::find_if(services.begin(), services.end(), [&](auto &r) -> bool
-                                { return orderdata.service_name == r.name; });
-                                
-    DeliveryMan &delivery_man = service->matching(*restaurant);
-    return delivery_man.delivery(restaurant->make_cuisine(orderdata.food_name),
-                                 restaurant->location,
-                                 orderdata.home);
-}
 ```
-해당 방식의 장점은 각 인자들의 디폴트 값을 한 곳에서 관리하기 쉽다는 것이다.  
+이렇게 디폴트 값을 한 곳에서 관리할 수 있어서 좋다.  
+&nbsp;  
+
+Home 클래스에는 추가적으로 밑과 같은 생성자가 필요할 것이다.  
+```c++
+class Home
+{
+    // 나머지 구현부 생략
+
+public:
+    Home(const Objects &obj = Objects())
+    {
+        season = obj.season;
+        light = obj.light;
+        computer = obj.computer;
+        airconditioner = obj.airconditioner;
+        heater = obj.heater;
+    }
+};
+```
 &nbsp;  
 
 ## 요약  

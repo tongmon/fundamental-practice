@@ -45,9 +45,8 @@ private:
 };
 ```
 이제 같은 닉네임의 유저가 생성될 때 nickname_list에서 이미 존재하는 닉네임인지 여부를 확인하면 된다.  
-확인하는 방식은 이진 탐색, 해쉬맵 등이 있다.  
-먼저 이진 탐색 방식을 사용해보자.  
-이진 탐색 방식을 사용하기에 nickname_list는 항상 정렬된 상태를 유지해야 한다.  
+확인하는 방식은 인덱스와 포인터 방식이 있다.  
+먼저 인덱스 방식을 사용해보자.  
 &nbsp;  
 
 nickname_list에서 같은 닉네임을 찾았다면 해당 닉네임을 재활용하기 위해 인덱스를 알고 있어야 한다.  
@@ -56,8 +55,8 @@ nickname_list에서 같은 닉네임을 찾았다면 해당 닉네임을 재활�
 struct User
 {
     int id;
-    long long nickname_key;
-    const std::string &nickname() const { return nickname_list[nickname_key]; }
+    unsigned int nickname_index;
+    const std::string &nickname() const { return nickname_list[nickname_index]; }
 };
 ```
 이제 User의 nickname은 nickname_key를 통해 접근하게 된다.  
@@ -67,20 +66,16 @@ add_user() 함수의 로직도 바뀌어야 한다.
 ```c++
 void add_user(const std::string &nickname)
 {
-    auto target = std::lower_bound(nickname_list.begin(), nickname_list.end(), nickname);
-    if (target == nickname_list.end() || *target != nickname)
-    {
-        std::for_each(user_list.begin(), user_list.end(), [&](auto &user)
-                      { if (nickname < user.nickname()) user.nickname_key++; });
-        target = nickname_list.insert(target, nickname);
-    }
-    user_list.push_back(User{++id, target - nickname_list.begin()});
+    auto iter = std::find(nickname_list.begin(), nickname_list.end(), nickname);
+    if (iter == nickname_list.end())
+        iter = nickname_list.insert(iter, nickname);
+    user_list.push_back(User{++id, static_cast<unsigned int>(iter - nickname_list.begin())});
 }
 ```
 만약 nickname_list에 이미 존재하는 닉네임이라면 해당 닉네임의 인덱스를 User가 가지고 있으면 된다.    
-새로운 nickname이 등장할 때마다 nickname_list에 정렬해 추가해줘야 한다.  
-nickname_list에 새로운 값이 추가될 때마다 User 구조체에서 특정 이름을 가리키고 있던 인덱스 값들도 바뀌어야 해서 삽입시 O(N)의 복잡도가 도출된다.  
-인덱스를 통해 객체를 가리키기 때문에 새로운 객체가 많이 생성되지 않는 상황에서는 인덱스의 자료형을 short, char 등으로 사용해 용량을 더욱 줄일 수 있다.  
+새로운 nickname이 등장할 때마다 nickname_list에 추가해줘야 한다.  
+인덱스의 자료형을 short, char 등으로 바꿔 메모리를 더 아낄 수 있다.  
+문제는 이미 추가된 nickname인지 확인하는데 O(N)의 복잡도가 도출된다는 것이다.  
 &nbsp;  
 
 다음으로 해쉬맵 방식을 사용해보자.  
@@ -97,7 +92,7 @@ private:
 ```
 &nbsp;  
 
-이진 탐색에서는 인덱스를 사용했다면 해쉬맵에서는 포인터를 사용해서 nickname을 가리킨다.  
+해쉬맵에서는 인덱스 대신에 포인터를 사용해서 nickname을 가리킨다.  
 ```c++
 struct User
 {
@@ -106,25 +101,192 @@ struct User
     const std::string &nickname() const { return *nickname_ptr; }
 };
 ```
+stl의 unordered 구조들은 삽입, 삭제되면서 재해싱이 발생될 때 iterator들의 순서는 바뀌어 재사용이 불가능하다.  
+하지만 unordered 구조에 담겨져 있는 객체들의 할당 위치는 고정이기에 해당 객체들을 가리키는 참조나 포인터는 그 객체가 삭제되지 않는 이상 항상 유효하다.  
 &nbsp;  
 
 add_user() 함수의 로직도 이에 맞춰 바꿔보자.  
 ```c++
 void add_user(const std::string &nickname)
 {
-    auto iter = nickname_list.find(nickname);
-    if (iter == nickname_list.end())
-        iter = nickname_list.insert(nickname).first;
-    user_list.push_back(User{++id, &*iter});
+    user_list.push_back(User{++id, &*nickname_list.insert(nickname).first});
 }
 ```
-새로운 nickname이 등장해서 nickname_list에 추가된다 하더라도 nickname을 가리키던 포인터에는 영향이 없다.  
-따라서 삽입시 O(1)의 복잡도가 도출된다.  
+해쉬맵을 사용하기에 이미 추가된 nickname인지 확인하는 데 O(1)의 복잡도가 도출된다.  
 문제는 포인터의 크기가 64-bit 운영체제에서 8byte, 32-bit 운영체제에서 4byte로 작은 크기는 아니다.  
-처리 속도에서 조금 손해를 보더라도 메모리를 많이 줄이고 싶다면 이진 탐색 방식이 더 좋다.  
-속도와 메모리 사용량 둘 다 적절하게 잡고 싶다면 
+처리 속도에서 손해를 보더라도 메모리를 극적으로 줄이고 싶다면 인덱스 방식이 더 좋다.  
 &nbsp;  
 
 ## Boost의 Flyweight  
 
 Boost 라이브러리는 자체적으로 Flyweight 패턴을 지원한다.  
+사용법은 밑과 같다.  
+```c++
+class UserManager
+{
+public:
+    struct User
+    {
+        int id;
+        boost::flyweight<std::string> nickname;
+        User(int id, const std::string &nickname) : id{id}, nickname{nickname} {}
+    };
+
+    void add_user(const std::string &nickname)
+    {
+        user_list.push_back(User{++id, nickname});
+    }
+
+private:
+    inline static std::vector<User> user_list = {};
+    inline static int id = 0;
+};
+```
+flyweight 자료형에 값을 할당할 때 이미 존재하는 값인지 확인하기에 따로 전역 객체를 선언할 필요가 없다.  
+&nbsp;  
+
+## 문자열 범위  
+
+Flyweight 패턴의 대표적인 예시인 문자열 범위를 다루는 상황을 생각해보자.  
+특정 범위를 지정해주면 그 범위 만큼 문자들을 대문자로 변환하는 문자열 클래스가 있다고 하자.  
+```c++
+class Text
+{
+    std::string str;
+    bool *upper;
+
+public:
+    explicit Text(const std::string str) : str{str}
+    {
+        upper = new bool[str.length()];
+        std::memset(upper, false, str.length());
+    }
+    ~Text() { delete[] upper; }
+
+    void capitalize(int start, int end, bool reset = false)
+    {
+        if (reset)
+            std::memset(upper, false, str.length());
+
+        for (int i = start; i <= end; i++)
+            upper[i] = true;
+    }
+
+    std::string text()
+    {
+        std::string result;
+        for (int i = 0; i < str.length(); i++)
+            result += upper[i] ? std::toupper(str[i]) : str[i];
+        return result;
+    }
+};
+```
+위 예시는 제일 단순하게 생각한 방식이다.  
+문자열 크기 만큼 대문자 여부를 나타내는 bool형 배열을 만들어 이를 활용한다.  
+문자열이 길어질수록 메모리 낭비가 심해진다.  
+&nbsp;  
+
+범위라는 것은 시작점과 끝점을 알고 있으면 정의된다.  
+범위 구조체는 밑과 같을 것이다.  
+```c++
+struct TextRange
+{
+    int start, end;
+};
+```
+&nbsp;  
+
+여러 범위가 주어질 수 있으니 TextRange 배열이 필요할 것이다.  
+```c++
+class Text
+{
+    // 구현부 생략
+
+    std::vector<TextRange> ranges;
+};
+```
+&nbsp;  
+
+메모리를 절약하기 위해 capitalize() 함수를 수정해보자.  
+```c++
+void capitalize(int start, int end, bool reset = false)
+{
+    if (reset)
+        ranges.clear();
+    for (int i = 0; i < ranges.size(); i++)
+    {
+        if (ranges[i].start <= start && end <= ranges[i].end)
+            return;
+        if (start < ranges[i].start && ranges[i].end < end)
+            ranges.erase(ranges.begin() + i--);
+    }
+    ranges.push_back({start, end});
+}
+```
+같은 범위, 기존 범위로 대체 가능한 작은 범위가 들어오면 무시하고 기존의 범위들을 포함하는 새로운 범위가 들어오면 기존 범위들을 삭제한다.  
+&nbsp;  
+
+메모리 낭비를 줄이는 Text 클래스의 전체적인 모습은 밑과 같다.  
+```c++
+class Text
+{
+    struct TextRange
+    {
+        int start, end;
+    };
+
+    std::string str;
+    std::vector<TextRange> ranges;
+
+public:
+    explicit Text(const std::string str) : str{str}
+    {
+    }
+    ~Text() {}
+
+    void capitalize(int start, int end, bool reset = false)
+    {
+        if (reset)
+            ranges.clear();
+
+        for (int i = 0; i < ranges.size(); i++)
+        {
+            if (ranges[i].start <= start && end <= ranges[i].end)
+                return;
+            if (start < ranges[i].start && ranges[i].end < end)
+                ranges.erase(ranges.begin() + i--);
+        }
+
+        ranges.push_back({start, end});
+    }
+
+    std::string text()
+    {
+        std::string result;
+
+        for (int i = 0; i < str.length(); i++)
+        {
+            auto ch = str[i];
+            for (const auto &range : ranges)
+                if (range.start <= i && i <= range.end)
+                {
+                    ch = std::toupper(ch);
+                    break;
+                }
+            result += ch;
+        }
+
+        return result;
+    }
+};
+```
+기존에 bool형 배열을 사용해 대문자 판별을 진행한 방식은 문자열 길이에 따라 메모리 사용량이 늘어나서 비효율적이다.  
+지금처럼 범위를 이용한다면 int형 2개로 고정이 되기 때문에 메모리 사용량이 훨씬 줄어들게 된다.  
+바뀐 text(), capitalize() 함수의 수행 속도 하락은 메모리 절약적인 장점이 크기에 그렇게 큰 단점으로 작용하지 않는다.  
+&nbsp;  
+
+## 요약  
+
+1. 플라이웨이트 패턴은 메모리를 절약하기 위한 패턴이다.  
+
+2. 플라이웨이트 패턴은 매우 다양한 형태로 구현될 수 있어 상황에 따라 사용 방식이 천차만별이다.  
