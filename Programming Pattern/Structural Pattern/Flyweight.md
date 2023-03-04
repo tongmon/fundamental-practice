@@ -186,6 +186,7 @@ public:
 문자열이 길어질수록 메모리 낭비가 심해진다.  
 &nbsp;  
 
+메모리 소비율을 개선하기 위해 범위를 사용해보자.  
 범위라는 것은 시작점과 끝점을 알고 있으면 정의된다.  
 범위 구조체는 밑과 같을 것이다.  
 ```c++
@@ -207,7 +208,7 @@ class Text
 ```
 &nbsp;  
 
-메모리를 절약하기 위해 capitalize() 함수를 수정해보자.  
+메모리를 좀 더 절약하기 위해 capitalize() 함수를 수정해보자.  
 ```c++
 void capitalize(int start, int end, bool reset = false)
 {
@@ -224,6 +225,75 @@ void capitalize(int start, int end, bool reset = false)
 }
 ```
 같은 범위, 기존 범위로 대체 가능한 작은 범위가 들어오면 무시하고 기존의 범위들을 포함하는 새로운 범위가 들어오면 기존 범위들을 삭제한다.  
+&nbsp;  
+
+하지만 ```3 ~ 6``` / ```7 ~ 11``` 이렇게 범위가 있으면 이를 ```3 ~ 11```로 바꿔주는 것이 저장시 효율적이지 않을까?  
+capitalize() 함수를 수정해보자.  
+```c++
+void capitalize(int start, int end, bool reset = false)
+{
+    if (reset)
+        ranges.clear();
+    for (int i = 0; i < ranges.size(); i++)
+    {
+        if (ranges[i].start <= start && end <= ranges[i].end)
+            return;
+        if (start < ranges[i].start && ranges[i].end < end)
+            ranges.erase(ranges.begin() + i--);
+        else
+        {
+            if (ranges[i].start <= start && start <= ranges[i].end + 1)
+            {
+                ranges[i].end = end;
+                return;
+            }
+            if (ranges[i].start - 1 <= end && end <= ranges[i].end)
+            {
+                ranges[i].start = start;
+                return;
+            }
+        }
+    }
+    ranges.push_back({start, end});
+}
+```
+하지만 아직 개선점이 남았다.   
+```3 ~ 5``` / ```7 ~ 11``` / ```4 ~ 7``` 이렇게 범위가 삽입된다면 ```3 ~ 7``` / ```7 ~ 11``` 이렇게 범위가 재조정 될 것이다.  
+```3 ~ 7``` / ```7 ~ 11``` 이 범위들은 ```3 ~ 11```로 합칠 수 있지만 재조정이 안되고 이렇게 남아있어 메모리 낭비가 발생한다.  
+&nbsp;  
+
+재귀를 이용해 재조정이 가능한 범위들을 남김없이 합쳐주자.  
+```c++
+void capitalize(int start, int end, bool reset = false)
+{
+    if (reset)
+        ranges.clear();
+    for (int i = 0; i < ranges.size(); i++)
+    {
+        if (ranges[i].start <= start && end <= ranges[i].end)
+            return;
+        if (start < ranges[i].start && ranges[i].end < end)
+            ranges.erase(ranges.begin() + i--);
+        else
+        {
+            TextRange range{-1, -1};
+            if (ranges[i].start <= start && start <= ranges[i].end + 1)
+                range = {ranges[i].start, end};
+            else if (ranges[i].start - 1 <= end && end <= ranges[i].end)
+                range = {start, ranges[i].end};
+            if (range.start >= 0)
+            {
+                ranges.erase(ranges.begin() + i);
+                capitalize(range.start, range.end);
+                return;
+            }
+        }
+    }
+    ranges.push_back({start, end});
+}
+```
+여기서 좀 더 나아가 ranges의 자료형을 std::vector<>에서 std::unordered_set<>으로 바꾼다면 속도면에서도 최적화를 꾀할 수 있다.   
+이렇게 플라이웨이트 패턴은 메모리 최적화에 중점이 맞춰져 있기에 상황에 따라 알고리즘적인 사고방식이 꽤나 요구된다.  
 &nbsp;  
 
 메모리 낭비를 줄이는 Text 클래스의 전체적인 모습은 밑과 같다.  
@@ -248,15 +318,27 @@ public:
     {
         if (reset)
             ranges.clear();
-
         for (int i = 0; i < ranges.size(); i++)
         {
             if (ranges[i].start <= start && end <= ranges[i].end)
                 return;
             if (start < ranges[i].start && ranges[i].end < end)
                 ranges.erase(ranges.begin() + i--);
+            else
+            {
+                TextRange range{-1, -1};
+                if (ranges[i].start <= start && start <= ranges[i].end + 1)
+                    range = {ranges[i].start, end};
+                else if (ranges[i].start - 1 <= end && end <= ranges[i].end)
+                    range = {start, ranges[i].end};
+                if (range.start >= 0)
+                {
+                    ranges.erase(ranges.begin() + i);
+                    capitalize(range.start, range.end);
+                    return;
+                }
+            }
         }
-
         ranges.push_back({start, end});
     }
 
