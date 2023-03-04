@@ -26,5 +26,24 @@ sh_ptr->size();
 물론 Clang, MSVC 등의 컴파일러에서는 ```__declspec(property())```를 사용하여 지정할 수 있지만 비표준이다.  
 따라서 속성 프록시를 통해 get / set 메서드를 접근해보자.  
 ```c++
+template <typename T>
+struct Property
+{
+    T value;
+    Property(const T init_val) { *this = init_val; }
+    operator T()
+    {
+        // getter가 수행할 구현부를 적으면 된다.
 
+        return value;
+    }
+    T operator=(T new_val)
+    {
+        // setter가 수행할 구현부를 적으면 된다.
+
+        return value = new_val;
+    }
+};
 ```
+
+&nbsp;  
