@@ -45,5 +45,54 @@ struct Property
     }
 };
 ```
-
+형변환을 재정의하여 getter를, ```=``` 연산자를 재정의하여 setter를 정의하였다.  
 &nbsp;  
+
+```c++
+template <typename T>
+struct Property
+{
+    Property(const T &init_val)
+    {
+        *this = init_val;
+    }
+    Property(Property<T> &init_val)
+    {
+        *this = static_cast<T>(init_val);
+    }
+    T operator=(Property<T> &new_val)
+    {
+        return set(new_val.get());
+    }
+    T operator=(const T &new_val)
+    {
+        return set(new_val);
+    }
+    operator T()
+    {
+        return get();
+    }
+    operator T &()
+    {
+        return value;
+    }
+    T *operator&()
+    {
+        return &value;
+    }
+
+private:
+    T value;
+
+    T get()
+    {
+        std::cout << "getter\n";
+        return value;
+    }
+    T set(const T &new_val)
+    {
+        std::cout << "setter\n";
+        return value = new_val;
+    }
+};
+```
