@@ -48,17 +48,45 @@ struct Property
 형변환을 재정의하여 getter를, ```=``` 연산자를 재정의하여 setter를 정의하였다.  
 &nbsp;  
 
+밑과 같이 int형으로 사용되었을 때 마치 자신이 int인 것 마냥 사용이 된다.  
+```c++
+// int 처럼 사용이 가능함.  
+Property<int> a = 1;
+int b = a;
+
+// 하지만 밑과 같은 상황에서 getter / setter 로직 수행 안됨.
+Property<int> c = 2;
+Property<int> d = c;
+```
+문제가 하나 있는데 위 예시에서 보이듯이 ```Property<int>``` 사이에 값 할당이 이루어지면 getter / setter 로직이 수행이 안된다는 것이다.  
+&nbsp;  
+
+이를 해결하기 위해 연산자 재정의 구현을 추가해보자.  
 ```c++
 template <typename T>
 struct Property
 {
+    T value;
+
+    T get()
+    {
+        // getter가 수행할 구현부를 적으면 된다.
+
+        return value;
+    }
+    T set(const T &new_val)
+    {
+        // setter가 수행할 구현부를 적으면 된다.
+
+        return value = new_val;
+    }
     Property(const T &init_val)
     {
         *this = init_val;
     }
     Property(Property<T> &init_val)
     {
-        *this = static_cast<T>(init_val);
+        *this = init_val;
     }
     T operator=(Property<T> &new_val)
     {
@@ -72,27 +100,11 @@ struct Property
     {
         return get();
     }
-    operator T &()
-    {
-        return value;
-    }
-    T *operator&()
-    {
-        return &value;
-    }
-
-private:
-    T value;
-
-    T get()
-    {
-        std::cout << "getter\n";
-        return value;
-    }
-    T set(const T &new_val)
-    {
-        std::cout << "setter\n";
-        return value = new_val;
-    }
 };
 ```
+이제 값을 획득하거나 할당하는 과정에서 getter / setter 로직이 잘 작동할 것이다.  
+```T```에서 ```Property<T>```를 참조로 사용하게 될 경우에는 직접 멤버 변수 value를 사용하면 될 것이다.  
+&nbsp;  
+
+## 가상 프록시  
+
