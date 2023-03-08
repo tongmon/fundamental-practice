@@ -1,8 +1,8 @@
 # Proxy Pattern  
 
 프록시 패턴도 데코레이터 패턴과 비슷하게 객체의 기능을 수정하거나 확장하는 것에 중점을 둔다.  
-하지만 데코레이터 패턴과 달리 프록시 패턴은 기존의 인터페이스 사용 방식을 정확히 동일하게 가져간다.  
-즉 내부 구현만 달라질 뿐이다.  
+하지만 데코레이터 패턴과 달리 프록시 패턴은 기존의 인터페이스 사용 방식을 동일하게 가져간다.  
+따라서 코드 변동은 최소화 하면서 목적만 바꿀 수 있다.  
 &nbsp;  
 
 ## 스마트 포인터  
@@ -107,4 +107,65 @@ struct Property
 &nbsp;  
 
 ## 가상 프록시  
+
+동영상을 읽어오는 프로그램이 있다고 하자.  
+해당 프로그램을 작동 시키자 마자 준비된 영상을 로드하는 방식이 있고 프로그램을 작동할 때는 가만히 있다가 플레이 버튼을 눌러야 영상을 로드하는 방식이 있다.  
+전자를 ```성급한 인스턴스화```라고 하고 후자를 ```느긋한 인스턴스화```라고 한다.  
+```성급한 인스턴스화``` 방식으로 구현된 인터페이스를 ```느긋한 인스턴스화```로 바꾸려면 어떻게 해야 할까?  
+&nbsp;  
+
+밑과 같은 영상 처리 인터페이스가 존재한다.  
+```c++
+struct Video
+{
+    virtual void play() = 0;
+};
+```
+&nbsp;  
+
+성급한 비디오 플레이어 클래스는 밑과 같다.  
+```c++
+struct VideoPlayer : public Video
+{
+    VideoPlayer(const std::string &filename)
+    {
+        std::cout << "Load Video from file: " << filename << "\n";
+    }
+
+    void play()
+    {
+        std::cout << "Play Video...\n";
+    }
+};
+
+// 밑과 같이 초기화 할 때 영상을 로드해버림
+VideoPlayer video_player{"baseball.mp4"};
+```
+인스턴스를 생성할 때 동영상을 같이 로드해버린다.  
+&nbsp;  
+
+가상 프록시 패턴을 사용해 비디오 플레이어를 느긋하게 바꿔보자.  
+```c++
+struct LazyVideoPlayer : public Video
+{
+    LazyVideoPlayer() : filename{filename}, video{nullptr} {}
+    ~LazyVideoPlayer() { delete video; }
+
+    void play()
+    {
+        if (!video)
+            video = new VideoPlayer(filename);
+        video->play();
+    }
+
+private:
+    std::string filename;
+    Video *video;
+};
+```
+play() 함수가 작동해야만 동영상 로드를 시작하기에 느긋해졌다.  
+중요한 점은 성급했던 인스턴스화가 느려졌다 뿐이지 기존 VideoPlayer 클래스와 인터페이스 사용 방식은 똑같다는 것이다.  
+&nbsp;  
+
+## 커뮤니케이션 프록시  
 
