@@ -352,9 +352,11 @@ BUILD_SHARED_LIBS가 ON이면 ```add_library()```가 수행될 때 명시적으�
 C++ 빌드할 때 사용되는 컴파일러 이름이 세팅되어 있다.  
 Visual Studio는 MSVC, Clang은 Clang, GCC는 GNU이다.  
 
-* **```$<CONFIG>```**  
-CMake 빌드 수행시 --config에 전달한 인자가 저장되어 있다.  
-위 변수와 같이 ```$<변수 이름>``` 이렇게 생긴 녀석들은 조건식도 만들 수 있고 환경변수도 참조가 가능해서 유용하게 써먹을 수 있다.  
+* **```$<변수 이름>```**  
+CMake 구성 시간이 아닌 빌드 수행시 결정되는 변수들이 지정된다.  
+예를 들어 빌드 시간에 결정되는 --config 인자에 넘겨진 값을 사용하고 싶다면  ```$<CONFIG>```를 이용하면 된다.  
+좋은 점은 변수들을 조합해서 조건식을 만들 수가 있다.  
+예를 들어 ```$<IF:$<CONFIG:Debug>,--debug,--release>``` 이러한 식은 ```$<CONFIG>``` 이 녀석이 Debug면 --debug, 아니면 --release를 도출한다.  
 자세한 내용은 https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html 여기를 참조하자.  
 
 &NewLine;
