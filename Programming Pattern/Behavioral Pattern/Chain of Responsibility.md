@@ -147,3 +147,134 @@ goblin_modifier.handle();
 
 ## 브로커 사슬  
 
+포인터 사슬의 문제점은 handle() 함수가 호출되면 원본 객체의 데이터 값을 남겨둘 수 없다는 것이다.  
+즉 Undo가 불편해진다.  
+브로커 사슬을 통해 이를 해결해보자.  
+&nbsp;  
+
+먼저 밑과 같은 쿼리 클래스가 존재한다.  
+```c++
+struct Query {
+    std::string name;
+
+    Query(const std::string &name) : name(name) {}
+    virtual ~Query() {};
+};
+```
+해당 클래스는 특정 함수 로직이 수행되기 위해 필요한 변수들을 제공해주는 쿼리 역할을 하게 된다.  
+멤버 변수인 name은 생명체의 이름을 나타내고 앞으로 설명할 예시에서 생명체 고유의 id 역할을 한다.  
+가상 소멸자가 존재하는 이유는 ```dynamic_cast<>```를 원활하게 이용하기 위해서인데 후에 보강 설명을 하겠다.  
+&nbsp;  
+
+공격을 당하는 이벤트, 속도 감소 디버프 이벤트 등에 대한 쿼리 클래스는 밑과 같다.  
+```c++
+struct AttackedQuery : public Query {
+    int health;
+    int damage;
+
+    AttackedQuery(const std::string &name, const int &health, const int &damage)
+        : Query(name), health{health}, damage{damage} {
+    }
+};
+
+struct SnailDebuffQuery : public Query {
+    int move_speed;
+
+    SnailDebuffQuery(const std::string &name, const int &move_speed)
+        : Query(name), move_speed{move_speed} {
+    }
+};
+```
+공격을 당하는 이벤트에는 생명체의 체력과 얼마 만큼의 데미지를 입었는지에 대한 정보가 필요하다.  
+속도 감소 디버프는 이동 속도에 대한 정보만 있으면 된다.  
+&nbsp;  
+
+밑은 함수를 리스트 형태로 저장하고 있는 Game 클래스이다.  
+```c++
+struct Game
+{
+    std::list<std::function<void(Query &)>> queries;
+};
+```
+이 클래스가 브로커 패턴의 핵심인 매개자이다.  
+&nbsp;  
+
+밑은 생명체 클래스이다.  
+```c++
+class Creature {
+    Game &game;
+    int health;
+    int move_speed;
+
+   public:
+    std::string name;
+
+    Creature(Game &game, const std::string &name, const int &health, const int &move_speed)
+        : game(game),
+          health(health),
+          move_speed(move_speed),
+          name(name) {
+    }
+
+    int attacked(int damage) {
+        AttackedQuery q{name, health, damage};
+        for (const auto &func : game.queries)
+            func(q);
+        return q.health;
+    }
+
+    int snail_debuffed() {
+        SnailDebuffQuery q{name, move_speed};
+        for (const auto &func : game.queries)
+            func(q);
+        return q.move_speed;
+    }
+
+    friend std::ostream &operator<<(std::ostream &os, Creature &obj) {
+        return os
+               << "name: " << obj.name
+               << " health: " << obj.attacked(10)  // note here
+               << " move speed: " << obj.move_speed;
+    }
+};
+```
+attacked(), snail_debuffed() 함수에서 전에 정의해놓은 쿼리들을 사용하는 모습을 볼 수 있다.  
+쿼리에 생명체의 멤버 변수를 옮겨 담고 함수 리스트의 함수들을 실행하면서 쿼리의 멤버 변수를 바꾸기 때문에 생명체 객체의 원본을 유지할 수 있다.  
+&nbsp;  
+
+
+```c++
+class CreatureModifier {
+   protected:
+    Game &game;
+    Creature &creature;
+
+   public:
+    virtual ~CreatureModifier() = default;
+
+    CreatureModifier(Game &game, Creature &creature)
+        : game(game),
+          creature(creature) {
+    }
+};
+```
+
+```c++
+class AttackedModifier : public CreatureModifier {
+    std::list<std::function<void(Query &)>>::iterator iter;
+
+   public:
+    AttackedModifier(Game &game, Creature &creature)
+        : CreatureModifier(game, creature) {
+        iter = game.queries.insert(game.queries.end(), [&](Query &q) {
+            AttackedQuery *aq = dynamic_cast<AttackedQuery *>(&q);
+            if (aq && creature.name == aq->name)
+                aq->health = std::max(0, aq->health - aq->damage);
+        });
+    }
+
+    ~AttackedModifier() {
+        game.queries.erase(iter);
+    }
+};
+```
