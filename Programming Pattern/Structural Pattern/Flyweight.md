@@ -101,8 +101,9 @@ struct User
     const std::string &nickname() const { return *nickname_ptr; }
 };
 ```
-stl의 unordered 구조들은 삽입, 삭제되면서 재해싱이 발생될 때 iterator들의 순서는 바뀌어 재사용이 불가능하다.  
+stl의 unordered 구조들은 삽입, 삭제되면서 재해싱이 발생될 때 Iterator들의 순서는 바뀌어 재사용이 불가능하다. (궁금하다면 Iterator Invalidation Rules를 참고하자.)   
 하지만 unordered 구조에 담겨져 있는 객체들의 할당 위치는 고정이기에 해당 객체들을 가리키는 참조나 포인터는 그 객체가 삭제되지 않는 이상 항상 유효하다.  
+각 자료구조 Iterator에 대해 더 많은 내용이 궁금하다면 C++의 Iterator Invalidation Rules를 참고해보자.  
 &nbsp;  
 
 add_user() 함수의 로직도 이에 맞춰 바꿔보자.  
