@@ -221,7 +221,7 @@ class Creature {
         AttackedQuery q{name, health};
         for (const auto &func : game.queries)
             func(q);
-        return q.health;
+        return health;
     }
 
     int get_speed() {
@@ -229,7 +229,7 @@ class Creature {
         SnailDebuffQuery q{name, move_speed};
         for (const auto &func : game.queries)
             func(q);
-        return q.move_speed;
+        return move_speed;
     }
 };
 ```
@@ -349,14 +349,14 @@ class Creature {
         int health = this->health;
         AttackedQuery q{name, health};
         game.queries(q);
-        return q.health;
+        return health;
     }
 
     int get_speed() {
         int move_speed = this->move_speed;
         SnailDebuffQuery q{name, move_speed};
         game.queries(q);
-        return q.move_speed;
+        return move_speed;
     }
 };
 
@@ -398,6 +398,7 @@ class SnailDebuffModifier : public CreatureModifier {
 ```
 Boost.Signals2도 내부적으로 함수 리스트를 순회하면서 함수들을 작동시킨다.  
 Boost.Signals2은 thread-safe 하기에 별도의 lock 관련 로직을 구현해주지 않아도 된다는 장점이 있다.  
+&nbsp;  
 
 ## 요약  
 
