@@ -34,7 +34,7 @@ struct BankAccount {
 커맨트 패턴의 토대를 다지기 위해 밑과 같은 인터페이스를 만들어 준다.  
 ```c++
 struct Command {
-    virtual void call() const = 0;
+    virtual void call() = 0;
 };
 ```
 &nbsp;  
@@ -51,7 +51,7 @@ struct BankAccountCommand : Command {
                        const Action &action, const int &amount)
         : account(account), action(action), amount(amount) {}
 
-    void call() const {
+    void call() {
         switch (action) {
         case deposit:
             account.deposit(amount);
@@ -79,3 +79,96 @@ BankAccountCommand 클래스를 통해 명령을 세팅하고 call() 함수로 �
 BankAccount 클래스의 deposit(), withdraw() 함수가 노출되는 것이 싫다면 해당 함수들을 private으로 설정하고 friend 클래스 선언을 이용하면 된다.  
 &nbsp;  
 
+## Undo 작업  
+
+커맨드 패턴의 장점인 Undo 작업을 구현해보자.  
+일단 커맨드 인터페이스에 undo()를 밑과 같이 추가해준다.  
+```c++
+struct Command {
+    virtual void call() = 0;
+    virtual void undo() = 0;
+};
+```
+&nbsp;  
+
+Undo 작업은 밑과 같이 간단하다.  
+```c++
+void undo() {
+    switch (action) {
+    case withdraw:
+        account.deposit(amount);
+        break;
+    case deposit:
+        account.withdraw(amount);
+        break;
+    default:
+        break;
+    }
+}
+```
+그냥 청개구리 마냥 반대로 해주면 된다.  
+입금 명령이였다면 출금하고, 출금 명령이였다면 입금한다.  
+&nbsp;  
+
+근데 문제가 있다.  
+전재산이 5000인 사람이 6000을 출금한 뒤에 Undo를 하면 어떻게 될까?  
+일단 초과 출금 금액이 500이기에 출금이 실패한다.  
+Undo가 진행되어 출금의 반대인 입금 로직이 수행되고 5000 금액에 6000이 더해져 11000으로 재산이 불어나게 된다...  
+&nbsp;  
+
+해결하려면 일단 밑과 같이 BankAccount 클래스의 withdraw() 함수를 수정해준다.  
+```c++
+bool withdraw(int amount) {
+    if (balance - amount >= overdraft_limit) {
+        balance -= amount;
+        std::cout << "withdrew " << amount << ", balance now " << balance << "\n";
+        return true;
+    }
+    return false;
+}
+```
+이제 출금 성공 여부를 알 수가 있다.  
+&nbsp;  
+
+이제 완성된 BankAccountCommand 클래스를 보자.  
+```c++
+struct BankAccountCommand : Command {
+    BankAccount &account;
+    enum Action { deposit,
+                  withdraw } action;
+    int amount;
+    bool withdrawal_succeeded;
+
+    BankAccountCommand(BankAccount &account,
+                       const Action &action, const int &amount)
+        : account(account), action(action), amount(amount) {}
+
+    void call() {
+        switch (action) {
+        case deposit:
+            account.deposit(amount);
+            break;
+        case withdraw:
+            withdrawal_succeeded = account.withdraw(amount);
+            break;
+        default:
+            break;
+        }
+    }
+
+    void undo() {
+        switch (action) {
+        case withdraw:
+            if (withdrawal_succeeded)
+                account.deposit(amount);
+            break;
+        case deposit:
+            account.withdraw(amount);
+            break;
+        default:
+            break;
+        }
+    }
+};
+```
+출금이 성공 한 경우에만 Undo 할 수 있어 문제가 해결되었다.   
