@@ -171,4 +171,58 @@ struct BankAccountCommand : Command {
     }
 };
 ```
-출금이 성공 한 경우에만 Undo 할 수 있어 문제가 해결되었다.   
+출금이 성공한 경우에만 Undo 할 수 있어 문제가 해결되었다.   
+&nbsp;  
+
+## 컴포지트 커맨드  
+
+지금까지는 출금, 입금, Undo 행위만 다뤘다.  
+이제 다른 계좌로 이체하는 명령을 만들어보자.  
+A 계좌에서 출금하고 B 계좌에 입금하면 계좌 이체가 된다.  
+&nbsp;  
+
+다중 명령을 수행할 수 있는 컴포지트 커맨드 인터페이스를 만들어보자.  
+```c++
+struct CompositeBankAccountCommand : std::vector<BankAccountCommand> {
+    CompositeBankAccountCommand(const std::initializer_list<BankAccountCommand> &items)
+        : std::vector<BankAccountCommand>(items) {
+    }
+
+    void call() {
+        for (auto &cmd : *this)
+            cmd.call();
+    }
+
+    void undo() {
+        for (auto iter = rbegin(); iter != rend(); ++iter)
+            iter->undo();
+    }
+};
+```
+BankAccountCommand 명령을 배열로 처리하면 된다.  
+유심히 봐야할 점은 undo() 함수는 명령의 역순이기에 iterator를 반대로 순회하고 있다는 것이다.  
+&nbsp;  
+
+아래는 계좌 이체 커맨드 클래스이다.  
+```c++
+struct AccountTransferCommand : CompositeBankAccountCommand {
+    AccountTransferCommand(BankAccount &from, BankAccount &to, int amount)
+        : CompositeBankAccountCommand(
+              {BankAccountCommand{from, BankAccountCommand::withdraw, amount},
+               BankAccountCommand{to, BankAccountCommand::deposit, amount}}) {
+    }
+};
+```
+출금, 입금 명령을 연달아 수행하기 위해 CompositeBankAccountCommand에 넣어주고 있다.  
+AccountTransferCommand 클래스 사용자는 단지 출금 계좌, 입금 계좌, 이체 금액을 알고 있으면 된다.  
+&nbsp;  
+
+AccountTransferCommand 클래스는 아직 문제가 있다.  
+A 계좌에서 출금이 실패했는데 B 계좌에 입금이 되면 안될 것이다.  
+이러한 상황을 방지해보자.  
+&nbsp;  
+
+먼저 밑과 같이 BankAccountCommand 클래스를 수정해준다.  
+```c++
+```
+
