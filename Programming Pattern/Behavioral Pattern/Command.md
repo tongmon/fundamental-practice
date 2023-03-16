@@ -217,12 +217,158 @@ struct AccountTransferCommand : CompositeBankAccountCommand {
 AccountTransferCommand 클래스 사용자는 단지 출금 계좌, 입금 계좌, 이체 금액을 알고 있으면 된다.  
 &nbsp;  
 
-AccountTransferCommand 클래스는 아직 문제가 있다.  
-A 계좌에서 출금이 실패했는데 B 계좌에 입금이 되면 안될 것이다.  
+유심히 로직을 보면 CompositeBankAccountCommand 구조체가 불완전한 것을 알 수 있다.  
+예를 들어 ```A 계좌 출금 -> B 계좌 입금 -> B 계좌 출금 -> C 계좌 입금``` 이러한 다중 명령이 있다고 하자.  
+3번째 명령인 ```B 계좌 출금```에서 오류가 발생되었다고 하자.  
+이 경우 여태 실행했던 ```A 계좌 출금```, ```B 계좌 입금``` 명령을 철회하는 것이 맞을 텐데 현재 CompositeBankAccountCommand 구조체는 이러한 장치가 없다.  
 이러한 상황을 방지해보자.  
 &nbsp;  
 
-먼저 밑과 같이 BankAccountCommand 클래스를 수정해준다.  
+보편적으로 접근하기 위해 Command 구조체를 밑과 같이 수정해준다.  
 ```c++
+struct Command {
+    bool succeeded;
+    virtual void call() = 0;
+    virtual void undo() = 0;
+};
 ```
+특정 명령의 성공 여부를 알려주는 succeeded 변수를 추가한다.  
+&nbsp;  
+
+그 다음 BankAccountCommand 구조체도 수정해보자.  
+```c++
+struct BankAccountCommand : Command {
+    BankAccount &account;
+    enum Action { deposit,
+                  withdraw } action;
+    int amount;
+
+    BankAccountCommand(BankAccount &account,
+                       const Action &action, const int &amount)
+        : account(account), action(action), amount(amount) {}
+
+    void call() {
+        succeeded = false;
+        switch (action) {
+        case deposit:
+            account.deposit(amount);
+            succeeded = true;
+            break;
+        case withdraw:
+            succeeded = account.withdraw(amount);
+            break;
+        default:
+            break;
+        }
+    }
+
+    void undo() {
+        switch (action) {
+        case withdraw:
+            if (succeeded)
+                account.deposit(amount);
+            break;
+        case deposit:
+            account.withdraw(amount);
+            break;
+        default:
+            break;
+        }
+    }
+};
+```
+withdrawal_succeeded가 Command 구조체에서 상속된 succeeded로 변경되었다.  
+&nbsp;  
+
+마지막으로 CompositeBankAccountCommand 구조체를 고쳐보자.  
+```c++
+struct CompositeBankAccountCommand : std::vector<BankAccountCommand> {
+    CompositeBankAccountCommand(const std::initializer_list<BankAccountCommand> &items)
+        : std::vector<BankAccountCommand>(items) {
+    }
+
+    int failure_index;
+
+    void call() {
+        failure_index = 0;
+        for (int i = 0; i < this->size(); i++) {
+            this->at(i).call();
+            if (!this->at(i).succeeded) {
+                failure_index = i;
+                break;
+            }
+        }
+
+        for (int i = failure_index - 1; i >= 0; i--)
+            this->at(i).undo();
+    }
+
+    void undo() {
+        for (auto iter = rbegin(); iter != rend(); ++iter)
+            iter->undo();
+    }
+};
+```
+call() 함수를 보면 failure_index 멤버 변수를 통해 어느 시점에서 명령이 실패하였는지를 알아내고 실패 전까지 실행하였던 명령들을 Undo한다.  
+&nbsp;  
+
+이외에도 call() 함수를 한번도 사용하지 않았는데 undo()가 수행되는 문제도 있다.  
+undo() 함수의 최대 수행 가능 횟수는 call() 함수의 수행 횟수다.  
+이 사실을 토대로 BankAccountCommand를 좀 더 수정해보자.  
+```c++
+struct BankAccountCommand : Command {
+    BankAccount &account;
+    enum Action { deposit,
+                  withdraw,
+                  action_cnt } action;
+    int amount;
+    int call_executed_cnt[action_cnt] = { 0, };
+
+    BankAccountCommand(BankAccount &account, const Action &action, const int &amount)
+        : account(account), action(action), amount(amount) {}
+
+    void call() {
+        succeeded = false;
+        switch (action) {
+        case deposit:
+            account.deposit(amount);
+            succeeded = true;
+            call_executed_cnt[deposit]++;
+            break;
+        case withdraw:
+            succeeded = account.withdraw(amount);
+            if (succeeded)
+                call_executed_cnt[withdraw]++;
+            break;
+        default:
+            break;
+        }
+    }
+
+    void undo() {
+        switch (action) {
+        case withdraw:
+            if (call_executed_cnt[withdraw]) {
+                account.deposit(amount);
+                call_executed_cnt[withdraw]--;
+            }
+            break;
+        case deposit:
+            if (call_executed_cnt[deposit]) {
+                account.withdraw(amount);
+                call_executed_cnt[deposit]--;
+            }
+            break;
+        default:
+            break;
+        }
+    }
+};
+```
+call_executed_cnt라는 각 명령별 카운터가 생겼다.  
+이제 각 명령의 call() 수행 횟수가 기록되어 무분별하게 undo() 로직이 수행되지 않는다.  
+&nbsp;  
+
+## 명령과 조회의 분리  
+
 
