@@ -371,4 +371,154 @@ call_executed_cnt라는 각 명령별 카운터가 생겼다.
 
 ## 명령과 조회의 분리  
 
+먼저 명령과 조회의 정확한 의미를 보고가자.  
+
+- **명령**  
+    상태 변화를 일으킴  
+    결괏값의 생성이 없음  
+
+- **조회**  
+    정보 요청  
+    상태 변화를 만들지 않음  
+    결괏값 발생  
+
+명령과 조회 방식을 사용하여 기존의 get / set 방식을 대체할 수 있다.  
+밑의 Creature 클래스 예시를 보자.  
+```c++
+class Creature
+{
+    int _strength;
+    int _agility;
+
+  public:
+    Creature(int strength, int agility)
+        : _strength{strength}, _agility{agility}
+    {
+    }
+
+    void process_command(const CreatureCommand &cc);
+    int process_query(const CreatureQuery &q) const;
+};
+```
+strength, agility 멤버 변수가 있지만 get / set 관련 함수는 없다.  
+멤버 변수를 변경하고 한다면 process_command() 함수로 명령을 내린다.  
+특정 멤버 변수를 얻고 싶다면 process_query() 함수에게 쿼리를 전달한다.  
+&nbsp;  
+
+Creature의 능력치에 대한 enum class를 구현해준다.  
+```c++
+enum class CreatureAbility
+{
+    strength,
+    agility
+};
+```
+어떤 멤버 변수 상태를 변경하기 위한 명령인지 구분하기 위해서 필요하다.  
+어떤 멤버 변수 값을 획득하고 싶은지 전달해주는 쿼리에 필요하다.  
+&nbsp;  
+
+생명체 클래스에게 내릴 명령을 밑과 같이 정의한다.  
+```c++
+struct CreatureCommand
+{
+    enum Action
+    {
+        set,
+        increase,
+        decrease
+    } action;
+    CreatureAbility ability;
+    int amount;
+};
+```
+정수형 변수를 바꾸기 위한 명령에 필요한 정보는 다 있다.  
+어떤 값을, 얼마 만큼, 세팅 or 증가 or 감소할 것인지를 정하면 된다.  
+&nbsp;  
+
+어떤 값을 획득할 것인지 조회 함수에게 알려주는 쿼리는 밑과 같다.  
+```c++
+struct CreatureQuery
+{
+    CreatureAbility ability;
+};
+```
+별 것은 없고 그냥 획득하고자 하는 ability를 정해주면 된다.  
+&nbsp;  
+
+이제 미구현된 명령, 조회 함수를 구현해보자.  
+밑은 명령 함수이다.  
+```c++
+void process_command(const CreatureCommand &cc)
+{
+    int *ability;
+    switch (cc.ability)
+    {
+    case CreatureAbility::strength:
+        ability = &_strength;
+        break;
+    case CreatureAbility::agility:
+        ability = &_agility;
+        break;
+    default:
+        break;
+    }
+    switch (cc.action)
+    {
+    case CreatureCommand::set:
+        *ability = cc.amount;
+        break;
+    case CreatureCommand::increase:
+        *ability += cc.amount;
+        break;
+    case CreatureCommand::decrease:
+        *ability -= cc.amount;
+        break;
+    }
+}
+```
+어떤 멤버 변수에 대한 명령인지 알아낸 뒤 그 값을 주어진 양 만큼 정해진 방법으로 변경한다.  
+&nbsp;  
+
+밑은 조회 함수이다.  
+```c++
+int process_query(const CreatureQuery &q) const
+{
+    switch (q.ability)
+    {
+    case CreatureAbility::agility:
+        return _agility;
+    case CreatureAbility::strength:
+        return _strength;
+    }
+}
+```
+그냥 쿼리에서 정해준 능력치를 반환해주면 된다.  
+&nbsp;  
+
+명령, 조회 방식에서 get / set 방식으로 바꾸는 것은 어렵지 않다.  
+```c++ 
+void strength(const int &value)
+{
+    process_command(CreatureCommand{CreatureCommand::set, CreatureAbility::strength, value});
+}
+
+int strength() const
+{
+    return process_query(CreatureQuery{CreatureAbility::strength});
+}
+
+void agility(const int &value)
+{
+    process_command(CreatureCommand{CreatureCommand::set, CreatureAbility::agility, value});
+}
+
+int agility() const
+{
+    return process_query(CreatureQuery{CreatureAbility::agility});
+}
+```
+process_command(), process_query() 함수를 적절히 사용해주면 된다.  
+&nbsp;  
+
+## 요약  
 
