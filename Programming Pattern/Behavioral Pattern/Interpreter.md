@@ -30,8 +30,8 @@ struct Token
         integer,
         plus,
         minus,
-        lparen,
-        rparen
+        left_bracket,
+        right_bracket
     } type;
     std::string text;
 
@@ -39,14 +39,65 @@ struct Token
         : type{type}, text{text}
     {
     }
-
-    friend std::ostream &operator<<(std::ostream &os, const Token &obj)
-    {
-        return os << "`" << obj.text << "`";
-    }
 };
 ```
+Type 열거형을 통해 토큰의 타입을 구분한다.  
+예시를 간단하게 만들기 위해 토큰은 ```숫자, +, -, (, )```만 다룬다.  
+실제 토큰의 문자열은 text에 보관한다.  
+&nbsp;  
 
+```c++
+std::vector<Token> lexing(const std::string &input)
+{
+    std::vector<Token> result;
 
-### Parsing  
+    for (int i = 0; i < input.size(); ++i)
+    {
+        switch (input[i])
+        {
+        case '+':
+            result.push_back(Token{Token::plus, "+"});
+            break;
+        case '-':
+            result.push_back(Token{Token::minus, "-"});
+            break;
+        case '(':
+            result.push_back(Token{Token::left_bracket, "("});
+            break;
+        case ')':
+            result.push_back(Token{Token::right_bracket, ")"});
+            break;
+        default:
+            std::string number;
+            for (; i < input.size(); i++)
+            {
+                if ('1' <= input[i] && input[i] <= '9')
+                    number += input[i];
+                else
+                {
+                    i--;
+                    break;
+                }
+            }
+            result.push_back(Token{Token::integer, number});
+        }
+    }
 
+    return result;
+}
+```
+숫자 이외의 다른 토큰들은 별도의 처리없이 그대로 넣으면 된다.  
+숫자는 '123'과 같이 연속된 문자열이 하나의 숫자를 구성할 수 있으므로 숫자가 아닌 문자열이 등장할 때까지 수식을 검사한다.  
+&nbsp;  
+
+### Parsing   
+
+파싱은 토큰을 의미있는 단위로 변환한다.  
+토큰의 종류가 여럿이기에 토큰들을 묶어 처리하기 위해 밑과 같은 인터페이스를 둔다.  
+```c++
+struct Element
+{
+    virtual int evaluation() = 0;
+};
+```
+evaluation() 함수는 각 토큰이 수행할 고유한 동작이 구현되어야 한다.  
