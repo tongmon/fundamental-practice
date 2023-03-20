@@ -71,7 +71,7 @@ std::vector<Token> lexing(const std::string &input)
             std::string number;
             for (; i < input.size(); i++)
             {
-                if ('1' <= input[i] && input[i] <= '9')
+                if ('0' <= input[i] && input[i] <= '9')
                     number += input[i];
                 else
                 {
@@ -227,7 +227,7 @@ case Token::left_bracket:
         return nullptr;
     std::vector<Token> subexpression(&tokens[i + 1], &tokens[j]);
     auto element = parse(subexpression);
-    if (!i && j == tokens.size() - 1)
+    if (!element || (!i && j == tokens.size() - 1))
         return element;
     else if (!root->left)
         root->left = element;
@@ -237,68 +237,18 @@ case Token::left_bracket:
     break;
 }
 ```
-일단 괄호가 사용된 수식이 무결한지 스택을 이용해 검사를 진행한다.  
-결함이 있다면 nullptr을 반환한다.  
-만약 ```((1+3)-(4-7))```와 같이 불필요한 괄호가 식 전체를 덮고 있다면 ```(1+3)-(4-7)```
+자료구조에서 트리 노드를 연결하는 것과 같은 로직이다.  
+최상위 괄호들의 인덱스를 찾아 내부 토큰들을 재귀적으로 파싱한다.  
+재귀적으로 구성된 하위 트리의 root를 좌측부터 연결해주면 된다.  
+예외 사항이 몇 가지 있는데 ```((1+3)-(4-7))```와 같이 불필요한 괄호가 식 전체를 덮고 있다면 좌측 노드만 채워져 있는 이상한 트리가 형성되므로 ```(1+3)-(4-7)``` 이러한 괄호 내부 식을 바로 반환해줘야 한다.  
+그리고 ```(1+3)-(4-7))``` 이렇게 괄호 쌍이 맞지 않는 경우 nullptr을 반환해줘야 한다.  
+&nbsp;  
 
-
-
-
-
+사용법은 밑과 같다.  
 ```c++
-std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
-{
-    auto root = std::make_unique<BinaryOperation>();
-    for (int i = 0; i < tokens.size(); i++)
-    {
-        auto token = tokens[i];
-        switch (token.type)
-        {
-        case Token::integer: {
-            auto integer = std::make_shared<Integer>(token.text);
-            if (!root->left)
-                root->left = integer;
-            else
-                root->right = integer;
-            break;
-        }
-        case Token::plus:
-            root->type = BinaryOperation::addition;
-            break;
-        case Token::minus:
-            root->type = BinaryOperation::subtraction;
-            break;
-        case Token::left_bracket: {
-            std::stack<char> bracket;
-            int j = i;
-            for (; j < tokens.size(); j++)
-            {
-                if (tokens[j].type == Token::left_bracket)
-                    bracket.push('(');
-                else if (tokens[j].type == Token::right_bracket && !bracket.empty())
-                {
-                    bracket.pop();
-                    if (bracket.empty())
-                        break;
-                }
-            }
-            if (!bracket.empty())
-                return nullptr;
-            std::vector<Token> subexpression(&tokens[i + 1], &tokens[j]);
-            auto element = parse(subexpression);
-            if (!i && j == tokens.size() - 1)
-                return element;
-            else if (!root->left)
-                root->left = element;
-            else
-                root->right = element;
-            i = j;
-            break;
-        }
-        default:
-            return nullptr;
-        }
-    }
-    return root;
-}
+auto token = lexing("10-((13-4)-(12+1))+5");
+auto parsed = parse(token);
+if (parsed)
+    std::cout << parsed->evaluation();
 ```
+evaluation() 함수를 호출하면 트리를 타고 내려가면서 괄호 우선 순위에 맞춰 계산을 수행한다.  
