@@ -101,3 +101,204 @@ struct Element
 };
 ```
 evaluation() 함수는 각 토큰이 수행할 고유한 동작이 구현되어야 한다.  
+&nbsp;  
+
+숫자에 대한 파싱 단위이다.  
+```c++
+struct Integer : Element
+{
+    int value;
+    explicit Integer(const std::string &value)
+        : value(std::stoi(value))
+    {
+    }
+    int evaluation()
+    {
+        return value;
+    }
+};
+```
+주어진 문자열을 숫자로 변환하여 저장하고 evaluation() 호출시 반환해주면 된다.  
+&nbsp;  
+
+다음은 이항 연산자다.  
+```+, -```를 모두 다룬다.  
+```c++
+struct BinaryOperation : Element
+{
+    enum Type
+    {
+        addition,
+        subtraction
+    } type;
+    std::shared_ptr<Element> left, right;
+
+    BinaryOperation()
+        : left{nullptr}, right{nullptr}
+    {
+    }
+
+    int evaluation()
+    {
+        if (type == addition)
+            return left->evaluation() + right->evaluation();
+        return left->evaluation() - right->evaluation();
+    }
+};
+```
+중요한 것은 해당 이항 연산자 파싱 단위는 트리 구조를 형성한다.  
+따라서 left, right 멤버 포인터가 존재한다.  
+예를 들어 ```(1 + 3) - (7 - 11)``` 이러한 식은 밑과 같이 구성된다.  
+```tree
+-
+├── +
+│   ├── 1
+│   └── 3
+└── -
+    ├── 7
+    └── 11
+```
+evaluation() 함수에서는 주어진 type에 따라 ```+, -``` 역할을 하면 된다.  
+&nbsp;  
+
+괄호는 연산의 순서를 결정하여 재귀적으로 처리해야 하기에 파싱 단계에서 따로 처리한다.  
+밑은 파싱 함수다.  
+```c++
+std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
+{
+    auto root = std::make_unique<BinaryOperation>();
+    for (int i = 0; i < tokens.size(); i++)
+    {
+        auto token = tokens[i];
+        switch (token.type)
+        {
+        case Token::integer: 
+        {
+            auto integer = std::make_shared<Integer>(token.text);
+            if (!root->left)
+                root->left = integer;
+            else
+                root->right = integer;
+            break;
+        }
+        case Token::plus:
+            root->type = BinaryOperation::addition;
+            break;
+        case Token::minus:
+            root->type = BinaryOperation::subtraction;
+            break;
+        case Token::left_bracket: 
+        {
+            // 괄호 처리 로직은 추후에 다룬다.  
+            break;
+        }
+        default:
+            return nullptr;
+        }
+    }
+    return root;
+}
+```
+파싱 함수는 수식의 트리 구조를 형성하고 그 root를 반환한다.  
+이항 연산자 토큰이 트리 노드를 담당하므로 root의 자료형은 이항 연산자 토큰이다.  
+계산이 좌측부터 진행되어야 하기에 root->left의 유무를 먼저 체크하고 좌측 노드부터 채운다.   
+이항 연산자 토큰이 오면 타입만 구분해준다.  
+&nbsp;  
+
+밑은 괄호 처리 로직이다.  
+따로 다룰 만큼 구현에 있어서 예외 사항이 많다.  
+```c++
+case Token::left_bracket: 
+{
+    std::stack<char> bracket;
+    int j = i;
+    for (; j < tokens.size(); j++)
+    {
+        if (tokens[j].type == Token::left_bracket)
+            bracket.push('(');
+        else if (tokens[j].type == Token::right_bracket && !bracket.empty())
+        {
+            bracket.pop();
+            if (bracket.empty())
+                break;
+        }
+    }
+    if (!bracket.empty())
+        return nullptr;
+    std::vector<Token> subexpression(&tokens[i + 1], &tokens[j]);
+    auto element = parse(subexpression);
+    if (!i && j == tokens.size() - 1)
+        return element;
+    else if (!root->left)
+        root->left = element;
+    else
+        root->right = element;
+    i = j;
+    break;
+}
+```
+일단 괄호가 사용된 수식이 무결한지 스택을 이용해 검사를 진행한다.  
+결함이 있다면 nullptr을 반환한다.  
+만약 ```((1+3)-(4-7))```와 같이 불필요한 괄호가 식 전체를 덮고 있다면 ```(1+3)-(4-7)```
+
+
+
+
+
+```c++
+std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
+{
+    auto root = std::make_unique<BinaryOperation>();
+    for (int i = 0; i < tokens.size(); i++)
+    {
+        auto token = tokens[i];
+        switch (token.type)
+        {
+        case Token::integer: {
+            auto integer = std::make_shared<Integer>(token.text);
+            if (!root->left)
+                root->left = integer;
+            else
+                root->right = integer;
+            break;
+        }
+        case Token::plus:
+            root->type = BinaryOperation::addition;
+            break;
+        case Token::minus:
+            root->type = BinaryOperation::subtraction;
+            break;
+        case Token::left_bracket: {
+            std::stack<char> bracket;
+            int j = i;
+            for (; j < tokens.size(); j++)
+            {
+                if (tokens[j].type == Token::left_bracket)
+                    bracket.push('(');
+                else if (tokens[j].type == Token::right_bracket && !bracket.empty())
+                {
+                    bracket.pop();
+                    if (bracket.empty())
+                        break;
+                }
+            }
+            if (!bracket.empty())
+                return nullptr;
+            std::vector<Token> subexpression(&tokens[i + 1], &tokens[j]);
+            auto element = parse(subexpression);
+            if (!i && j == tokens.size() - 1)
+                return element;
+            else if (!root->left)
+                root->left = element;
+            else
+                root->right = element;
+            i = j;
+            break;
+        }
+        default:
+            return nullptr;
+        }
+    }
+    return root;
+}
+```
