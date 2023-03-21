@@ -252,3 +252,168 @@ if (parsed)
     std::cout << parsed->evaluation();
 ```
 evaluation() 함수를 호출하면 트리를 타고 내려가면서 괄호 우선 순위에 맞춰 계산을 수행한다.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```c++
+struct Token
+{
+    enum Type
+    {
+        integer,
+        plus,
+        minus,
+        slash,
+        asterisk,
+        left_bracket,
+        right_bracket
+    } type;
+    std::string text;
+
+    explicit Token(Type type, const std::string &text)
+        : type{type}, text{text}
+    {
+    }
+};
+
+std::vector<Token> lexing(const std::string &input)
+{
+    std::vector<Token> result;
+
+    for (int i = 0; i < input.size(); ++i)
+    {
+        switch (input[i])
+        {
+        case '+':
+            result.push_back(Token{Token::plus, "+"});
+            break;
+        case '-':
+            result.push_back(Token{Token::minus, "-"});
+            break;
+        case '*':
+            result.push_back(Token{Token::asterisk, "*"});
+            break;
+        case '/':
+            result.push_back(Token{Token::slash, "/"});
+            break;
+        case '(':
+            result.push_back(Token{Token::left_bracket, "("});
+            break;
+        case ')':
+            result.push_back(Token{Token::right_bracket, ")"});
+            break;
+        default:
+            std::string number;
+            for (; i < input.size(); i++)
+            {
+                if ('0' <= input[i] && input[i] <= '9')
+                    number += input[i];
+                else
+                {
+                    i--;
+                    break;
+                }
+            }
+            result.push_back(Token{Token::integer, number});
+        }
+    }
+
+    return result;
+}
+
+struct Element
+{
+    virtual int evaluation() = 0;
+};
+
+struct Integer : Element
+{
+    int value;
+    explicit Integer(const std::string &value)
+        : value(std::stoi(value))
+    {
+    }
+    int evaluation()
+    {
+        return value;
+    }
+};
+
+struct BinaryOperation : Element
+{
+    enum Type
+    {
+        addition,
+        subtraction,
+        multiply,
+        division
+    } type;
+    std::shared_ptr<Element> left, right;
+
+    BinaryOperation()
+        : left{nullptr}, right{nullptr}
+    {
+    }
+
+    int evaluation()
+    {
+        auto eleft = left->evaluation();
+        auto eright = right->evaluation();
+        if (type == addition)
+        {
+            std::cout << eleft << " + " << eright << " = " << eleft + eright << "\n";
+            return eleft + eright;
+            // return left->evaluation() + right->evaluation();
+        }
+        std::cout << eleft << " - " << eright << " = " << eleft - eright << "\n";
+        return eleft - eright;
+        // return left->evaluation() - right->evaluation();
+    }
+};
+
+std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
+{
+    std::stack<Token> stack;
+    std::map<Token::Type, char> priority{{Token::plus, 0},
+                                         {Token::minus, 0},
+                                         {Token::slash, 1},
+                                         {Token::asterisk, 1},
+                                         {Token::left_bracket, 2}};
+    std::vector<Token> post;
+    for (const auto &token : tokens)
+    {
+        switch (token.type)
+        {
+        case Token::integer:
+            post.push_back(token);
+            break;
+        case Token::right_bracket:
+            while (!stack.empty() && stack.top().type != Token::left_bracket)
+            {
+                stack.pop();
+            }
+            break;
+        default:
+            while (!stack.empty() && priority[stack.top().type] >= priority[token.type])
+            {
+                post.push_back(stack.top());
+                stack.pop();
+            }
+            stack.push(token);
+            break;
+        }
+    }
+}
+```
