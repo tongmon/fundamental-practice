@@ -20,253 +20,9 @@
 
 표현식을 해석하는 첫 단계는 렉싱이다.  
 문자열 입력을 토큰 단위로 끊어 나열하는 단계다.  
+여기서 말하는 토큰이란 ```의미를 가지는 최소 단위```이다.  
 산술 표현식에서는 ```정수 [ex. 2, 9]```, ```연산자 [ex. +, -]```, ```괄호 [ex. (, )]```가 토큰이 될 수 있다.  
 이러한 토큰을 구현해보자.  
-```c++
-struct Token
-{
-    enum Type
-    {
-        integer,
-        plus,
-        minus,
-        left_bracket,
-        right_bracket
-    } type;
-    std::string text;
-
-    explicit Token(Type type, const std::string &text)
-        : type{type}, text{text}
-    {
-    }
-};
-```
-Type 열거형을 통해 토큰의 타입을 구분한다.  
-예시를 간단하게 만들기 위해 토큰은 ```숫자, +, -, (, )```만 다룬다.  
-실제 토큰의 문자열은 text에 보관한다.  
-&nbsp;  
-
-```c++
-std::vector<Token> lexing(const std::string &input)
-{
-    std::vector<Token> result;
-
-    for (int i = 0; i < input.size(); ++i)
-    {
-        switch (input[i])
-        {
-        case '+':
-            result.push_back(Token{Token::plus, "+"});
-            break;
-        case '-':
-            result.push_back(Token{Token::minus, "-"});
-            break;
-        case '(':
-            result.push_back(Token{Token::left_bracket, "("});
-            break;
-        case ')':
-            result.push_back(Token{Token::right_bracket, ")"});
-            break;
-        default:
-            std::string number;
-            for (; i < input.size(); i++)
-            {
-                if ('0' <= input[i] && input[i] <= '9')
-                    number += input[i];
-                else
-                {
-                    i--;
-                    break;
-                }
-            }
-            result.push_back(Token{Token::integer, number});
-        }
-    }
-
-    return result;
-}
-```
-숫자 이외의 다른 토큰들은 별도의 처리없이 그대로 넣으면 된다.  
-숫자는 '123'과 같이 연속된 문자열이 하나의 숫자를 구성할 수 있으므로 숫자가 아닌 문자열이 등장할 때까지 수식을 검사한다.  
-&nbsp;  
-
-### Parsing   
-
-파싱은 토큰을 의미있는 단위로 변환한다.  
-토큰의 종류가 여럿이기에 토큰들을 묶어 처리하기 위해 밑과 같은 인터페이스를 둔다.  
-```c++
-struct Element
-{
-    virtual int evaluation() = 0;
-};
-```
-evaluation() 함수는 각 토큰이 수행할 고유한 동작이 구현되어야 한다.  
-&nbsp;  
-
-숫자에 대한 파싱 단위이다.  
-```c++
-struct Integer : Element
-{
-    int value;
-    explicit Integer(const std::string &value)
-        : value(std::stoi(value))
-    {
-    }
-    int evaluation()
-    {
-        return value;
-    }
-};
-```
-주어진 문자열을 숫자로 변환하여 저장하고 evaluation() 호출시 반환해주면 된다.  
-&nbsp;  
-
-다음은 이항 연산자다.  
-```+, -```를 모두 다룬다.  
-```c++
-struct BinaryOperation : Element
-{
-    enum Type
-    {
-        addition,
-        subtraction
-    } type;
-    std::shared_ptr<Element> left, right;
-
-    BinaryOperation()
-        : left{nullptr}, right{nullptr}
-    {
-    }
-
-    int evaluation()
-    {
-        if (type == addition)
-            return left->evaluation() + right->evaluation();
-        return left->evaluation() - right->evaluation();
-    }
-};
-```
-중요한 것은 해당 이항 연산자 파싱 단위는 트리 구조를 형성한다.  
-따라서 left, right 멤버 포인터가 존재한다.  
-예를 들어 ```(1 + 3) - (7 - 11)``` 이러한 식은 밑과 같이 구성된다.  
-```tree
--
-├── +
-│   ├── 1
-│   └── 3
-└── -
-    ├── 7
-    └── 11
-```
-evaluation() 함수에서는 주어진 type에 따라 ```+, -``` 역할을 하면 된다.  
-&nbsp;  
-
-괄호는 연산의 순서를 결정하여 재귀적으로 처리해야 하기에 파싱 단계에서 따로 처리한다.  
-밑은 파싱 함수다.  
-```c++
-std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
-{
-    auto root = std::make_unique<BinaryOperation>();
-    for (int i = 0; i < tokens.size(); i++)
-    {
-        auto token = tokens[i];
-        switch (token.type)
-        {
-        case Token::integer: 
-        {
-            auto integer = std::make_shared<Integer>(token.text);
-            if (!root->left)
-                root->left = integer;
-            else
-                root->right = integer;
-            break;
-        }
-        case Token::plus:
-            root->type = BinaryOperation::addition;
-            break;
-        case Token::minus:
-            root->type = BinaryOperation::subtraction;
-            break;
-        case Token::left_bracket: 
-        {
-            // 괄호 처리 로직은 추후에 다룬다.  
-            break;
-        }
-        default:
-            return nullptr;
-        }
-    }
-    return root;
-}
-```
-파싱 함수는 수식의 트리 구조를 형성하고 그 root를 반환한다.  
-이항 연산자 토큰이 트리 노드를 담당하므로 root의 자료형은 이항 연산자 토큰이다.  
-계산이 좌측부터 진행되어야 하기에 root->left의 유무를 먼저 체크하고 좌측 노드부터 채운다.   
-이항 연산자 토큰이 오면 타입만 구분해준다.  
-&nbsp;  
-
-밑은 괄호 처리 로직이다.  
-따로 다룰 만큼 구현에 있어서 예외 사항이 많다.  
-```c++
-case Token::left_bracket: 
-{
-    std::stack<char> bracket;
-    int j = i;
-    for (; j < tokens.size(); j++)
-    {
-        if (tokens[j].type == Token::left_bracket)
-            bracket.push('(');
-        else if (tokens[j].type == Token::right_bracket && !bracket.empty())
-        {
-            bracket.pop();
-            if (bracket.empty())
-                break;
-        }
-    }
-    if (!bracket.empty())
-        return nullptr;
-    std::vector<Token> subexpression(&tokens[i + 1], &tokens[j]);
-    auto element = parse(subexpression);
-    if (!element || (!i && j == tokens.size() - 1))
-        return element;
-    else if (!root->left)
-        root->left = element;
-    else
-        root->right = element;
-    i = j;
-    break;
-}
-```
-자료구조에서 트리 노드를 연결하는 것과 같은 로직이다.  
-최상위 괄호들의 인덱스를 찾아 내부 토큰들을 재귀적으로 파싱한다.  
-재귀적으로 구성된 하위 트리의 root를 좌측부터 연결해주면 된다.  
-예외 사항이 몇 가지 있는데 ```((1+3)-(4-7))```와 같이 불필요한 괄호가 식 전체를 덮고 있다면 좌측 노드만 채워져 있는 이상한 트리가 형성되므로 ```(1+3)-(4-7)``` 이러한 괄호 내부 식을 바로 반환해줘야 한다.  
-그리고 ```(1+3)-(4-7))``` 이렇게 괄호 쌍이 맞지 않는 경우 nullptr을 반환해줘야 한다.  
-&nbsp;  
-
-사용법은 밑과 같다.  
-```c++
-auto token = lexing("10-((13-4)-(12+1))+5");
-auto parsed = parse(token);
-if (parsed)
-    std::cout << parsed->evaluation();
-```
-evaluation() 함수를 호출하면 트리를 타고 내려가면서 괄호 우선 순위에 맞춰 계산을 수행한다.  
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ```c++
 struct Token
 {
@@ -287,7 +43,13 @@ struct Token
     {
     }
 };
+```
+Type 열거형을 통해 토큰의 타입을 구분한다.  
+예시를 간단하게 만들기 위해 토큰은 ```숫자, +, -, *, /, (, )```만 다룬다.  
+실제 토큰의 문자열은 text에 보관한다.  
+&nbsp;  
 
+```c++
 std::vector<Token> lexing(const std::string &input)
 {
     std::vector<Token> result;
@@ -332,12 +94,26 @@ std::vector<Token> lexing(const std::string &input)
 
     return result;
 }
+```
+숫자 이외의 다른 토큰들은 별도의 처리없이 그대로 넣으면 된다.  
+숫자는 '123'과 같이 연속된 문자열이 하나의 숫자를 구성할 수 있으므로 숫자가 아닌 문자열이 등장할 때까지 수식을 검사한다.  
+&nbsp;  
 
+### Parsing   
+
+파싱은 토큰을 의미있는 단위로 변환한다.  
+토큰의 종류가 여럿이기에 토큰들을 묶어 처리하기 위해 밑과 같은 인터페이스를 둔다.  
+```c++
 struct Element
 {
     virtual int evaluation() = 0;
 };
+```
+evaluation() 함수에서 각 토큰의 의미가 해석되고 그에 따른 결과가 도출된다.    
+&nbsp;  
 
+숫자에 대한 파싱 단위이다.  
+```c++
 struct Integer : Element
 {
     int value;
@@ -350,7 +126,14 @@ struct Integer : Element
         return value;
     }
 };
+```
+주어진 문자열을 숫자로 변환하여 저장하고 evaluation() 호출시 반환해주면 된다.  
+그저 문자열이였던 ```"13"```가 정수형 ```13```으로 해석된다.  
+&nbsp;  
 
+다음은 이항 연산자다.  
+사칙연산을 모두 다룬다.  
+```c++
 struct BinaryOperation : Element
 {
     enum Type
@@ -362,36 +145,87 @@ struct BinaryOperation : Element
     } type;
     std::shared_ptr<Element> left, right;
 
-    BinaryOperation()
-        : left{nullptr}, right{nullptr}
+    BinaryOperation(BinaryOperation::Type type)
+        : left{nullptr}, right{nullptr}, type{type}
     {
     }
 
     int evaluation()
     {
-        auto eleft = left->evaluation();
-        auto eright = right->evaluation();
-        if (type == addition)
+        switch (type)
         {
-            std::cout << eleft << " + " << eright << " = " << eleft + eright << "\n";
-            return eleft + eright;
-            // return left->evaluation() + right->evaluation();
+        case addition:
+            return left->evaluation() + right->evaluation();
+            break;
+        case subtraction:
+            return left->evaluation() - right->evaluation();
+            break;
+        case division:
+            return left->evaluation() / right->evaluation();
+            break;
+        default:
+            return left->evaluation() * right->evaluation();
+            break;
         }
-        std::cout << eleft << " - " << eright << " = " << eleft - eright << "\n";
-        return eleft - eright;
-        // return left->evaluation() - right->evaluation();
     }
 };
+```
+중요한 것은 해당 이항 연산자 파싱 단위는 트리 노드 형태를 갖추고 있다는 것이다.  
+따라서 left, right 멤버 포인터가 존재한다.  
+이항 연산자 노드는 추후에 등장할 parse() 함수에서 수식 트리(Expression Tree)를 구성하는 데 핵심적인 역할을 한다.  
+수식 트리의 예시를 간단히 보자면 ```(1 + 3) - (7 - 11)``` 이러한 식은 밑과 같이 구성된다.  
+```tree
+-
+├── +
+│   ├── 1
+│   └── 3
+└── -
+    ├── 7
+    └── 11
+```
+evaluation() 함수에서는 주어진 type에 따라 사칙연산을 진행하면 된다.  
+&nbsp;  
 
+밑은 파싱 함수이다.  
+```c++
 std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
 {
-    std::stack<Token> stack;
-    std::map<Token::Type, char> priority{{Token::plus, 0},
-                                         {Token::minus, 0},
-                                         {Token::slash, 1},
-                                         {Token::asterisk, 1},
-                                         {Token::left_bracket, 2}};
     std::vector<Token> post;
+
+#pragma region Infix To Postfix
+    std::stack<Token> stack;
+    std::map<Token::Type, char> priority{{Token::plus, 1},
+                                         {Token::minus, 1},
+                                         {Token::slash, 2},
+                                         {Token::asterisk, 2},
+                                         {Token::left_bracket, 0}};
+
+    // 중위 표현식을 후위 표현식으로 변환
+#pragma endregion
+
+#pragma region Make Expression Tree
+    std::stack<std::shared_ptr<Element>> nodes;
+
+    // 수식 트리 생성
+#pragma endregion
+
+    return nodes.top();
+}
+```
+수식 트리를 만들기 위해 먼저 중위 표현식을 후위 표현식으로 변환을 한다.  
+그 뒤에 획득한 후위 표현식을 토대로 수식 트리를 구성하고 해당 트리의 root 노드를 반환한다.  
+&nbsp;  
+
+중위 표현식을 후위 표현식으로 바꾸는 세부 로직은 밑과 같다.  
+```c++
+#pragma region Infix To Postfix
+    std::stack<Token> stack;
+    std::map<Token::Type, char> priority{{Token::plus, 1},
+                                         {Token::minus, 1},
+                                         {Token::slash, 2},
+                                         {Token::asterisk, 2},
+                                         {Token::left_bracket, 0}};
+
     for (const auto &token : tokens)
     {
         switch (token.type)
@@ -399,11 +233,17 @@ std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
         case Token::integer:
             post.push_back(token);
             break;
+        case Token::left_bracket:
+            stack.push(token);
+            break;
         case Token::right_bracket:
             while (!stack.empty() && stack.top().type != Token::left_bracket)
             {
+                post.push_back(stack.top());
                 stack.pop();
             }
+            if (!stack.empty())
+                stack.pop();
             break;
         default:
             while (!stack.empty() && priority[stack.top().type] >= priority[token.type])
@@ -415,5 +255,70 @@ std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
             break;
         }
     }
-}
+
+    while (!stack.empty())
+    {
+        post.push_back(stack.top());
+        stack.pop();
+    }
+#pragma endregion
 ```
+인터넷에 후위, 중위, 전위 표기법 변환과 관련한 정보는 널렸으니 대충 이러한 절차를 거친다는 것만 알고 넘어가자.  
+중요한 것은 세부적인 구현부가 아니라 인터프리터 패턴의 전체적인 구조를 이해하는 것이다.  
+&nbsp;  
+
+밑은 수식 트리를 구현하는 세부 로직이다.  
+```c++
+#pragma region Make Expression Tree
+    std::stack<std::shared_ptr<Element>> nodes;
+
+    for (auto &token : post)
+    {
+        if (token.type == Token::integer)
+        {
+            nodes.push(std::make_shared<Integer>(token.text));
+            continue;
+        }
+
+        std::shared_ptr<BinaryOperation> root = nullptr;
+        switch (token.type)
+        {
+        case Token::plus:
+            root = std::make_shared<BinaryOperation>(BinaryOperation::Type::addition);
+            break;
+        case Token::minus:
+            root = std::make_shared<BinaryOperation>(BinaryOperation::Type::subtraction);
+            break;
+        case Token::slash:
+            root = std::make_shared<BinaryOperation>(BinaryOperation::Type::division);
+            break;
+        default:
+            root = std::make_shared<BinaryOperation>(BinaryOperation::Type::multiply);
+            break;
+        }
+
+        root->right = nodes.top();
+        nodes.pop();
+        root->left = nodes.top();
+        nodes.pop();
+        nodes.push(root);
+    }
+#pragma endregion
+```
+후위 표기식을 순차적으로 읽어나가면 된다.  
+숫자가 나타나면 바로 스택에 저장한다.  
+이항 연산자가 나타나면 트리 노드를 생성하여 스택에 저장한다.  
+&nbsp;  
+
+사용법은 밑과 같다.  
+```c++
+auto token = lexing("10-((13-4)*(9+1))/5");
+auto parsed = parse(token);
+if (parsed)
+    std::cout << parsed->evaluation();
+```
+evaluation() 함수를 호출하면 트리를 타고 내려가면서 괄호 우선 순위에 맞춰 계산을 수행한다.  
+다시 말하지만 세부적인 구현은 인터프리터가 무엇을 해석하는지에 따라 천차만별이기에 별로 중요하지 않고 렉싱에서 파싱으로 이어지는 전체적인 흐름을 이해하는 것이 중요하다.  
+&nbsp;  
+
+현재의 파싱 함수는 에러 처리를 하지 않고 있는데 
