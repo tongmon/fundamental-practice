@@ -326,3 +326,308 @@ evaluation() 함수를 호출하면 트리를 타고 내려가면서 괄호 우�
 
 ## Boost.Spirit  
 
+```c++
+#include <algorithm>
+#include <array>
+#include <bitset>
+#include <cmath>
+#include <cstdio>
+#include <filesystem>
+#include <fstream>
+#include <functional>
+#include <iostream>
+#include <limits>
+#include <map>
+#include <memory>
+#include <mutex>
+#include <random>
+#include <regex>
+#include <sstream>
+#include <stack>
+#include <stdexcept>
+#include <string>
+#include <thread>
+#include <unordered_map>
+#include <unordered_set>
+#include <variant>
+#include <vector>
+
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/bimap/bimap.hpp>
+#include <boost/config/warning_disable.hpp>
+#include <boost/flyweight.hpp>
+#include <boost/flyweight/key_value.hpp>
+#include <boost/foreach.hpp>
+#include <boost/fusion/adapted/struct/adapt_struct.hpp>
+#include <boost/fusion/include/adapt_struct.hpp>
+#include <boost/fusion/include/at_c.hpp>
+#include <boost/fusion/include/for_each.hpp>
+#include <boost/fusion/include/make_vector.hpp>
+#include <boost/fusion/include/push_back.hpp>
+#include <boost/fusion/include/remove_if.hpp>
+#include <boost/gil.hpp>
+#include <boost/noncopyable.hpp>
+#include <boost/serialization/serialization.hpp>
+#include <boost/serialization/singleton.hpp>
+#include <boost/signals2/signal.hpp>
+#include <boost/spirit/include/qi.hpp>
+#include <boost/variant/apply_visitor.hpp>
+#include <boost/variant/recursive_variant.hpp>
+
+namespace client
+{
+namespace ast
+{
+///////////////////////////////////////////////////////////////////////////
+//  The AST
+///////////////////////////////////////////////////////////////////////////
+
+struct signed_;
+struct program;
+
+typedef boost::variant<boost::blank, unsigned int, boost::recursive_wrapper<signed_>, boost::recursive_wrapper<program>> operand;
+
+struct signed_
+{
+    char sign;
+    operand operand_;
+};
+
+struct operation
+{
+    char operator_;
+    operand operand_;
+};
+
+struct program
+{
+    operand first;
+    std::list<operation> rest;
+};
+} // namespace ast
+} // namespace client
+
+BOOST_FUSION_ADAPT_STRUCT(
+    client::ast::signed_,
+    (char, sign)(client::ast::operand, operand_))
+
+BOOST_FUSION_ADAPT_STRUCT(
+    client::ast::operation,
+    (char, operator_)(client::ast::operand, operand_))
+
+BOOST_FUSION_ADAPT_STRUCT(
+    client::ast::program,
+    (client::ast::operand, first)(std::list<client::ast::operation>, rest))
+
+namespace client
+{
+namespace ast
+{
+///////////////////////////////////////////////////////////////////////////
+//  The AST Printer
+///////////////////////////////////////////////////////////////////////////
+struct printer
+{
+    void operator()(boost::blank) const
+    {
+    }
+
+    void operator()(unsigned int n) const
+    {
+        std::cout << n;
+    }
+
+    void operator()(operation const &x) const
+    {
+        boost::apply_visitor(*this, x.operand_);
+        switch (x.operator_)
+        {
+        case '+':
+            std::cout << " add";
+            break;
+        case '-':
+            std::cout << " subt";
+            break;
+        case '*':
+            std::cout << " mult";
+            break;
+        case '/':
+            std::cout << " div";
+            break;
+        }
+    }
+
+    void operator()(signed_ const &x) const
+    {
+        boost::apply_visitor(*this, x.operand_);
+        switch (x.sign)
+        {
+        case '-':
+            std::cout << " neg";
+            break;
+        case '+':
+            std::cout << " pos";
+            break;
+        }
+    }
+
+    void operator()(program const &x) const
+    {
+        boost::apply_visitor(*this, x.first);
+        BOOST_FOREACH (operation const &oper, x.rest)
+        {
+            std::cout << ' ';
+            (*this)(oper);
+        }
+    }
+};
+
+///////////////////////////////////////////////////////////////////////////
+//  The AST evaluator
+///////////////////////////////////////////////////////////////////////////
+struct eval
+{
+    int operator()(boost::blank) const
+    {
+        BOOST_ASSERT(0);
+        return 0;
+    }
+
+    int operator()(unsigned int n) const
+    {
+        return n;
+    }
+
+    int operator()(operation const &x, int lhs) const
+    {
+        int rhs = boost::apply_visitor(*this, x.operand_);
+        switch (x.operator_)
+        {
+        case '+':
+            return lhs + rhs;
+        case '-':
+            return lhs - rhs;
+        case '*':
+            return lhs * rhs;
+        case '/':
+            return lhs / rhs;
+        }
+        BOOST_ASSERT(0);
+        return 0;
+    }
+
+    int operator()(signed_ const &x) const
+    {
+        int rhs = boost::apply_visitor(*this, x.operand_);
+        switch (x.sign)
+        {
+        case '-':
+            return -rhs;
+        case '+':
+            return +rhs;
+        }
+        BOOST_ASSERT(0);
+        return 0;
+    }
+
+    int operator()(program const &x) const
+    {
+        int state = boost::apply_visitor(*this, x.first);
+        BOOST_FOREACH (operation const &oper, x.rest)
+        {
+            state = (*this)(oper, state);
+        }
+        return state;
+    }
+};
+} // namespace ast
+} // namespace client
+
+namespace client
+{
+namespace qi = boost::spirit::qi;
+namespace ascii = boost::spirit::ascii;
+
+///////////////////////////////////////////////////////////////////////////////
+//  The calculator grammar
+///////////////////////////////////////////////////////////////////////////////
+template <typename Iterator>
+struct calculator : qi::grammar<Iterator, ast::program(), ascii::space_type>
+{
+    calculator()
+        : calculator::base_type(expression)
+    {
+        qi::uint_type uint_;
+        qi::char_type char_;
+
+        expression =
+            term >> *((char_('+') >> term) | (char_('-') >> term));
+
+        term =
+            factor >> *((char_('*') >> factor) | (char_('/') >> factor));
+
+        factor =
+            uint_ | '(' >> expression >> ')' | (char_('-') >> factor) | (char_('+') >> factor);
+    }
+
+    qi::rule<Iterator, ast::program(), ascii::space_type> expression;
+    qi::rule<Iterator, ast::program(), ascii::space_type> term;
+    qi::rule<Iterator, ast::operand(), ascii::space_type> factor;
+};
+} // namespace client
+
+///////////////////////////////////////////////////////////////////////////////
+//  Main program
+///////////////////////////////////////////////////////////////////////////////
+int main()
+{
+    std::cout << "/////////////////////////////////////////////////////////\n\n";
+    std::cout << "Expression parser...\n\n";
+    std::cout << "/////////////////////////////////////////////////////////\n\n";
+    std::cout << "Type an expression...or [q or Q] to quit\n\n";
+
+    typedef std::string::const_iterator iterator_type;
+    typedef client::calculator<iterator_type> calculator;
+    typedef client::ast::program ast_program;
+    typedef client::ast::printer ast_print;
+    typedef client::ast::eval ast_eval;
+
+    std::string str;
+    while (std::getline(std::cin, str))
+    {
+        if (str.empty() || str[0] == 'q' || str[0] == 'Q')
+            break;
+
+        calculator calc;     // Our grammar
+        ast_program program; // Our program (AST)
+        ast_print print;     // Prints the program
+        ast_eval eval;       // Evaluates the program
+
+        std::string::const_iterator iter = str.begin();
+        std::string::const_iterator end = str.end();
+        boost::spirit::ascii::space_type space;
+        bool r = boost::spirit::qi::phrase_parse(iter, end, calc, space, program);
+
+        if (r && iter == end)
+        {
+            std::cout << "-------------------------\n";
+            std::cout << "Parsing succeeded\n";
+            print(program);
+            std::cout << "\nResult: " << eval(program) << std::endl;
+            std::cout << "-------------------------\n";
+        }
+        else
+        {
+            std::string rest(iter, end);
+            std::cout << "-------------------------\n";
+            std::cout << "Parsing failed\n";
+            std::cout << "stopped at: \" " << rest << "\"\n";
+            std::cout << "-------------------------\n";
+        }
+    }
+
+    std::cout << "Bye... :-) \n\n";
+    return 0;
+}
+```
