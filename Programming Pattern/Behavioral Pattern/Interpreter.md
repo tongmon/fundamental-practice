@@ -326,6 +326,13 @@ evaluation() 함수를 호출하면 트리를 타고 내려가면서 괄호 우�
 
 ## Boost.Spirit  
 
+Boost 라이브러리에는 인터프리터 구현은 도와주는 Spirit 모듈이 존재한다.  
+템플릿 기법이 난무하는 모듈이기에 컴파일 시간이 늘어나고 사용법도 까다로운 편이다.  
+Spirit 모듈을 사용하여 계산식을 해석하는 예시를 살펴보자.  
+&nbsp;  
+
+
+
 ```c++
 #include <algorithm>
 #include <array>
