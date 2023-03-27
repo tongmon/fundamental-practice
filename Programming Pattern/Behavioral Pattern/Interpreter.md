@@ -372,6 +372,8 @@ EBNF에 대한 설명은 https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93N
 ```boost::spirit::qi::double_ >> *(',' >> boost::spirit::qi::double_)```를 EBNF로 표기하면 ```rule := double { "," double }```와 같다.  
 boost::spirit에서는 이러한 표현을 간소화 하기 위해 ```boost::spirit::qi::double_ % ','``` 표현식도 제공한다.  
 표현식 규칙에 대한 더 자세한 정보는 https://www.boost.org/doc/libs/1_81_0/libs/spirit/doc/html/spirit/qi/quick_reference/qi_parsers/operator.html 링크를 참고하자.  
+그리고 중요한 점은 ',' 요렇게 따옴표, 큰따옴표로만 감싸여 있는 것들은 구분자로만 사용되고 파싱에서 제외된다.  
+만약 ','도 파싱하고 싶다면 ```boost::spirit::qi::char_(',')``` 이렇게 표현해야 한다.  
 &nbsp;  
 
 다음은 여러개의 규칙이 복합적으로 작용해야 하는 경우 boost::spirit 사용 예시이다.  
@@ -391,80 +393,20 @@ struct my_grammar : boost::spirit::qi::grammar<Iterator, std::vector<std::varian
     boost::spirit::qi::rule<Iterator, std::vector<std::variant<int, std::string>>, Skipper> values;
 };
 ```
-qi::rule와 qi::grammar에는 템플릿 인자로 반복자, 파싱할 자료형, 파싱 건너뛸 문자 타입이 들어간다.  
-my_grammar 클래스 내부에서는 ```value := int | []```, ```values := value | { "," value }``` 이러한 파싱 규칙을 정의하였다.  
-qi::as_string은 문자열을 std::string 형태로 파싱한다.  
+하나씩 살펴보자.  
+qi::rule과 qi::grammar에는 템플릿 인자로 반복자, 파싱할 자료형, 파싱 건너뛸 문자 타입이 들어간다.  
+my_grammar 클래스 내부에서는 ```value := int | ((char - ("," | digit) { (char - ("," | digit) })```, ```values := value | { "," value }``` 이러한 파싱 규칙을 정의하였다.  
+그리고 생성자에서 base_type을 정하여 파싱 시작 규칙이 무엇인지 알려줘야 한다.  
+boost::spirit에선 모든 문자열을 기본적으로 ```std::vector<char>```에 파싱하여 담으려한다.  
+하지만 qi::as_string를 사용하면 문자열을 std::string 형태로 파싱한다. (std::wstring을 위한 qi::as_wstring도 존재한다.)  
+qi::lexeme은 감싸진 영역에 한하여 Skipper를 무시한다.  
+예를 들어 ```This is cool```라는 문자열을 파싱할 때 Skipper가 공백이라면 ```Thisiscool``` 요렇게 공백은 무시되어 파싱된다.  
+qi::lexeme을 사용하면 공백까지 파싱하여 ```This is cool``` 요렇게 파싱된다.  
+이 외에도 많은 지시어가 존재하니 https://www.boost.org/doc/libs/1_81_0/libs/spirit/doc/html/spirit/qi/quick_reference/qi_parsers/directive.html 링크를 참조하자.  
+&nbsp;  
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+파싱 규칙 클래스를 만들었으니 적용해보자.  
 ```c++
-template <typename Iterator, typename Skipper>
-struct my_grammar : boost::spirit::qi::grammar<Iterator, std::vector<std::variant<int, bool>>, Skipper>
-{
-    my_grammar() : my_grammar::base_type{values}
-    {
-        value = boost::spirit::qi::int_ | boost::spirit::qi::bool_;
-        values = value % ',';
-    }
-
-    boost::spirit::qi::rule<Iterator, std::variant<int, bool>, Skipper> value;
-    boost::spirit::qi::rule<Iterator, std::vector<std::variant<int, bool>>, Skipper> values;
-};
-
-int main()
-{
-    std::string str = "11, true, 45, false";
-    auto it_start = str.begin();
-    auto it_end = str.end();
-
-    std::vector<std::variant<int, bool>> parsed;
-    my_grammar<std::string::iterator, boost::spirit::ascii::space_type> g;
-    bool success = boost::spirit::qi::phrase_parse(it_start, it_end, g, boost::spirit::ascii::space, parsed);
-
-    if (success)
-        std::cout << std::boolalpha
-                  << std::get<int>(parsed[0]) << ", "
-                  << std::get<bool>(parsed[1]) << ", "
-                  << std::get<int>(parsed[2]) << ", "
-                  << std::get<bool>(parsed[3]);
-
-    return 0;
-}
-```
-파싱할 때 복잡한 규칙을 적용하고 싶다면 ```boost::spirit::qi::grammar```를 상속하는 클래스를 만들어줘야 한다.  
-qi::rule와 qi::grammar에는 템플릿 인자로 반복자, 파싱할 자료형, 파싱 건너뛸 문자 타입이 들어간다.  
-my_grammar 클래스 내부에서는 ```value := int | bool```, ```values := value | { "," value }``` 이러한 파싱 규칙을 정의하였다.  
-중요한 점은 생성자의 ```my_grammar::base_type{values}``` 부분에서 values 규칙이 시작 규칙이라고 알려준 것이다.  
-이렇게 만들어진 my_grammar 규칙을 이용하면 각기 다른 자료형들로 구성된 
-
-
-
-```c++
-template <typename Iterator, typename Skipper>
-struct my_grammar : boost::spirit::qi::grammar<Iterator, std::vector<std::variant<int, std::string>>, Skipper>
-{
-    my_grammar()
-        : my_grammar::base_type{values}
-    {
-        value = boost::spirit::qi::int_ | boost::spirit::qi::as_string[boost::spirit::qi::lexeme[+(boost::spirit::qi::char_ - boost::spirit::qi::char_(",0-9"))]];
-        values = value % ',';
-    }
-
-    boost::spirit::qi::rule<Iterator, std::variant<int, std::string>, Skipper> value;
-    boost::spirit::qi::rule<Iterator, std::vector<std::variant<int, std::string>>, Skipper> values;
-};
-
 int main()
 {
     std::string str = "11, hello world, 45, tongstar";
@@ -476,8 +418,7 @@ int main()
     bool success = boost::spirit::qi::phrase_parse(it_start, it_end, gram, boost::spirit::ascii::space, parsed);
 
     if (success)
-        std::cout << std::boolalpha
-                  << std::get<int>(parsed[0]) << ", "
+        std::cout << std::get<int>(parsed[0]) << ", "
                   << std::get<std::string>(parsed[1]) << ", "
                   << std::get<int>(parsed[2]) << ", "
                   << std::get<std::string>(parsed[3]);
@@ -485,6 +426,12 @@ int main()
     return 0;
 }
 ```
+my_grammar 클래스를 선언하고 qi::phrase_parse() 함수에 규칙으로 넣어주면 된다.  
+지금까지의 예시들을 보면 알겠지만 int, std::vector, std::variant 등 c++에 원래 존재했던 자료형에만 파싱된 자료를 저장하고 있다.  
+그렇다면 커스텀 클래스에 파싱된 자료형을 넣으려면 어떻게 해야 할까?  
+&nbsp;  
+
+생뚱맞지만 일단 boost::fusion의 사용법을 알아야 한다.  
 
 
 
