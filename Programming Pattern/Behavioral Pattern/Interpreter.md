@@ -328,8 +328,164 @@ evaluation() 함수를 호출하면 트리를 타고 내려가면서 괄호 우�
 
 Boost 라이브러리에는 인터프리터 구현은 도와주는 Spirit 모듈이 존재한다.  
 템플릿 기법이 난무하는 모듈이기에 컴파일 시간이 늘어나고 사용법도 까다로운 편이다.  
-Spirit 모듈을 사용하여 계산식을 해석하는 예시를 살펴보자.  
+Spirit 모듈을 사용하는 간단한 예시부터 살펴보자.  
 &nbsp;  
+
+아래는 주어진 문자열에서 숫자를 파싱하는 예시이다.  
+```c++
+std::string str = " 11";
+auto it_start = str.begin();
+auto it_end = str.end();
+
+int parsed;
+bool success = boost::spirit::qi::phrase_parse(it_start, it_end, boost::spirit::qi::int_, boost::spirit::ascii::space, parsed);
+
+if (success)
+    std::cout << parsed << '\n';
+```
+phrase_parse() 함수는 인자로 다음 녀셕들을 받는다.  
+```1: 문자열 시작 iterator, 2: 문자열 끝 iterator, 3: 파싱할 규칙, 4: 파싱할 때 무시할 문자, 5: 파싱한 값을 저장할 변수들...```  
+phrase_parse() 함수는 파싱하면서 iterator를 수정할 수 있기 때문에 위 예시와 같이 iterator 복사본을 넘기는 것이 좋다.  
+파싱할 규칙은 사용자가 정하기 나름이다.  
+해당 예시에서는 ```qi::int_```를 사용했기에 정수형을 파싱하였다.  
+```qi::char_```, ```qi::float_``` 등 여러가지가 있는데 자세한 내용은 https://www.boost.org/doc/libs/1_81_0/libs/spirit/doc/html/spirit/qi/quick_reference/qi_parsers.html 링크를 참조하자.  
+```ascii::space```를 사용하여 공백 문자는 무시한다.  
+숫자 11이 파싱되어 parsed 변수에 저장된다.  
+phrase_parse() 함수는 주어진 문자열에 대해 유효성 검사를 진행해 파싱이 성공하면 true, 아니면 false를 반환하다.  
+&nbsp;  
+
+다음 예시는 여러 항목을 파싱하는 예시이다.  
+```c++
+std::string str = "71.45, 11.12";
+auto it_start = str.begin();
+auto it_end = str.end();
+std::vector<double> parsed;
+
+bool success = boost::spirit::qi::phrase_parse(it_start, it_end, boost::spirit::qi::double_ >> *(',' >> boost::spirit::qi::double_), boost::spirit::ascii::space, parsed);
+
+if (success)
+    std::cout << parsed[0] << ", " << parsed[1] << '\n';
+```
+double 형 두 숫자를 파싱하려고 한다.  
+파싱할 규칙이 생소할 수 있는데 EBNF에 대한 사전 지식이 요구된다.  
+EBNF에 대한 설명은 https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form 링크를 참고하자.  
+```boost::spirit::qi::double_ >> *(',' >> boost::spirit::qi::double_)```를 EBNF로 표기하면 ```rule := double { "," double }```와 같다.  
+boost::spirit에서는 이러한 표현을 간소화 하기 위해 ```boost::spirit::qi::double_ % ','``` 표현식도 제공한다.  
+표현식 규칙에 대한 더 자세한 정보는 https://www.boost.org/doc/libs/1_81_0/libs/spirit/doc/html/spirit/qi/quick_reference/qi_parsers/operator.html 링크를 참고하자.  
+&nbsp;  
+
+다음은 여러개의 규칙이 복합적으로 작용해야 하는 경우 boost::spirit 사용 예시이다.  
+일단 밑과 같이 ```boost::spirit::qi::grammar```를 상속하는 클래스를 만들어준다.  
+```c++
+template <typename Iterator, typename Skipper>
+struct my_grammar : boost::spirit::qi::grammar<Iterator, std::vector<std::variant<int, std::string>>, Skipper>
+{
+    my_grammar()
+        : my_grammar::base_type{values}
+    {
+        value = boost::spirit::qi::int_ | boost::spirit::qi::as_string[boost::spirit::qi::lexeme[+(boost::spirit::qi::char_ - boost::spirit::qi::char_(",0-9"))]];
+        values = value % ',';
+    }
+
+    boost::spirit::qi::rule<Iterator, std::variant<int, std::string>, Skipper> value;
+    boost::spirit::qi::rule<Iterator, std::vector<std::variant<int, std::string>>, Skipper> values;
+};
+```
+qi::rule와 qi::grammar에는 템플릿 인자로 반복자, 파싱할 자료형, 파싱 건너뛸 문자 타입이 들어간다.  
+my_grammar 클래스 내부에서는 ```value := int | []```, ```values := value | { "," value }``` 이러한 파싱 규칙을 정의하였다.  
+qi::as_string은 문자열을 std::string 형태로 파싱한다.  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+```c++
+template <typename Iterator, typename Skipper>
+struct my_grammar : boost::spirit::qi::grammar<Iterator, std::vector<std::variant<int, bool>>, Skipper>
+{
+    my_grammar() : my_grammar::base_type{values}
+    {
+        value = boost::spirit::qi::int_ | boost::spirit::qi::bool_;
+        values = value % ',';
+    }
+
+    boost::spirit::qi::rule<Iterator, std::variant<int, bool>, Skipper> value;
+    boost::spirit::qi::rule<Iterator, std::vector<std::variant<int, bool>>, Skipper> values;
+};
+
+int main()
+{
+    std::string str = "11, true, 45, false";
+    auto it_start = str.begin();
+    auto it_end = str.end();
+
+    std::vector<std::variant<int, bool>> parsed;
+    my_grammar<std::string::iterator, boost::spirit::ascii::space_type> g;
+    bool success = boost::spirit::qi::phrase_parse(it_start, it_end, g, boost::spirit::ascii::space, parsed);
+
+    if (success)
+        std::cout << std::boolalpha
+                  << std::get<int>(parsed[0]) << ", "
+                  << std::get<bool>(parsed[1]) << ", "
+                  << std::get<int>(parsed[2]) << ", "
+                  << std::get<bool>(parsed[3]);
+
+    return 0;
+}
+```
+파싱할 때 복잡한 규칙을 적용하고 싶다면 ```boost::spirit::qi::grammar```를 상속하는 클래스를 만들어줘야 한다.  
+qi::rule와 qi::grammar에는 템플릿 인자로 반복자, 파싱할 자료형, 파싱 건너뛸 문자 타입이 들어간다.  
+my_grammar 클래스 내부에서는 ```value := int | bool```, ```values := value | { "," value }``` 이러한 파싱 규칙을 정의하였다.  
+중요한 점은 생성자의 ```my_grammar::base_type{values}``` 부분에서 values 규칙이 시작 규칙이라고 알려준 것이다.  
+이렇게 만들어진 my_grammar 규칙을 이용하면 각기 다른 자료형들로 구성된 
+
+
+
+```c++
+template <typename Iterator, typename Skipper>
+struct my_grammar : boost::spirit::qi::grammar<Iterator, std::vector<std::variant<int, std::string>>, Skipper>
+{
+    my_grammar()
+        : my_grammar::base_type{values}
+    {
+        value = boost::spirit::qi::int_ | boost::spirit::qi::as_string[boost::spirit::qi::lexeme[+(boost::spirit::qi::char_ - boost::spirit::qi::char_(",0-9"))]];
+        values = value % ',';
+    }
+
+    boost::spirit::qi::rule<Iterator, std::variant<int, std::string>, Skipper> value;
+    boost::spirit::qi::rule<Iterator, std::vector<std::variant<int, std::string>>, Skipper> values;
+};
+
+int main()
+{
+    std::string str = "11, hello world, 45, tongstar";
+    auto it_start = str.begin();
+    auto it_end = str.end();
+
+    std::vector<std::variant<int, std::string>> parsed;
+    my_grammar<std::string::iterator, boost::spirit::ascii::space_type> gram;
+    bool success = boost::spirit::qi::phrase_parse(it_start, it_end, gram, boost::spirit::ascii::space, parsed);
+
+    if (success)
+        std::cout << std::boolalpha
+                  << std::get<int>(parsed[0]) << ", "
+                  << std::get<std::string>(parsed[1]) << ", "
+                  << std::get<int>(parsed[2]) << ", "
+                  << std::get<std::string>(parsed[3]);
+
+    return 0;
+}
+```
+
 
 
 
@@ -568,14 +724,11 @@ struct calculator : qi::grammar<Iterator, ast::program(), ascii::space_type>
         qi::uint_type uint_;
         qi::char_type char_;
 
-        expression =
-            term >> *((char_('+') >> term) | (char_('-') >> term));
+        expression = term >> *((char_('+') >> term) | (char_('-') >> term));
 
-        term =
-            factor >> *((char_('*') >> factor) | (char_('/') >> factor));
+        term = factor >> *((char_('*') >> factor) | (char_('/') >> factor));
 
-        factor =
-            uint_ | '(' >> expression >> ')' | (char_('-') >> factor) | (char_('+') >> factor);
+        factor = uint_ | '(' >> expression >> ')' | (char_('-') >> factor) | (char_('+') >> factor);
     }
 
     qi::rule<Iterator, ast::program(), ascii::space_type> expression;
