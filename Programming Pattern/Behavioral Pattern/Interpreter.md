@@ -407,24 +407,19 @@ qi::lexeme을 사용하면 공백까지 파싱하여 ```This is cool``` 요렇�
 
 파싱 규칙 클래스를 만들었으니 적용해보자.  
 ```c++
-int main()
-{
-    std::string str = "11, hello world, 45, tongstar";
-    auto it_start = str.begin();
-    auto it_end = str.end();
+std::string str = "11, hello world, 45, tongstar";
+auto it_start = str.begin();
+auto it_end = str.end();
 
-    std::vector<std::variant<int, std::string>> parsed;
-    my_grammar<std::string::iterator, boost::spirit::ascii::space_type> gram;
-    bool success = boost::spirit::qi::phrase_parse(it_start, it_end, gram, boost::spirit::ascii::space, parsed);
+std::vector<std::variant<int, std::string>> parsed;
+my_grammar<std::string::iterator, boost::spirit::ascii::space_type> gram;
+bool success = boost::spirit::qi::phrase_parse(it_start, it_end, gram, boost::spirit::ascii::space, parsed);
 
-    if (success)
-        std::cout << std::get<int>(parsed[0]) << ", "
-                  << std::get<std::string>(parsed[1]) << ", "
-                  << std::get<int>(parsed[2]) << ", "
-                  << std::get<std::string>(parsed[3]);
-
-    return 0;
-}
+if (success)
+    std::cout << std::get<int>(parsed[0]) << ", "
+              << std::get<std::string>(parsed[1]) << ", "
+              << std::get<int>(parsed[2]) << ", "
+              << std::get<std::string>(parsed[3]);
 ```
 my_grammar 클래스를 선언하고 qi::phrase_parse() 함수에 규칙으로 넣어주면 된다.  
 지금까지의 예시들을 보면 알겠지만 int, std::vector, std::variant 등 c++에 원래 존재했던 자료형에만 파싱된 자료를 저장하고 있다.  
@@ -432,8 +427,147 @@ my_grammar 클래스를 선언하고 qi::phrase_parse() 함수에 규칙으로 �
 &nbsp;  
 
 생뚱맞지만 일단 boost::fusion의 사용법을 알아야 한다.  
+일단 밑과 같은 구조체가 존재한다.  
+```c++
+struct Object
+{
+    std::string str;
+    int integer;
+    bool boolean;
+};
+```
+요 녀석의 멤버 변수들을 boost::fusion을 사용하여 배열처럼 순회할 수 있다.  
+&nbsp;  
 
+밑과 같이 Object 구조체를 BOOST_FUSION_ADAPT_STRUCT 매크로를 사용해 fusion 구조체 형식으로 등록해준다.  
+```c++
+BOOST_FUSION_ADAPT_STRUCT(Object, (std::string, str)(int, integer)(bool, boolean))
 
+struct print
+{
+    template <typename T>
+    void operator()(T &t)
+    {
+        std::cout << t << " ";
+    }
+
+    template <>
+    void operator()(std::string &t)
+    {
+        t += " world";
+        std::cout << t << " ";
+    }
+
+    template <>
+    void operator()(int &t)
+    {
+        std::cout << t << " ";
+    }
+
+    template <>
+    void operator()(bool &t)
+    {
+        std::cout << t << " ";
+    }
+};
+```
+print functor도 위와 같이 구현했다.  
+std::string을 인자로 받는 템플릿 특수화 함수만 로직이 살짝 다르다.  
+&nbsp;  
+
+밑과 같이 fusion::for_each() 함수를 이용하면 주어진 functor나 람다함수를 이용하여 멤버 변수를 이용할 수 있다.  
+중요한 것은 Object 구조체 멤버 변수들의 모든 자료형을 처리할 수 있는 functor나 람다함수여야 한다.  
+예를 들어 print functor에서 ```operator()(T &t)```와 ```operator()(bool &t)```가 정의되지 않았다면 컴파일이 되지 않는다.  
+```c++
+Object obj{"hello", 10, false};
+boost::fusion::for_each(obj, print());
+```
+결과적으로 fusion::for_each() 함수가 수행되고 obj.str은 "hello world" 값을 저장하게 된다.  
+위 예시에서 출력값은 ```hello world 10 0```이 된다.  
+&nbsp;  
+
+좀 더 나아가 boost::mpl을 같이 사용해 필터링을 할 수도 있다.  
+```c++
+boost::fusion::for_each(boost::fusion::filter_if<boost::is_same<boost::mpl::_, std::string>>(obj), print());
+```
+```fusion::filter_if<>```를 통해 필터링이 가능하고 ```boost::is_same<boost::mpl::_, std::string>``` 구문을 통해 자료형이 std::string인 멤버 변수만 추려 print functor가 호출된다.  
+주의할 점은 ```fusion::filter_if<>```가 필터링 조건에 알맞은 객체를 복사하여 const 형으로 반환한다는 것이다.  
+따라서 함수 내부에서 참조로 받은 인자를 수정할 수 없다.  
+그리고 무조건 템플릿 원본 함수만 호출된다.  
+위 예시에서의 출력값은 ```hello```가 된다.  
+&nbsp;  
+
+밑은 다른 필터링 예시이다.  
+```c++
+boost::fusion::for_each(boost::fusion::filter_if<boost::mpl::not_<boost::is_class<boost::mpl::_>>>(obj), print());
+```
+```boost::is_class<boost::mpl::_>```를 통해 클래스 형태의 멤버 변수를 추려낼 수 있다.  
+```boost::mpl::not_<>```를 통해 반대의 결과를 추려낼 수 있다.  
+종합하면 클래스가 아닌 형태의 멤버 변수를 추려내는 로직이다.  
+위 예시 출력값은 ```10 0```이 된다.  
+자세한 내용은 https://www.boost.org/doc/libs/1_81_0/libs/fusion/doc/html/index.html 링크를 참조하자.  
+&nbsp;  
+
+boost::fusion을 알았으니 boost::spirit을 통해 커스텀 클래스에 파싱된 자료형을 넣는 예시를 살펴보자.  
+```c++
+struct Object
+{
+    std::string name;
+    std::variant<int, bool> int_or_bool;
+    std::vector<double> vec;
+};
+
+BOOST_FUSION_ADAPT_STRUCT(Object, name, int_or_bool, vec)
+```
+일단 위와 같이 Object 구조체를 fusion 구조체에 등록해준다.  
+&nbsp;  
+
+Object 파싱을 위한 grammer 클래스를 작성해준다.  
+```c++
+template <typename Iterator, typename Skipper>
+struct my_grammar : boost::spirit::qi::grammar<Iterator, Object, Skipper>
+{
+    my_grammar()
+        : my_grammar::base_type{value}
+    {
+        int_or_bool_rule = boost::spirit::qi::int_ | boost::spirit::qi::bool_;
+        vec_rule = boost::spirit::qi::double_ % ',';
+        value = boost::spirit::qi::as_string[boost::spirit::qi::lexeme[+(boost::spirit::qi::char_ - boost::spirit::qi::char_(",0-9"))]] >> ',' >> int_or_bool_rule >> ',' >> vec_rule;
+    }
+
+    boost::spirit::qi::rule<Iterator, std::variant<int, bool>, Skipper> int_or_bool_rule;
+    boost::spirit::qi::rule<Iterator, std::vector<double>, Skipper> vec_rule;
+    boost::spirit::qi::rule<Iterator, Object, Skipper> value;
+};
+```
+파싱할 때 사용할 문자열은 ```object name, 777, 10.139, 34.3, 56.82``` 이렇게 생겼다.  
+```문자열, [int | bool], double, double...``` 이러한 규칙이기에 이에 맞는 파싱 규칙을 짜주었다.  
+&nbsp;  
+
+아래 코드로 진행해보면 파싱이 잘 되는 것을 확인할 수 있다.  
+```c++
+std::string str = "object name, 777, 10.139, 34.3, 56.82";
+auto it_start = str.begin();
+auto it_end = str.end();
+Object parsed;
+
+my_grammar<std::string::iterator, boost::spirit::ascii::space_type> gram;
+bool success = boost::spirit::qi::phrase_parse(it_start, it_end, gram, boost::spirit::ascii::space, parsed);
+
+if (success)
+{
+    std::cout << parsed.name << "\n"
+              << "int: " << std::get<int>(parsed.int_or_bool) << "\n";
+    std::cout << parsed.vec[0] << ", " << parsed.vec[1] << ", " << parsed.vec[2];
+}
+```
+&nbsp;  
+
+그러면 마지막으로 boost::spirit을 통해 수식을 파싱하고 계산을 수행하는 예시를 보자.  
+```c++
+
+```
+&nbsp;  
 
 
 ```c++
