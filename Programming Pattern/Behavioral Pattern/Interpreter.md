@@ -623,9 +623,7 @@ namespace client
 {
 namespace ast
 {
-///////////////////////////////////////////////////////////////////////////
 //  The AST
-///////////////////////////////////////////////////////////////////////////
 
 struct signed_;
 struct program;
@@ -652,25 +650,17 @@ struct program
 } // namespace ast
 } // namespace client
 
-BOOST_FUSION_ADAPT_STRUCT(
-    client::ast::signed_,
-    (char, sign)(client::ast::operand, operand_))
+BOOST_FUSION_ADAPT_STRUCT(client::ast::signed_, sign, operand_)
 
-BOOST_FUSION_ADAPT_STRUCT(
-    client::ast::operation,
-    (char, operator_)(client::ast::operand, operand_))
+BOOST_FUSION_ADAPT_STRUCT(client::ast::operation, operator_, operand_)
 
-BOOST_FUSION_ADAPT_STRUCT(
-    client::ast::program,
-    (client::ast::operand, first)(std::list<client::ast::operation>, rest))
+BOOST_FUSION_ADAPT_STRUCT(client::ast::program, first, rest)
 
 namespace client
 {
 namespace ast
 {
-///////////////////////////////////////////////////////////////////////////
 //  The AST Printer
-///////////////////////////////////////////////////////////////////////////
 struct printer
 {
     void operator()(boost::blank) const
@@ -727,9 +717,7 @@ struct printer
     }
 };
 
-///////////////////////////////////////////////////////////////////////////
 //  The AST evaluator
-///////////////////////////////////////////////////////////////////////////
 struct eval
 {
     int operator()(boost::blank) const
@@ -793,11 +781,9 @@ namespace client
 namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 
-///////////////////////////////////////////////////////////////////////////////
 //  The calculator grammar
-///////////////////////////////////////////////////////////////////////////////
 template <typename Iterator>
-struct calculator : qi::grammar<Iterator, ast::program(), ascii::space_type>
+struct calculator : qi::grammar<Iterator, ast::program, ascii::space_type>
 {
     calculator()
         : calculator::base_type(expression)
@@ -812,63 +798,39 @@ struct calculator : qi::grammar<Iterator, ast::program(), ascii::space_type>
         factor = uint_ | '(' >> expression >> ')' | (char_('-') >> factor) | (char_('+') >> factor);
     }
 
-    qi::rule<Iterator, ast::program(), ascii::space_type> expression;
-    qi::rule<Iterator, ast::program(), ascii::space_type> term;
-    qi::rule<Iterator, ast::operand(), ascii::space_type> factor;
+    qi::rule<Iterator, ast::program, ascii::space_type> expression;
+    qi::rule<Iterator, ast::program, ascii::space_type> term;
+    qi::rule<Iterator, ast::operand, ascii::space_type> factor;
 };
 } // namespace client
 
-///////////////////////////////////////////////////////////////////////////////
-//  Main program
-///////////////////////////////////////////////////////////////////////////////
 int main()
 {
-    std::cout << "/////////////////////////////////////////////////////////\n\n";
-    std::cout << "Expression parser...\n\n";
-    std::cout << "/////////////////////////////////////////////////////////\n\n";
-    std::cout << "Type an expression...or [q or Q] to quit\n\n";
-
     typedef std::string::const_iterator iterator_type;
     typedef client::calculator<iterator_type> calculator;
     typedef client::ast::program ast_program;
     typedef client::ast::printer ast_print;
     typedef client::ast::eval ast_eval;
 
-    std::string str;
-    while (std::getline(std::cin, str))
+    std::string str = "10-((13-4)*(9+1))/5";
+
+    calculator calc;     // Our grammar
+    ast_program program; // Our program (AST)
+    ast_print print;     // Prints the program
+    ast_eval eval;       // Evaluates the program
+
+    std::string::const_iterator iter = str.begin();
+    std::string::const_iterator end = str.end();
+    boost::spirit::ascii::space_type space;
+    bool r = boost::spirit::qi::phrase_parse(iter, end, calc, space, program);
+
+    if (r && iter == end)
     {
-        if (str.empty() || str[0] == 'q' || str[0] == 'Q')
-            break;
-
-        calculator calc;     // Our grammar
-        ast_program program; // Our program (AST)
-        ast_print print;     // Prints the program
-        ast_eval eval;       // Evaluates the program
-
-        std::string::const_iterator iter = str.begin();
-        std::string::const_iterator end = str.end();
-        boost::spirit::ascii::space_type space;
-        bool r = boost::spirit::qi::phrase_parse(iter, end, calc, space, program);
-
-        if (r && iter == end)
-        {
-            std::cout << "-------------------------\n";
-            std::cout << "Parsing succeeded\n";
-            print(program);
-            std::cout << "\nResult: " << eval(program) << std::endl;
-            std::cout << "-------------------------\n";
-        }
-        else
-        {
-            std::string rest(iter, end);
-            std::cout << "-------------------------\n";
-            std::cout << "Parsing failed\n";
-            std::cout << "stopped at: \" " << rest << "\"\n";
-            std::cout << "-------------------------\n";
-        }
+        print(program);
+        std::cout << "\n"
+                  << eval(program);
     }
 
-    std::cout << "Bye... :-) \n\n";
     return 0;
 }
 ```
