@@ -8,3 +8,37 @@
 
 ## 표준 라이브러리 반복자  
 
+```c++
+    std::vector<std::string> vec{"tongstar", "gyungjun", "james", "spongebob"};
+    std::vector<std::string>::iterator first = vec.begin();
+
+    std::string str_first = *first;
+
+    auto second = ++first;
+
+    auto iter = vec.begin();
+    while (iter != vec.end())
+    {
+        // do something...
+        iter++;
+    }
+
+    for (auto iter = vec.begin(); iter != vec.end(); iter++)
+    {
+        // do something...
+    }
+
+    for (auto iter = std::begin(vec); iter != std::end(vec); iter++)
+    {
+        // do something...
+    }
+
+    for (auto iter = vec.rbegin(); iter != vec.rend(); iter++)
+    {
+        // do something...
+    }
+
+    std::vector<std::string>::const_iterator const_iter = vec.cbegin();
+
+    std::vector<std::string>::const_reverse_iterator const_rev_iter = vec.crbegin();
+```
