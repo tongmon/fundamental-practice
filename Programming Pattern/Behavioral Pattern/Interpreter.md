@@ -1,28 +1,28 @@
 # Interpreter Pattern  
 
-ÀÎÅÍÇÁ¸®ÅÍ¸¦ Á÷¿ªÇÏ¸é ```ÇØ¼®ÀÚ```ÀÌ´Ù.  
-ÇÁ·Î±×·¡¹Ö ¾ğ¾î ÀÚÃ¼´Â ±×³É ÅØ½ºÆ®ÀÏ »ÓÀÌ´Ù.  
-µû¶ó¼­ »ç¶÷¸¸ ÀÌÇØÇÒ ¼ö ÀÖ°í ÄÄÇ»ÅÍ´Â ¹«½¼ ¸»ÀÎÁö ¸ø¾Ë¾Æ ¸Ô´Â´Ù.  
-ÀÎÅÍÇÁ¸®ÅÍ¸¦ ÀÌ¿ëÇØ ÄÄÇ»ÅÍ ¾ğ¾î·Î ¹ø¿ªÀ» ÇØÁà¾ß ºñ·Î¼Ò ÄÄÇ»ÅÍ°¡ ±× ¶æÀ» ÀÌÇØÇÒ ¼ö ÀÖ´Ù.  
-```3 + (50 % 3) - 23 x 12```´Â ´Ü¼øÇÑ °è»ê½ÄÀÌ´Ù.  
-¼ö½ÄÀ» ¾È¹è¿î »ç¶÷ÀÌ Àú ½ÄÀÌ ÀÇ¹ÌÇÏ´Â ¹Ù¸¦ ¾Ë ¼ö ÀÖÀ»±î?  
-Àú ½ÄÀÌ ÀÇ¹ÌÇÏ´Â ¹Ù¸¦ ÇØ¼®ÇÏ±â À§ÇØ °è»ê±â¶ó´Â ÀÎÅÍÇÁ¸®ÅÍ¸¦ »ç¿ëÇÒ ¼ö ÀÖ´Ù.  
+ì¸í„°í”„ë¦¬í„°ë¥¼ ì§ì—­í•˜ë©´ ```í•´ì„ì```ì´ë‹¤.  
+í”„ë¡œê·¸ë˜ë° ì–¸ì–´ ìì²´ëŠ” ê·¸ëƒ¥ í…ìŠ¤íŠ¸ì¼ ë¿ì´ë‹¤.  
+ë”°ë¼ì„œ ì‚¬ëŒë§Œ ì´í•´í•  ìˆ˜ ìˆê³  ì»´í“¨í„°ëŠ” ë¬´ìŠ¨ ë§ì¸ì§€ ëª»ì•Œì•„ ë¨¹ëŠ”ë‹¤.  
+ì¸í„°í”„ë¦¬í„°ë¥¼ ì´ìš©í•´ ì»´í“¨í„° ì–¸ì–´ë¡œ ë²ˆì—­ì„ í•´ì¤˜ì•¼ ë¹„ë¡œì†Œ ì»´í“¨í„°ê°€ ê·¸ ëœ»ì„ ì´í•´í•  ìˆ˜ ìˆë‹¤.  
+```3 + (50 % 3) - 23 x 12```ëŠ” ë‹¨ìˆœí•œ ê³„ì‚°ì‹ì´ë‹¤.  
+ìˆ˜ì‹ì„ ì•ˆë°°ìš´ ì‚¬ëŒì´ ì € ì‹ì´ ì˜ë¯¸í•˜ëŠ” ë°”ë¥¼ ì•Œ ìˆ˜ ìˆì„ê¹Œ?  
+ì € ì‹ì´ ì˜ë¯¸í•˜ëŠ” ë°”ë¥¼ í•´ì„í•˜ê¸° ìœ„í•´ ê³„ì‚°ê¸°ë¼ëŠ” ì¸í„°í”„ë¦¬í„°ë¥¼ ì‚¬ìš©í•  ìˆ˜ ìˆë‹¤.  
 &nbsp;  
 
-## »ê¼ú Ç¥Çö½ÄÀÇ °è»ê  
+## ì‚°ìˆ  í‘œí˜„ì‹ì˜ ê³„ì‚°  
 
-ÀÎÅÍÇÁ¸®ÅÍ´Â »óÈ²¸¶´Ù ´Ù¾çÇÑ ÇüÅÂ¸¦ ÃëÇÏ¸ç º¹ÀâÇÏ´Ù.  
-±×¸®°í ´ëºÎºĞÀÇ ÀÎÅÍÇÁ¸®ÅÍ´Â ¸¸µé¾îÁ® ÀÖ±â¿¡ Á÷Á¢ ±¸ÇöÇØ »ç¿ëÇÏ´Â °æ¿ìµµ µå¹°´Ù.  
-µû¶ó¼­ ÆĞÅÏ ÀÌÇØ¸¦ µ½±â À§ÇØ °è»ê±â Á¤µµÀÇ ¿¹½Ã¸¸ ±¸ÇöÇÏ°í ³Ñ¾î°£´Ù.  
+ì¸í„°í”„ë¦¬í„°ëŠ” ìƒí™©ë§ˆë‹¤ ë‹¤ì–‘í•œ í˜•íƒœë¥¼ ì·¨í•˜ë©° ë³µì¡í•˜ë‹¤.  
+ê·¸ë¦¬ê³  ëŒ€ë¶€ë¶„ì˜ ì¸í„°í”„ë¦¬í„°ëŠ” ë§Œë“¤ì–´ì ¸ ìˆê¸°ì— ì§ì ‘ êµ¬í˜„í•´ ì‚¬ìš©í•˜ëŠ” ê²½ìš°ë„ ë“œë¬¼ë‹¤.  
+ë”°ë¼ì„œ íŒ¨í„´ ì´í•´ë¥¼ ë•ê¸° ìœ„í•´ ê³„ì‚°ê¸° ì •ë„ì˜ ì˜ˆì‹œë§Œ êµ¬í˜„í•˜ê³  ë„˜ì–´ê°„ë‹¤.  
 &nbsp;  
 
 ### Lexing  
 
-Ç¥Çö½ÄÀ» ÇØ¼®ÇÏ´Â Ã¹ ´Ü°è´Â ·º½ÌÀÌ´Ù.  
-¹®ÀÚ¿­ ÀÔ·ÂÀ» ÅäÅ« ´ÜÀ§·Î ²÷¾î ³ª¿­ÇÏ´Â ´Ü°è´Ù.  
-¿©±â¼­ ¸»ÇÏ´Â ÅäÅ«ÀÌ¶õ ```ÀÇ¹Ì¸¦ °¡Áö´Â ÃÖ¼Ò ´ÜÀ§```ÀÌ´Ù.  
-»ê¼ú Ç¥Çö½Ä¿¡¼­´Â ```Á¤¼ö [ex. 2, 9]```, ```¿¬»êÀÚ [ex. +, -]```, ```°ıÈ£ [ex. (, )]```°¡ ÅäÅ«ÀÌ µÉ ¼ö ÀÖ´Ù.  
-ÀÌ·¯ÇÑ ÅäÅ«À» ±¸ÇöÇØº¸ÀÚ.  
+í‘œí˜„ì‹ì„ í•´ì„í•˜ëŠ” ì²« ë‹¨ê³„ëŠ” ë ‰ì‹±ì´ë‹¤.  
+ë¬¸ìì—´ ì…ë ¥ì„ í† í° ë‹¨ìœ„ë¡œ ëŠì–´ ë‚˜ì—´í•˜ëŠ” ë‹¨ê³„ë‹¤.  
+ì—¬ê¸°ì„œ ë§í•˜ëŠ” í† í°ì´ë€ ```ì˜ë¯¸ë¥¼ ê°€ì§€ëŠ” ìµœì†Œ ë‹¨ìœ„```ì´ë‹¤.  
+ì‚°ìˆ  í‘œí˜„ì‹ì—ì„œëŠ” ```ì •ìˆ˜ [ex. 2, 9]```, ```ì—°ì‚°ì [ex. +, -]```, ```ê´„í˜¸ [ex. (, )]```ê°€ í† í°ì´ ë  ìˆ˜ ìˆë‹¤.  
+ì´ëŸ¬í•œ í† í°ì„ êµ¬í˜„í•´ë³´ì.  
 ```c++
 struct Token
 {
@@ -44,9 +44,9 @@ struct Token
     }
 };
 ```
-Type ¿­°ÅÇüÀ» ÅëÇØ ÅäÅ«ÀÇ Å¸ÀÔÀ» ±¸ºĞÇÑ´Ù.  
-¿¹½Ã¸¦ °£´ÜÇÏ°Ô ¸¸µé±â À§ÇØ ÅäÅ«Àº ```¼ıÀÚ, +, -, *, /, (, )```¸¸ ´Ù·é´Ù.  
-½ÇÁ¦ ÅäÅ«ÀÇ ¹®ÀÚ¿­Àº text¿¡ º¸°üÇÑ´Ù.  
+Type ì—´ê±°í˜•ì„ í†µí•´ í† í°ì˜ íƒ€ì…ì„ êµ¬ë¶„í•œë‹¤.  
+ì˜ˆì‹œë¥¼ ê°„ë‹¨í•˜ê²Œ ë§Œë“¤ê¸° ìœ„í•´ í† í°ì€ ```ìˆ«ì, +, -, *, /, (, )```ë§Œ ë‹¤ë£¬ë‹¤.  
+ì‹¤ì œ í† í°ì˜ ë¬¸ìì—´ì€ textì— ë³´ê´€í•œë‹¤.  
 &nbsp;  
 
 ```c++
@@ -95,24 +95,24 @@ std::vector<Token> lexing(const std::string &input)
     return result;
 }
 ```
-¼ıÀÚ ÀÌ¿ÜÀÇ ´Ù¸¥ ÅäÅ«µéÀº º°µµÀÇ Ã³¸®¾øÀÌ ±×´ë·Î ³ÖÀ¸¸é µÈ´Ù.  
-¼ıÀÚ´Â '123'°ú °°ÀÌ ¿¬¼ÓµÈ ¹®ÀÚ¿­ÀÌ ÇÏ³ªÀÇ ¼ıÀÚ¸¦ ±¸¼ºÇÒ ¼ö ÀÖÀ¸¹Ç·Î ¼ıÀÚ°¡ ¾Æ´Ñ ¹®ÀÚ¿­ÀÌ µîÀåÇÒ ¶§±îÁö ¼ö½ÄÀ» °Ë»çÇÑ´Ù.  
+ìˆ«ì ì´ì™¸ì˜ ë‹¤ë¥¸ í† í°ë“¤ì€ ë³„ë„ì˜ ì²˜ë¦¬ì—†ì´ ê·¸ëŒ€ë¡œ ë„£ìœ¼ë©´ ëœë‹¤.  
+ìˆ«ìëŠ” '123'ê³¼ ê°™ì´ ì—°ì†ëœ ë¬¸ìì—´ì´ í•˜ë‚˜ì˜ ìˆ«ìë¥¼ êµ¬ì„±í•  ìˆ˜ ìˆìœ¼ë¯€ë¡œ ìˆ«ìê°€ ì•„ë‹Œ ë¬¸ìì—´ì´ ë“±ì¥í•  ë•Œê¹Œì§€ ìˆ˜ì‹ì„ ê²€ì‚¬í•œë‹¤.  
 &nbsp;  
 
 ### Parsing   
 
-ÆÄ½ÌÀº ÅäÅ«À» ÀÇ¹ÌÀÖ´Â ´ÜÀ§·Î º¯È¯ÇÑ´Ù.  
-ÅäÅ«ÀÇ Á¾·ù°¡ ¿©·µÀÌ±â¿¡ ÅäÅ«µéÀ» ¹­¾î Ã³¸®ÇÏ±â À§ÇØ ¹Ø°ú °°Àº ÀÎÅÍÆäÀÌ½º¸¦ µĞ´Ù.  
+íŒŒì‹±ì€ í† í°ì„ ì˜ë¯¸ìˆëŠ” ë‹¨ìœ„ë¡œ ë³€í™˜í•œë‹¤.  
+í† í°ì˜ ì¢…ë¥˜ê°€ ì—¬ëŸ¿ì´ê¸°ì— í† í°ë“¤ì„ ë¬¶ì–´ ì²˜ë¦¬í•˜ê¸° ìœ„í•´ ë°‘ê³¼ ê°™ì€ ì¸í„°í˜ì´ìŠ¤ë¥¼ ë‘”ë‹¤.  
 ```c++
 struct Element
 {
     virtual int evaluation() = 0;
 };
 ```
-evaluation() ÇÔ¼ö¿¡¼­ °¢ ÅäÅ«ÀÇ ÀÇ¹Ì°¡ ÇØ¼®µÇ°í ±×¿¡ µû¸¥ °á°ú°¡ µµÃâµÈ´Ù.    
+evaluation() í•¨ìˆ˜ì—ì„œ ê° í† í°ì˜ ì˜ë¯¸ê°€ í•´ì„ë˜ê³  ê·¸ì— ë”°ë¥¸ ê²°ê³¼ê°€ ë„ì¶œëœë‹¤.    
 &nbsp;  
 
-¼ıÀÚ¿¡ ´ëÇÑ ÆÄ½Ì ´ÜÀ§ÀÌ´Ù.  
+ìˆ«ìì— ëŒ€í•œ íŒŒì‹± ë‹¨ìœ„ì´ë‹¤.  
 ```c++
 struct Integer : Element
 {
@@ -127,12 +127,12 @@ struct Integer : Element
     }
 };
 ```
-ÁÖ¾îÁø ¹®ÀÚ¿­À» ¼ıÀÚ·Î º¯È¯ÇÏ¿© ÀúÀåÇÏ°í evaluation() È£Ãâ½Ã ¹İÈ¯ÇØÁÖ¸é µÈ´Ù.  
-±×Àú ¹®ÀÚ¿­ÀÌ¿´´ø ```"13"```°¡ Á¤¼öÇü ```13```À¸·Î ÇØ¼®µÈ´Ù.  
+ì£¼ì–´ì§„ ë¬¸ìì—´ì„ ìˆ«ìë¡œ ë³€í™˜í•˜ì—¬ ì €ì¥í•˜ê³  evaluation() í˜¸ì¶œì‹œ ë°˜í™˜í•´ì£¼ë©´ ëœë‹¤.  
+ê·¸ì € ë¬¸ìì—´ì´ì˜€ë˜ ```"13"```ê°€ ì •ìˆ˜í˜• ```13```ìœ¼ë¡œ í•´ì„ëœë‹¤.  
 &nbsp;  
 
-´ÙÀ½Àº ÀÌÇ× ¿¬»êÀÚ´Ù.  
-»çÄ¢¿¬»êÀ» ¸ğµÎ ´Ù·é´Ù.  
+ë‹¤ìŒì€ ì´í•­ ì—°ì‚°ìë‹¤.  
+ì‚¬ì¹™ì—°ì‚°ì„ ëª¨ë‘ ë‹¤ë£¬ë‹¤.  
 ```c++
 struct BinaryOperation : Element
 {
@@ -170,23 +170,23 @@ struct BinaryOperation : Element
     }
 };
 ```
-Áß¿äÇÑ °ÍÀº ÇØ´ç ÀÌÇ× ¿¬»êÀÚ ÆÄ½Ì ´ÜÀ§´Â Æ®¸® ³ëµå ÇüÅÂ¸¦ °®Ãß°í ÀÖ´Ù´Â °ÍÀÌ´Ù.  
-µû¶ó¼­ left, right ¸â¹ö Æ÷ÀÎÅÍ°¡ Á¸ÀçÇÑ´Ù.  
-ÀÌÇ× ¿¬»êÀÚ ³ëµå´Â ÃßÈÄ¿¡ µîÀåÇÒ parse() ÇÔ¼ö¿¡¼­ ¼ö½Ä Æ®¸®(Expression Tree)¸¦ ±¸¼ºÇÏ´Â µ¥ ÇÙ½ÉÀûÀÎ ¿ªÇÒÀ» ÇÑ´Ù.  
-¼ö½Ä Æ®¸®ÀÇ ¿¹½Ã¸¦ °£´ÜÈ÷ º¸ÀÚ¸é ```(1 + 3) - (7 - 11)``` ÀÌ·¯ÇÑ ½ÄÀº ¹Ø°ú °°ÀÌ ±¸¼ºµÈ´Ù.  
+ì¤‘ìš”í•œ ê²ƒì€ í•´ë‹¹ ì´í•­ ì—°ì‚°ì íŒŒì‹± ë‹¨ìœ„ëŠ” íŠ¸ë¦¬ ë…¸ë“œ í˜•íƒœë¥¼ ê°–ì¶”ê³  ìˆë‹¤ëŠ” ê²ƒì´ë‹¤.  
+ë”°ë¼ì„œ left, right ë©¤ë²„ í¬ì¸í„°ê°€ ì¡´ì¬í•œë‹¤.  
+ì´í•­ ì—°ì‚°ì ë…¸ë“œëŠ” ì¶”í›„ì— ë“±ì¥í•  parse() í•¨ìˆ˜ì—ì„œ ìˆ˜ì‹ íŠ¸ë¦¬(Expression Tree)ë¥¼ êµ¬ì„±í•˜ëŠ” ë° í•µì‹¬ì ì¸ ì—­í• ì„ í•œë‹¤.  
+ìˆ˜ì‹ íŠ¸ë¦¬ì˜ ì˜ˆì‹œë¥¼ ê°„ë‹¨íˆ ë³´ìë©´ ```(1 + 3) - (7 - 11)``` ì´ëŸ¬í•œ ì‹ì€ ë°‘ê³¼ ê°™ì´ êµ¬ì„±ëœë‹¤.  
 ```tree
 -
-¦§¦¡¦¡ +
-¦¢   ¦§¦¡¦¡ 1
-¦¢   ¦¦¦¡¦¡ 3
-¦¦¦¡¦¡ -
-    ¦§¦¡¦¡ 7
-    ¦¦¦¡¦¡ 11
+â”œâ”€â”€ +
+â”‚   â”œâ”€â”€ 1
+â”‚   â””â”€â”€ 3
+â””â”€â”€ -
+    â”œâ”€â”€ 7
+    â””â”€â”€ 11
 ```
-evaluation() ÇÔ¼ö¿¡¼­´Â ÁÖ¾îÁø type¿¡ µû¶ó »çÄ¢¿¬»êÀ» ÁøÇàÇÏ¸é µÈ´Ù.  
+evaluation() í•¨ìˆ˜ì—ì„œëŠ” ì£¼ì–´ì§„ typeì— ë”°ë¼ ì‚¬ì¹™ì—°ì‚°ì„ ì§„í–‰í•˜ë©´ ëœë‹¤.  
 &nbsp;  
 
-¹ØÀº ÆÄ½Ì ÇÔ¼öÀÌ´Ù.  
+ë°‘ì€ íŒŒì‹± í•¨ìˆ˜ì´ë‹¤.  
 ```c++
 std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
 {
@@ -200,23 +200,23 @@ std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
                                          {Token::asterisk, 2},
                                          {Token::left_bracket, 0}};
 
-    // ÁßÀ§ Ç¥Çö½ÄÀ» ÈÄÀ§ Ç¥Çö½ÄÀ¸·Î º¯È¯
+    // ì¤‘ìœ„ í‘œí˜„ì‹ì„ í›„ìœ„ í‘œí˜„ì‹ìœ¼ë¡œ ë³€í™˜
 #pragma endregion
 
 #pragma region Make Expression Tree
     std::stack<std::shared_ptr<Element>> nodes;
 
-    // ¼ö½Ä Æ®¸® »ı¼º
+    // ìˆ˜ì‹ íŠ¸ë¦¬ ìƒì„±
 #pragma endregion
 
     return nodes.top();
 }
 ```
-¼ö½Ä Æ®¸®¸¦ ¸¸µé±â À§ÇØ ¸ÕÀú ÁßÀ§ Ç¥Çö½ÄÀ» ÈÄÀ§ Ç¥Çö½ÄÀ¸·Î º¯È¯À» ÇÑ´Ù.  
-±× µÚ¿¡ È¹µæÇÑ ÈÄÀ§ Ç¥Çö½ÄÀ» Åä´ë·Î ¼ö½Ä Æ®¸®¸¦ ±¸¼ºÇÏ°í ÇØ´ç Æ®¸®ÀÇ root ³ëµå¸¦ ¹İÈ¯ÇÑ´Ù.  
+ìˆ˜ì‹ íŠ¸ë¦¬ë¥¼ ë§Œë“¤ê¸° ìœ„í•´ ë¨¼ì € ì¤‘ìœ„ í‘œí˜„ì‹ì„ í›„ìœ„ í‘œí˜„ì‹ìœ¼ë¡œ ë³€í™˜ì„ í•œë‹¤.  
+ê·¸ ë’¤ì— íšë“í•œ í›„ìœ„ í‘œí˜„ì‹ì„ í† ëŒ€ë¡œ ìˆ˜ì‹ íŠ¸ë¦¬ë¥¼ êµ¬ì„±í•˜ê³  í•´ë‹¹ íŠ¸ë¦¬ì˜ root ë…¸ë“œë¥¼ ë°˜í™˜í•œë‹¤.  
 &nbsp;  
 
-ÁßÀ§ Ç¥Çö½ÄÀ» ÈÄÀ§ Ç¥Çö½ÄÀ¸·Î ¹Ù²Ù´Â ¼¼ºÎ ·ÎÁ÷Àº ¹Ø°ú °°´Ù.  
+ì¤‘ìœ„ í‘œí˜„ì‹ì„ í›„ìœ„ í‘œí˜„ì‹ìœ¼ë¡œ ë°”ê¾¸ëŠ” ì„¸ë¶€ ë¡œì§ì€ ë°‘ê³¼ ê°™ë‹¤.  
 ```c++
 #pragma region Infix To Postfix
     std::stack<Token> stack;
@@ -263,11 +263,11 @@ std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
     }
 #pragma endregion
 ```
-ÀÎÅÍ³İ¿¡ ÈÄÀ§, ÁßÀ§, ÀüÀ§ Ç¥±â¹ı º¯È¯°ú °ü·ÃÇÑ Á¤º¸´Â ³Î·ÈÀ¸´Ï ´ëÃæ ÀÌ·¯ÇÑ ÀıÂ÷¸¦ °ÅÄ£´Ù´Â °Í¸¸ ¾Ë°í ³Ñ¾î°¡ÀÚ.  
-Áß¿äÇÑ °ÍÀº ¼¼ºÎÀûÀÎ ±¸ÇöºÎ°¡ ¾Æ´Ï¶ó ÀÎÅÍÇÁ¸®ÅÍ ÆĞÅÏÀÇ ÀüÃ¼ÀûÀÎ ±¸Á¶¸¦ ÀÌÇØÇÏ´Â °ÍÀÌ´Ù.  
+ì¸í„°ë„·ì— í›„ìœ„, ì¤‘ìœ„, ì „ìœ„ í‘œê¸°ë²• ë³€í™˜ê³¼ ê´€ë ¨í•œ ì •ë³´ëŠ” ë„ë ¸ìœ¼ë‹ˆ ëŒ€ì¶© ì´ëŸ¬í•œ ì ˆì°¨ë¥¼ ê±°ì¹œë‹¤ëŠ” ê²ƒë§Œ ì•Œê³  ë„˜ì–´ê°€ì.  
+ì¤‘ìš”í•œ ê²ƒì€ ì„¸ë¶€ì ì¸ êµ¬í˜„ë¶€ê°€ ì•„ë‹ˆë¼ ì¸í„°í”„ë¦¬í„° íŒ¨í„´ì˜ ì „ì²´ì ì¸ êµ¬ì¡°ë¥¼ ì´í•´í•˜ëŠ” ê²ƒì´ë‹¤.  
 &nbsp;  
 
-¹ØÀº ¼ö½Ä Æ®¸®¸¦ ±¸ÇöÇÏ´Â ¼¼ºÎ ·ÎÁ÷ÀÌ´Ù.  
+ë°‘ì€ ìˆ˜ì‹ íŠ¸ë¦¬ë¥¼ êµ¬í˜„í•˜ëŠ” ì„¸ë¶€ ë¡œì§ì´ë‹¤.  
 ```c++
 #pragma region Make Expression Tree
     std::stack<std::shared_ptr<Element>> nodes;
@@ -305,129 +305,114 @@ std::shared_ptr<Element> parse(const std::vector<Token> &tokens)
     }
 #pragma endregion
 ```
-ÈÄÀ§ Ç¥±â½ÄÀ» ¼øÂ÷ÀûÀ¸·Î ÀĞ¾î³ª°¡¸é µÈ´Ù.  
-¼ıÀÚ°¡ ³ªÅ¸³ª¸é ¹Ù·Î ½ºÅÃ¿¡ ÀúÀåÇÑ´Ù.  
-ÀÌÇ× ¿¬»êÀÚ°¡ ³ªÅ¸³ª¸é Æ®¸® ³ëµå¸¦ »ı¼ºÇÏ¿© ½ºÅÃ¿¡ ÀúÀåÇÑ´Ù.  
-ÇöÀç ÆÄ½Ì ÇÔ¼ö´Â ```(11-4))-3``` ÀÌ·¯ÇÑ ºñÁ¤»óÀûÀÎ ½Ä¿¡ ´ëÇØ ´ëÃ³¸¦ ÇÒ ¼ö°¡ ¾ø´Ù.  
-Áï ¿¹¿Ü Ã³¸®¿¡ ´ëÇÑ ·ÎÁ÷ÀÌ ¾ø´Ù´Â °ÍÀÌ´Ù.  
-½ÇÁ¦ »ç¿ëÇÒ ÀÎÅÍÇÁ¸®ÅÍÀÇ ÆÄ½Ì ºÎºĞÀ» ±¸ÇöÇÒ ¶§´Â ¿¹¿Ü Ã³¸® ¹æ½ÄÀ» ¾î¶»°Ô ±¸¼ºÇÒ °ÍÀÎÁö¿¡ ´ëÇÑ ºÎºĞµµ ¸Å¿ì Áß¿äÇÏ±â¿¡ ´Ù¾çÇÑ ¿¹¿Ü »çÇ×¿¡ ´ëÃ³ÇÏ±â À§ÇØ ¸¹ÀÌ °í¹ÎÇØºÁ¾ß ÇÒ °ÍÀÌ´Ù.  
+í›„ìœ„ í‘œê¸°ì‹ì„ ìˆœì°¨ì ìœ¼ë¡œ ì½ì–´ë‚˜ê°€ë©´ ëœë‹¤.  
+ìˆ«ìê°€ ë‚˜íƒ€ë‚˜ë©´ ë°”ë¡œ ìŠ¤íƒì— ì €ì¥í•œë‹¤.  
+ì´í•­ ì—°ì‚°ìê°€ ë‚˜íƒ€ë‚˜ë©´ íŠ¸ë¦¬ ë…¸ë“œë¥¼ ìƒì„±í•˜ì—¬ ìŠ¤íƒì— ì €ì¥í•œë‹¤.  
+í˜„ì¬ íŒŒì‹± í•¨ìˆ˜ëŠ” ```(11-4))-3``` ì´ëŸ¬í•œ ë¹„ì •ìƒì ì¸ ì‹ì— ëŒ€í•´ ëŒ€ì²˜ë¥¼ í•  ìˆ˜ê°€ ì—†ë‹¤.  
+ì¦‰ ì˜ˆì™¸ ì²˜ë¦¬ì— ëŒ€í•œ ë¡œì§ì´ ì—†ë‹¤ëŠ” ê²ƒì´ë‹¤.  
+ì‹¤ì œ ì‚¬ìš©í•  ì¸í„°í”„ë¦¬í„°ì˜ íŒŒì‹± ë¶€ë¶„ì„ êµ¬í˜„í•  ë•ŒëŠ” ì˜ˆì™¸ ì²˜ë¦¬ ë°©ì‹ì„ ì–´ë–»ê²Œ êµ¬ì„±í•  ê²ƒì¸ì§€ì— ëŒ€í•œ ë¶€ë¶„ë„ ë§¤ìš° ì¤‘ìš”í•˜ê¸°ì— ë‹¤ì–‘í•œ ì˜ˆì™¸ ì‚¬í•­ì— ëŒ€ì²˜í•˜ê¸° ìœ„í•´ ë§ì´ ê³ ë¯¼í•´ë´ì•¼ í•  ê²ƒì´ë‹¤.  
 &nbsp;  
 
-»ç¿ë¹ıÀº ¹Ø°ú °°´Ù.  
+ì‚¬ìš©ë²•ì€ ë°‘ê³¼ ê°™ë‹¤.  
 ```c++
 auto token = lexing("10-((13-4)*(9+1))/5");
 auto parsed = parse(token);
 if (parsed)
     std::cout << parsed->evaluation();
 ```
-evaluation() ÇÔ¼ö¸¦ È£ÃâÇÏ¸é Æ®¸®¸¦ Å¸°í ³»·Á°¡¸é¼­ °ıÈ£ ¿ì¼± ¼øÀ§¿¡ ¸ÂÃç °è»êÀ» ¼öÇàÇÑ´Ù.  
-´Ù½Ã ¸»ÇÏÁö¸¸ ¼¼ºÎÀûÀÎ ±¸ÇöÀº ÀÎÅÍÇÁ¸®ÅÍ°¡ ¹«¾ùÀ» ÇØ¼®ÇÏ´ÂÁö¿¡ µû¶ó ÃµÂ÷¸¸º°ÀÌ±â¿¡ º°·Î Áß¿äÇÏÁö ¾Ê°í ·º½Ì¿¡¼­ ÆÄ½ÌÀ¸·Î ÀÌ¾îÁö´Â ÀüÃ¼ÀûÀÎ Èå¸§À» ÀÌÇØÇÏ´Â °ÍÀÌ Áß¿äÇÏ´Ù.  
+evaluation() í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•˜ë©´ íŠ¸ë¦¬ë¥¼ íƒ€ê³  ë‚´ë ¤ê°€ë©´ì„œ ê´„í˜¸ ìš°ì„  ìˆœìœ„ì— ë§ì¶° ê³„ì‚°ì„ ìˆ˜í–‰í•œë‹¤.  
+ë‹¤ì‹œ ë§í•˜ì§€ë§Œ ì„¸ë¶€ì ì¸ êµ¬í˜„ì€ ì¸í„°í”„ë¦¬í„°ê°€ ë¬´ì—‡ì„ í•´ì„í•˜ëŠ”ì§€ì— ë”°ë¼ ì²œì°¨ë§Œë³„ì´ê¸°ì— ë³„ë¡œ ì¤‘ìš”í•˜ì§€ ì•Šê³  ë ‰ì‹±ì—ì„œ íŒŒì‹±ìœ¼ë¡œ ì´ì–´ì§€ëŠ” ì „ì²´ì ì¸ íë¦„ì„ ì´í•´í•˜ëŠ” ê²ƒì´ ì¤‘ìš”í•˜ë‹¤.  
 &nbsp;  
 
-## Boost.Spirit  
+## Boostë¥¼ ì´ìš©í•œ ì¸í„°í”„ë¦¬í„° íŒ¨í„´  
 
-Boost ¶óÀÌºê·¯¸®¿¡´Â ÀÎÅÍÇÁ¸®ÅÍ ±¸ÇöÀº µµ¿ÍÁÖ´Â Spirit ¸ğµâÀÌ Á¸ÀçÇÑ´Ù.  
-ÅÛÇÃ¸´ ±â¹ıÀÌ ³­¹«ÇÏ´Â ¸ğµâÀÌ±â¿¡ ÄÄÆÄÀÏ ½Ã°£ÀÌ ´Ã¾î³ª°í »ç¿ë¹ıµµ ±î´Ù·Î¿î ÆíÀÌ´Ù.  
-Spirit ¸ğµâÀ» »ç¿ëÇÏ´Â °£´ÜÇÑ ¿¹½ÃºÎÅÍ »ìÆìº¸ÀÚ.  
+Boost ë¼ì´ë¸ŒëŸ¬ë¦¬ì—ëŠ” ì¸í„°í”„ë¦¬í„° êµ¬í˜„ì€ ë„ì™€ì£¼ëŠ” boost::spirit ëª¨ë“ˆì´ ì¡´ì¬í•œë‹¤.  
+í…œí”Œë¦¿ ê¸°ë²•ì´ ë‚œë¬´í•˜ëŠ” ëª¨ë“ˆì´ê¸°ì— ì»´íŒŒì¼ ì‹œê°„ì´ ëŠ˜ì–´ë‚˜ê³  ì‚¬ìš©ë²•ë„ ê¹Œë‹¤ë¡œìš´ í¸ì´ë‹¤.  
+ê²Œë‹¤ê°€ ë‹¤ë¥¸ Boost ëª¨ë“ˆë“¤ê³¼ í•¨ê»˜ ë§ë¬¼ë ¤ ì‘ë™í•˜ê¸°ì— ë‹¤ë¥¸ ëª¨ë“ˆë“¤ì— ëŒ€í•œ ì´í•´ë„ í•„ìš”í•˜ë‹¤.  
+ê·¸ë˜ë„ ì‚¬ìš©í•˜ëŠ” ì´ìœ ëŠ” ë§¤ìš° ê°•ë ¥í•œ ê¸°ëŠ¥ì„ ì œê³µí•˜ê¸° ë•Œë¬¸ì´ë‹¤.  
 &nbsp;  
 
-¾Æ·¡´Â ÁÖ¾îÁø ¹®ÀÚ¿­¿¡¼­ ¼ıÀÚ¸¦ ÆÄ½ÌÇÏ´Â ¿¹½ÃÀÌ´Ù.  
+### Boost.Variant  
+
+boost::variantëŠ” std::variantì˜ ìƒìœ„í˜¸í™˜ì´ë¼ê³  ë³´ë©´ ëœë‹¤.  
+boost::spiritì„ í¸ë¦¬í•˜ê²Œ ì‚¬ìš©í•˜ê¸° ìœ„í•´ boost::variantê°€ ìì£¼ í™œìš©ë˜ê¸°ì— ì´í•´ê°€ í•„ìš”í•˜ë‹¤.  
+ë°‘ì€ boost::variantì˜ ê°„ë‹¨í•œ ì˜ˆì‹œì´ë‹¤.  
 ```c++
-std::string str = " 11";
-auto it_start = str.begin();
-auto it_end = str.end();
+struct Num_With_Diversiform;
+struct String_With_Diversiform;
 
-int parsed;
-bool success = boost::spirit::qi::phrase_parse(it_start, it_end, boost::spirit::qi::int_, boost::spirit::ascii::space, parsed);
+using Diversiform = boost::variant<char, int, std::string, boost::recursive_wrapper<Num_With_Diversiform>, boost::recursive_wrapper<String_With_Diversiform>>;
 
-if (success)
-    std::cout << parsed << '\n';
-```
-phrase_parse() ÇÔ¼ö´Â ÀÎÀÚ·Î ´ÙÀ½ ³à¼ÆµéÀ» ¹Ş´Â´Ù.  
-```1: ¹®ÀÚ¿­ ½ÃÀÛ iterator, 2: ¹®ÀÚ¿­ ³¡ iterator, 3: ÆÄ½ÌÇÒ ±ÔÄ¢, 4: ÆÄ½ÌÇÒ ¶§ ¹«½ÃÇÒ ¹®ÀÚ, 5: ÆÄ½ÌÇÑ °ªÀ» ÀúÀåÇÒ º¯¼öµé...```  
-phrase_parse() ÇÔ¼ö´Â ÆÄ½ÌÇÏ¸é¼­ iterator¸¦ ¼öÁ¤ÇÒ ¼ö ÀÖ±â ¶§¹®¿¡ À§ ¿¹½Ã¿Í °°ÀÌ iterator º¹»çº»À» ³Ñ±â´Â °ÍÀÌ ÁÁ´Ù.  
-ÆÄ½ÌÇÒ ±ÔÄ¢Àº »ç¿ëÀÚ°¡ Á¤ÇÏ±â ³ª¸§ÀÌ´Ù.  
-ÇØ´ç ¿¹½Ã¿¡¼­´Â ```qi::int_```¸¦ »ç¿ëÇß±â¿¡ Á¤¼öÇüÀ» ÆÄ½ÌÇÏ¿´´Ù.  
-```qi::char_```, ```qi::float_``` µî ¿©·¯°¡Áö°¡ ÀÖ´Âµ¥ ÀÚ¼¼ÇÑ ³»¿ëÀº https://www.boost.org/doc/libs/1_81_0/libs/spirit/doc/html/spirit/qi/quick_reference/qi_parsers.html ¸µÅ©¸¦ ÂüÁ¶ÇÏÀÚ.  
-```ascii::space```¸¦ »ç¿ëÇÏ¿© °ø¹é ¹®ÀÚ´Â ¹«½ÃÇÑ´Ù.  
-¼ıÀÚ 11ÀÌ ÆÄ½ÌµÇ¾î parsed º¯¼ö¿¡ ÀúÀåµÈ´Ù.  
-phrase_parse() ÇÔ¼ö´Â ÁÖ¾îÁø ¹®ÀÚ¿­¿¡ ´ëÇØ À¯È¿¼º °Ë»ç¸¦ ÁøÇàÇØ ÆÄ½ÌÀÌ ¼º°øÇÏ¸é true, ¾Æ´Ï¸é false¸¦ ¹İÈ¯ÇÏ´Ù.  
-&nbsp;  
-
-´ÙÀ½ ¿¹½Ã´Â ¿©·¯ Ç×¸ñÀ» ÆÄ½ÌÇÏ´Â ¿¹½ÃÀÌ´Ù.  
-```c++
-std::string str = "71.45, 11.12";
-auto it_start = str.begin();
-auto it_end = str.end();
-std::vector<double> parsed;
-
-bool success = boost::spirit::qi::phrase_parse(it_start, it_end, boost::spirit::qi::double_ >> *(',' >> boost::spirit::qi::double_), boost::spirit::ascii::space, parsed);
-
-if (success)
-    std::cout << parsed[0] << ", " << parsed[1] << '\n';
-```
-double Çü µÎ ¼ıÀÚ¸¦ ÆÄ½ÌÇÏ·Á°í ÇÑ´Ù.  
-ÆÄ½ÌÇÒ ±ÔÄ¢ÀÌ »ı¼ÒÇÒ ¼ö ÀÖ´Âµ¥ EBNF¿¡ ´ëÇÑ »çÀü Áö½ÄÀÌ ¿ä±¸µÈ´Ù.  
-EBNF¿¡ ´ëÇÑ ¼³¸íÀº https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form ¸µÅ©¸¦ Âü°íÇÏÀÚ.  
-```boost::spirit::qi::double_ >> *(',' >> boost::spirit::qi::double_)```¸¦ EBNF·Î Ç¥±âÇÏ¸é ```rule := double { "," double }```¿Í °°´Ù.  
-boost::spirit¿¡¼­´Â ÀÌ·¯ÇÑ Ç¥ÇöÀ» °£¼ÒÈ­ ÇÏ±â À§ÇØ ```boost::spirit::qi::double_ % ','``` Ç¥Çö½Äµµ Á¦°øÇÑ´Ù.  
-Ç¥Çö½Ä ±ÔÄ¢¿¡ ´ëÇÑ ´õ ÀÚ¼¼ÇÑ Á¤º¸´Â https://www.boost.org/doc/libs/1_81_0/libs/spirit/doc/html/spirit/qi/quick_reference/qi_parsers/operator.html ¸µÅ©¸¦ Âü°íÇÏÀÚ.  
-±×¸®°í Áß¿äÇÑ Á¡Àº ',' ¿ä·¸°Ô µû¿ÈÇ¥, Å«µû¿ÈÇ¥·Î¸¸ °¨½Î¿© ÀÖ´Â °ÍµéÀº ±¸ºĞÀÚ·Î¸¸ »ç¿ëµÇ°í ÆÄ½Ì¿¡¼­ Á¦¿ÜµÈ´Ù.  
-¸¸¾à ','µµ ÆÄ½ÌÇÏ°í ½Í´Ù¸é ```boost::spirit::qi::char_(',')``` ÀÌ·¸°Ô Ç¥ÇöÇØ¾ß ÇÑ´Ù.  
-&nbsp;  
-
-´ÙÀ½Àº ¿©·¯°³ÀÇ ±ÔÄ¢ÀÌ º¹ÇÕÀûÀ¸·Î ÀÛ¿ëÇØ¾ß ÇÏ´Â °æ¿ì boost::spirit »ç¿ë ¿¹½ÃÀÌ´Ù.  
-ÀÏ´Ü ¹Ø°ú °°ÀÌ ```boost::spirit::qi::grammar```¸¦ »ó¼ÓÇÏ´Â Å¬·¡½º¸¦ ¸¸µé¾îÁØ´Ù.  
-```c++
-template <typename Iterator, typename Skipper>
-struct my_grammar : boost::spirit::qi::grammar<Iterator, std::vector<std::variant<int, std::string>>, Skipper>
+struct Num_With_Diversiform
 {
-    my_grammar()
-        : my_grammar::base_type{values}
-    {
-        value = boost::spirit::qi::int_ | boost::spirit::qi::as_string[boost::spirit::qi::lexeme[+(boost::spirit::qi::char_ - boost::spirit::qi::char_(",0-9"))]];
-        values = value % ',';
-    }
+    int number;
+    Diversiform diversiform;
+};
 
-    boost::spirit::qi::rule<Iterator, std::variant<int, std::string>, Skipper> value;
-    boost::spirit::qi::rule<Iterator, std::vector<std::variant<int, std::string>>, Skipper> values;
+struct String_With_Diversiform
+{
+    std::string str;
+    Diversiform diversiform;
 };
 ```
-ÇÏ³ª¾¿ »ìÆìº¸ÀÚ.  
-qi::rule°ú qi::grammar¿¡´Â ÅÛÇÃ¸´ ÀÎÀÚ·Î ¹İº¹ÀÚ, ÆÄ½ÌÇÒ ÀÚ·áÇü, ÆÄ½Ì °Ç³Ê¶Û ¹®ÀÚ Å¸ÀÔÀÌ µé¾î°£´Ù.  
-my_grammar Å¬·¡½º ³»ºÎ¿¡¼­´Â ```value := int | ((char - ("," | digit) { (char - ("," | digit) })```, ```values := value | { "," value }``` ÀÌ·¯ÇÑ ÆÄ½Ì ±ÔÄ¢À» Á¤ÀÇÇÏ¿´´Ù.  
-±×¸®°í »ı¼ºÀÚ¿¡¼­ base_typeÀ» Á¤ÇÏ¿© ÆÄ½Ì ½ÃÀÛ ±ÔÄ¢ÀÌ ¹«¾ùÀÎÁö ¾Ë·ÁÁà¾ß ÇÑ´Ù.  
-boost::spirit¿¡¼± ¸ğµç ¹®ÀÚ¿­À» ±âº»ÀûÀ¸·Î ```std::vector<char>```¿¡ ÆÄ½ÌÇÏ¿© ´ãÀ¸·ÁÇÑ´Ù.  
-ÇÏÁö¸¸ qi::as_string¸¦ »ç¿ëÇÏ¸é ¹®ÀÚ¿­À» std::string ÇüÅÂ·Î ÆÄ½ÌÇÑ´Ù. (std::wstringÀ» À§ÇÑ qi::as_wstringµµ Á¸ÀçÇÑ´Ù.)  
-qi::lexemeÀº °¨½ÎÁø ¿µ¿ª¿¡ ÇÑÇÏ¿© Skipper¸¦ ¹«½ÃÇÑ´Ù.  
-¿¹¸¦ µé¾î ```This is cool```¶ó´Â ¹®ÀÚ¿­À» ÆÄ½ÌÇÒ ¶§ Skipper°¡ °ø¹éÀÌ¶ó¸é ```Thisiscool``` ¿ä·¸°Ô °ø¹éÀº ¹«½ÃµÇ¾î ÆÄ½ÌµÈ´Ù.  
-qi::lexemeÀ» »ç¿ëÇÏ¸é °ø¹é±îÁö ÆÄ½ÌÇÏ¿© ```This is cool``` ¿ä·¸°Ô ÆÄ½ÌµÈ´Ù.  
-ÀÌ ¿Ü¿¡µµ ¸¹Àº Áö½Ã¾î°¡ Á¸ÀçÇÏ´Ï https://www.boost.org/doc/libs/1_81_0/libs/spirit/doc/html/spirit/qi/quick_reference/qi_parsers/directive.html ¸µÅ©¸¦ ÂüÁ¶ÇÏÀÚ.  
+std::variantì™€ ë‹¤ë¥´ê²Œ ```Num_With_Diversiform <-> Diversiform``` ìš”ë ‡ê²Œ ì¬ê·€ì ìœ¼ë¡œ í˜•ì‹ì„ ë‹´ì„ ìˆ˜ ìˆë‹¤.  
+ì´ë¥¼ ì˜ í™œìš©í•˜ë©´ íŠ¸ë¦¬ êµ¬ì¡°ë¥¼ í˜•ì„±í•  ìˆ˜ë„ ìˆë‹¤.  
 &nbsp;  
 
-ÆÄ½Ì ±ÔÄ¢ Å¬·¡½º¸¦ ¸¸µé¾úÀ¸´Ï Àû¿ëÇØº¸ÀÚ.  
+ê°’ íšë“ì‹œì—ëŠ” boost::getì„ ì‚¬ìš©í•œë‹¤.  
 ```c++
-std::string str = "11, hello world, 45, tongstar";
-auto it_start = str.begin();
-auto it_end = str.end();
-
-std::vector<std::variant<int, std::string>> parsed;
-my_grammar<std::string::iterator, boost::spirit::ascii::space_type> gram;
-bool success = boost::spirit::qi::phrase_parse(it_start, it_end, gram, boost::spirit::ascii::space, parsed);
-
-if (success)
-    std::cout << std::get<int>(parsed[0]) << ", "
-              << std::get<std::string>(parsed[1]) << ", "
-              << std::get<int>(parsed[2]) << ", "
-              << std::get<std::string>(parsed[3]);
+Num_With_Diversiform nwd{1, "one"}, nwd_clone;
+Diversiform df = nwd;
+nwd_clone = boost::get<Num_With_Diversiform>(df);
 ```
-my_grammar Å¬·¡½º¸¦ ¼±¾ğÇÏ°í qi::phrase_parse() ÇÔ¼ö¿¡ ±ÔÄ¢À¸·Î ³Ö¾îÁÖ¸é µÈ´Ù.  
-Áö±İ±îÁöÀÇ ¿¹½ÃµéÀ» º¸¸é ¾Ë°ÚÁö¸¸ int, std::vector, std::variant µî c++¿¡ ¿ø·¡ Á¸ÀçÇß´ø ÀÚ·áÇü¿¡¸¸ ÆÄ½ÌµÈ ÀÚ·á¸¦ ÀúÀåÇÏ°í ÀÖ´Ù.  
-±×·¸´Ù¸é Ä¿½ºÅÒ Å¬·¡½º¿¡ ÆÄ½ÌµÈ ÀÚ·áÇüÀ» ³ÖÀ¸·Á¸é ¾î¶»°Ô ÇØ¾ß ÇÒ±î?  
 &nbsp;  
 
-»ı¶×¸ÂÁö¸¸ ÀÏ´Ü boost::fusionÀÇ »ç¿ë¹ıÀ» ¾Ë¾Æ¾ß ÇÑ´Ù.  
-ÀÏ´Ü ¹Ø°ú °°Àº ±¸Á¶Ã¼°¡ Á¸ÀçÇÑ´Ù.  
+boost:apply_visitorë¥¼ ì‚¬ìš©í•˜ë©´ ì ì€ ì½”ë“œë¡œ ë°©ë¬¸ì íŒ¨í„´ì„ êµ¬í˜„í•  ìˆ˜ ìˆë‹¤.  
+```c++
+struct printer
+{
+    template <typename T>
+    void operator()(const T &t)
+    {
+        std::cout << t;
+    }
+
+    template <>
+    void operator()(const Num_With_Diversiform &t)
+    {
+        std::cout << t.number << " ";
+        boost::apply_visitor(*this, t.diversiform);
+    }
+
+    template <>
+    void operator()(const String_With_Diversiform &t)
+    {
+        std::cout << t.str << " ";
+        boost::apply_visitor(*this, t.diversiform);
+    }
+};
+
+int main()
+{
+    std::vector<Diversiform> vec{1, "hello world", 'A', Num_With_Diversiform{777, 'B'}, String_With_Diversiform{"hi", Num_With_Diversiform{123, "bye"}}};
+
+    for (const auto &item : vec)
+    {
+        boost::apply_visitor(printer(), item);
+        std::cout << "\n";
+    }
+
+    return 0;
+}
+```  
+boost::apply_visitor() í•¨ìˆ˜ì— functor or ëŒë‹¤ í•¨ìˆ˜ì™€ boost:variant ê°’ì„ ë„£ì–´ì£¼ë©´ ìë£Œí˜•ì— ì•Œë§ëŠ” í•¨ìˆ˜ë¥¼ í˜¸ì¶œí•´ì¤€ë‹¤.  
+&nbsp;  
+
+### Boost.Fustion  
+
+boost::fustionì€ êµ¬ì¡°ì²´, í´ë˜ìŠ¤ë¥¼ ì¢€ ë” ì‰½ê²Œ ë‹¤ë£° ìˆ˜ ìˆë„ë¡ ë‹¤ì–‘í•œ í™•ì¥ ê¸°ëŠ¥ì„ ì œê³µí•œë‹¤.  
+boost::spiritì—ì„œ ì»¤ìŠ¤í…€ êµ¬ì¡°ì²´ë‚˜ í´ë˜ìŠ¤ì— íŒŒì‹± ì •ë³´ë¥¼ ë‹´ê³ ìí•  ë•Œ ê°™ì´ ì‚¬ìš©ëœë‹¤.  
+ì¼ë‹¨ ë°‘ê³¼ ê°™ì€ êµ¬ì¡°ì²´ê°€ ì¡´ì¬í•œë‹¤.  
 ```c++
 struct Object
 {
@@ -436,10 +421,10 @@ struct Object
     bool boolean;
 };
 ```
-¿ä ³à¼®ÀÇ ¸â¹ö º¯¼öµéÀ» boost::fusionÀ» »ç¿ëÇÏ¿© ¹è¿­Ã³·³ ¼øÈ¸ÇÒ ¼ö ÀÖ´Ù.  
+ìš” ë…€ì„ì˜ ë©¤ë²„ ë³€ìˆ˜ë“¤ì„ boost::fusionì„ ì‚¬ìš©í•˜ì—¬ ë°°ì—´ì²˜ëŸ¼ ìˆœíšŒí•  ìˆ˜ ìˆë‹¤.  
 &nbsp;  
 
-¹Ø°ú °°ÀÌ Object ±¸Á¶Ã¼¸¦ BOOST_FUSION_ADAPT_STRUCT ¸ÅÅ©·Î¸¦ »ç¿ëÇØ fusion ±¸Á¶Ã¼ Çü½ÄÀ¸·Î µî·ÏÇØÁØ´Ù.  
+ë°‘ê³¼ ê°™ì´ Object êµ¬ì¡°ì²´ë¥¼ BOOST_FUSION_ADAPT_STRUCT ë§¤í¬ë¡œë¥¼ ì‚¬ìš©í•´ fusion êµ¬ì¡°ì²´ í˜•ì‹ìœ¼ë¡œ ë“±ë¡í•´ì¤€ë‹¤.  
 ```c++
 BOOST_FUSION_ADAPT_STRUCT(Object, (std::string, str)(int, integer)(bool, boolean))
 
@@ -471,44 +456,142 @@ struct print
     }
 };
 ```
-print functorµµ À§¿Í °°ÀÌ ±¸ÇöÇß´Ù.  
-std::stringÀ» ÀÎÀÚ·Î ¹Ş´Â ÅÛÇÃ¸´ Æ¯¼öÈ­ ÇÔ¼ö¸¸ ·ÎÁ÷ÀÌ »ìÂ¦ ´Ù¸£´Ù.  
+print functorë„ ìœ„ì™€ ê°™ì´ êµ¬í˜„í–ˆë‹¤.  
+std::stringì„ ì¸ìë¡œ ë°›ëŠ” í…œí”Œë¦¿ íŠ¹ìˆ˜í™” í•¨ìˆ˜ë§Œ ë¡œì§ì´ ì‚´ì§ ë‹¤ë¥´ë‹¤.  
 &nbsp;  
 
-¹Ø°ú °°ÀÌ fusion::for_each() ÇÔ¼ö¸¦ ÀÌ¿ëÇÏ¸é ÁÖ¾îÁø functor³ª ¶÷´ÙÇÔ¼ö¸¦ ÀÌ¿ëÇÏ¿© ¸â¹ö º¯¼ö¸¦ ÀÌ¿ëÇÒ ¼ö ÀÖ´Ù.  
-Áß¿äÇÑ °ÍÀº Object ±¸Á¶Ã¼ ¸â¹ö º¯¼öµéÀÇ ¸ğµç ÀÚ·áÇüÀ» Ã³¸®ÇÒ ¼ö ÀÖ´Â functor³ª ¶÷´ÙÇÔ¼ö¿©¾ß ÇÑ´Ù.  
-¿¹¸¦ µé¾î print functor¿¡¼­ ```operator()(T &t)```¿Í ```operator()(bool &t)```°¡ Á¤ÀÇµÇÁö ¾Ê¾Ò´Ù¸é ÄÄÆÄÀÏÀÌ µÇÁö ¾Ê´Â´Ù.  
+ë°‘ê³¼ ê°™ì´ fusion::for_each() í•¨ìˆ˜ë¥¼ ì´ìš©í•˜ë©´ ì£¼ì–´ì§„ functorë‚˜ ëŒë‹¤í•¨ìˆ˜ë¥¼ ì´ìš©í•˜ì—¬ ë©¤ë²„ ë³€ìˆ˜ë¥¼ ì´ìš©í•  ìˆ˜ ìˆë‹¤.  
+ì¤‘ìš”í•œ ê²ƒì€ Object êµ¬ì¡°ì²´ ë©¤ë²„ ë³€ìˆ˜ë“¤ì˜ ëª¨ë“  ìë£Œí˜•ì„ ì²˜ë¦¬í•  ìˆ˜ ìˆëŠ” functorë‚˜ ëŒë‹¤í•¨ìˆ˜ì—¬ì•¼ í•œë‹¤.  
+ì˜ˆë¥¼ ë“¤ì–´ print functorì—ì„œ ```operator()(T &t)```ì™€ ```operator()(bool &t)```ê°€ ì •ì˜ë˜ì§€ ì•Šì•˜ë‹¤ë©´ ì»´íŒŒì¼ì´ ë˜ì§€ ì•ŠëŠ”ë‹¤.  
 ```c++
 Object obj{"hello", 10, false};
 boost::fusion::for_each(obj, print());
 ```
-°á°úÀûÀ¸·Î fusion::for_each() ÇÔ¼ö°¡ ¼öÇàµÇ°í obj.strÀº "hello world" °ªÀ» ÀúÀåÇÏ°Ô µÈ´Ù.  
-À§ ¿¹½Ã¿¡¼­ Ãâ·Â°ªÀº ```hello world 10 0```ÀÌ µÈ´Ù.  
+ê²°ê³¼ì ìœ¼ë¡œ fusion::for_each() í•¨ìˆ˜ê°€ ìˆ˜í–‰ë˜ê³  obj.strì€ "hello world" ê°’ì„ ì €ì¥í•˜ê²Œ ëœë‹¤.  
+ìœ„ ì˜ˆì‹œì—ì„œ ì¶œë ¥ê°’ì€ ```hello world 10 0```ì´ ëœë‹¤.  
 &nbsp;  
 
-Á» ´õ ³ª¾Æ°¡ boost::mplÀ» °°ÀÌ »ç¿ëÇØ ÇÊÅÍ¸µÀ» ÇÒ ¼öµµ ÀÖ´Ù.  
+ì¢€ ë” ë‚˜ì•„ê°€ boost::mplì„ ê°™ì´ ì‚¬ìš©í•´ í•„í„°ë§ì„ í•  ìˆ˜ë„ ìˆë‹¤.  
 ```c++
 boost::fusion::for_each(boost::fusion::filter_if<boost::is_same<boost::mpl::_, std::string>>(obj), print());
 ```
-```fusion::filter_if<>```¸¦ ÅëÇØ ÇÊÅÍ¸µÀÌ °¡´ÉÇÏ°í ```boost::is_same<boost::mpl::_, std::string>``` ±¸¹®À» ÅëÇØ ÀÚ·áÇüÀÌ std::stringÀÎ ¸â¹ö º¯¼ö¸¸ Ãß·Á print functor°¡ È£ÃâµÈ´Ù.  
-ÁÖÀÇÇÒ Á¡Àº ```fusion::filter_if<>```°¡ ÇÊÅÍ¸µ Á¶°Ç¿¡ ¾Ë¸ÂÀº °´Ã¼¸¦ º¹»çÇÏ¿© const ÇüÀ¸·Î ¹İÈ¯ÇÑ´Ù´Â °ÍÀÌ´Ù.  
-µû¶ó¼­ ÇÔ¼ö ³»ºÎ¿¡¼­ ÂüÁ¶·Î ¹ŞÀº ÀÎÀÚ¸¦ ¼öÁ¤ÇÒ ¼ö ¾ø´Ù.  
-±×¸®°í ¹«Á¶°Ç ÅÛÇÃ¸´ ¿øº» ÇÔ¼ö¸¸ È£ÃâµÈ´Ù.  
-À§ ¿¹½Ã¿¡¼­ÀÇ Ãâ·Â°ªÀº ```hello```°¡ µÈ´Ù.  
+```fusion::filter_if<>```ë¥¼ í†µí•´ í•„í„°ë§ì´ ê°€ëŠ¥í•˜ê³  ```boost::is_same<boost::mpl::_, std::string>``` êµ¬ë¬¸ì„ í†µí•´ ìë£Œí˜•ì´ std::stringì¸ ë©¤ë²„ ë³€ìˆ˜ë§Œ ì¶”ë ¤ print functorê°€ í˜¸ì¶œëœë‹¤.  
+ì£¼ì˜í•  ì ì€ ```fusion::filter_if<>```ê°€ í•„í„°ë§ ì¡°ê±´ì— ì•Œë§ì€ ê°ì²´ë¥¼ ë³µì‚¬í•˜ì—¬ const í˜•ìœ¼ë¡œ ë°˜í™˜í•œë‹¤ëŠ” ê²ƒì´ë‹¤.  
+ë”°ë¼ì„œ í•¨ìˆ˜ ë‚´ë¶€ì—ì„œ ì°¸ì¡°ë¡œ ë°›ì€ ì¸ìë¥¼ ìˆ˜ì •í•  ìˆ˜ ì—†ë‹¤.  
+ê·¸ë¦¬ê³  ë¬´ì¡°ê±´ í…œí”Œë¦¿ ì›ë³¸ í•¨ìˆ˜ë§Œ í˜¸ì¶œëœë‹¤.  
+ìœ„ ì˜ˆì‹œì—ì„œì˜ ì¶œë ¥ê°’ì€ ```hello```ê°€ ëœë‹¤.  
 &nbsp;  
 
-¹ØÀº ´Ù¸¥ ÇÊÅÍ¸µ ¿¹½ÃÀÌ´Ù.  
+ë°‘ì€ ë‹¤ë¥¸ í•„í„°ë§ ì˜ˆì‹œì´ë‹¤.  
 ```c++
 boost::fusion::for_each(boost::fusion::filter_if<boost::mpl::not_<boost::is_class<boost::mpl::_>>>(obj), print());
 ```
-```boost::is_class<boost::mpl::_>```¸¦ ÅëÇØ Å¬·¡½º ÇüÅÂÀÇ ¸â¹ö º¯¼ö¸¦ Ãß·Á³¾ ¼ö ÀÖ´Ù.  
-```boost::mpl::not_<>```¸¦ ÅëÇØ ¹İ´ëÀÇ °á°ú¸¦ Ãß·Á³¾ ¼ö ÀÖ´Ù.  
-Á¾ÇÕÇÏ¸é Å¬·¡½º°¡ ¾Æ´Ñ ÇüÅÂÀÇ ¸â¹ö º¯¼ö¸¦ Ãß·Á³»´Â ·ÎÁ÷ÀÌ´Ù.  
-À§ ¿¹½Ã Ãâ·Â°ªÀº ```10 0```ÀÌ µÈ´Ù.  
-ÀÚ¼¼ÇÑ ³»¿ëÀº https://www.boost.org/doc/libs/1_81_0/libs/fusion/doc/html/index.html ¸µÅ©¸¦ ÂüÁ¶ÇÏÀÚ.  
+```boost::is_class<boost::mpl::_>```ë¥¼ í†µí•´ í´ë˜ìŠ¤ í˜•íƒœì˜ ë©¤ë²„ ë³€ìˆ˜ë¥¼ ì¶”ë ¤ë‚¼ ìˆ˜ ìˆë‹¤.  
+```boost::mpl::not_<>```ë¥¼ í†µí•´ ë°˜ëŒ€ì˜ ê²°ê³¼ë¥¼ ì¶”ë ¤ë‚¼ ìˆ˜ ìˆë‹¤.  
+ì¢…í•©í•˜ë©´ í´ë˜ìŠ¤ê°€ ì•„ë‹Œ í˜•íƒœì˜ ë©¤ë²„ ë³€ìˆ˜ë¥¼ ì¶”ë ¤ë‚´ëŠ” ë¡œì§ì´ë‹¤.  
+ìœ„ ì˜ˆì‹œ ì¶œë ¥ê°’ì€ ```10 0```ì´ ëœë‹¤.  
+ìì„¸í•œ ë‚´ìš©ì€ https://www.boost.org/doc/libs/1_81_0/libs/fusion/doc/html/index.html ë§í¬ë¥¼ ì°¸ì¡°í•˜ì.  
 &nbsp;  
 
-boost::fusionÀ» ¾Ë¾ÒÀ¸´Ï boost::spiritÀ» ÅëÇØ Ä¿½ºÅÒ Å¬·¡½º¿¡ ÆÄ½ÌµÈ ÀÚ·áÇüÀ» ³Ö´Â ¿¹½Ã¸¦ »ìÆìº¸ÀÚ.  
+### Boost.Spirit  
+
+boost::spirit ëª¨ë“ˆì„ ì‚¬ìš©í•˜ëŠ” ê°„ë‹¨í•œ ì˜ˆì‹œë¶€í„° ì‚´í´ë³´ì.  
+ì•„ë˜ëŠ” ì£¼ì–´ì§„ ë¬¸ìì—´ì—ì„œ ìˆ«ìë¥¼ íŒŒì‹±í•˜ëŠ” ì˜ˆì‹œì´ë‹¤.  
+```c++
+std::string str = " 11";
+auto it_start = str.begin();
+auto it_end = str.end();
+
+int parsed;
+bool success = boost::spirit::qi::phrase_parse(it_start, it_end, boost::spirit::qi::int_, boost::spirit::ascii::space, parsed);
+
+if (success)
+    std::cout << parsed << '\n';
+```
+phrase_parse() í•¨ìˆ˜ëŠ” ì¸ìë¡œ ë‹¤ìŒ ë…€ì…•ë“¤ì„ ë°›ëŠ”ë‹¤.  
+```1: ë¬¸ìì—´ ì‹œì‘ iterator, 2: ë¬¸ìì—´ ë iterator, 3: íŒŒì‹±í•  ê·œì¹™, 4: íŒŒì‹±í•  ë•Œ ë¬´ì‹œí•  ë¬¸ì, 5: íŒŒì‹±í•œ ê°’ì„ ì €ì¥í•  ë³€ìˆ˜ë“¤...```  
+phrase_parse() í•¨ìˆ˜ëŠ” íŒŒì‹±í•˜ë©´ì„œ iteratorë¥¼ ìˆ˜ì •í•  ìˆ˜ ìˆê¸° ë•Œë¬¸ì— ìœ„ ì˜ˆì‹œì™€ ê°™ì´ iterator ë³µì‚¬ë³¸ì„ ë„˜ê¸°ëŠ” ê²ƒì´ ì¢‹ë‹¤.  
+íŒŒì‹±í•  ê·œì¹™ì€ ì‚¬ìš©ìê°€ ì •í•˜ê¸° ë‚˜ë¦„ì´ë‹¤.  
+í•´ë‹¹ ì˜ˆì‹œì—ì„œëŠ” ```qi::int_```ë¥¼ ì‚¬ìš©í–ˆê¸°ì— ì •ìˆ˜í˜•ì„ íŒŒì‹±í•˜ì˜€ë‹¤.  
+```qi::char_```, ```qi::float_``` ë“± ì—¬ëŸ¬ê°€ì§€ê°€ ìˆëŠ”ë° ìì„¸í•œ ë‚´ìš©ì€ https://www.boost.org/doc/libs/1_81_0/libs/spirit/doc/html/spirit/qi/quick_reference/qi_parsers.html ë§í¬ë¥¼ ì°¸ì¡°í•˜ì.  
+```ascii::space```ë¥¼ ì‚¬ìš©í•˜ì—¬ ê³µë°± ë¬¸ìëŠ” ë¬´ì‹œí•œë‹¤.  
+ìˆ«ì 11ì´ íŒŒì‹±ë˜ì–´ parsed ë³€ìˆ˜ì— ì €ì¥ëœë‹¤.  
+phrase_parse() í•¨ìˆ˜ëŠ” ì£¼ì–´ì§„ ë¬¸ìì—´ì— ëŒ€í•´ ìœ íš¨ì„± ê²€ì‚¬ë¥¼ ì§„í–‰í•´ íŒŒì‹±ì´ ì„±ê³µí•˜ë©´ true, ì•„ë‹ˆë©´ falseë¥¼ ë°˜í™˜í•œë‹¤.  
+&nbsp;  
+
+ë‹¤ìŒ ì˜ˆì‹œëŠ” ì—¬ëŸ¬ í•­ëª©ì„ íŒŒì‹±í•˜ëŠ” ì˜ˆì‹œì´ë‹¤.  
+```c++
+std::string str = "71.45, 11.12";
+auto it_start = str.begin();
+auto it_end = str.end();
+std::vector<double> parsed;
+
+bool success = boost::spirit::qi::phrase_parse(it_start, it_end, boost::spirit::qi::double_ >> *(',' >> boost::spirit::qi::double_), boost::spirit::ascii::space, parsed);
+
+if (success)
+    std::cout << parsed[0] << ", " << parsed[1] << '\n';
+```
+double í˜• ë‘ ìˆ«ìë¥¼ íŒŒì‹±í•˜ë ¤ê³  í•œë‹¤.  
+íŒŒì‹±í•  ê·œì¹™ì´ ìƒì†Œí•  ìˆ˜ ìˆëŠ”ë° EBNFì— ëŒ€í•œ ì‚¬ì „ ì§€ì‹ì´ ìš”êµ¬ëœë‹¤.  
+EBNFì— ëŒ€í•œ ì„¤ëª…ì€ https://en.wikipedia.org/wiki/Extended_Backus%E2%80%93Naur_form ë§í¬ë¥¼ ì°¸ê³ í•˜ì.  
+```boost::spirit::qi::double_ >> *(',' >> boost::spirit::qi::double_)```ë¥¼ EBNFë¡œ í‘œê¸°í•˜ë©´ ```rule := double { "," double }```ì™€ ê°™ë‹¤.  
+boost::spiritì—ì„œëŠ” ì´ëŸ¬í•œ í‘œí˜„ì„ ê°„ì†Œí™” í•˜ê¸° ìœ„í•´ ```boost::spirit::qi::double_ % ','``` í‘œí˜„ì‹ë„ ì œê³µí•œë‹¤.  
+í‘œí˜„ì‹ ê·œì¹™ì— ëŒ€í•œ ë” ìì„¸í•œ ì •ë³´ëŠ” https://www.boost.org/doc/libs/1_81_0/libs/spirit/doc/html/spirit/qi/quick_reference/qi_parsers/operator.html ë§í¬ë¥¼ ì°¸ê³ í•˜ì.  
+ê·¸ë¦¬ê³  ì¤‘ìš”í•œ ì ì€ ',' ìš”ë ‡ê²Œ ë”°ì˜´í‘œ, í°ë”°ì˜´í‘œë¡œë§Œ ê°ì‹¸ì—¬ ìˆëŠ” ê²ƒë“¤ì€ êµ¬ë¶„ìë¡œë§Œ ì‚¬ìš©ë˜ê³  íŒŒì‹±ì—ì„œ ì œì™¸ëœë‹¤.  
+ë§Œì•½ ','ë„ íŒŒì‹±í•˜ê³  ì‹¶ë‹¤ë©´ ```boost::spirit::qi::char_(',')``` ì´ë ‡ê²Œ í‘œí˜„í•´ì•¼ í•œë‹¤.  
+&nbsp;  
+
+ë‹¤ìŒì€ ì—¬ëŸ¬ê°œì˜ ê·œì¹™ì´ ë³µí•©ì ìœ¼ë¡œ ì‘ìš©í•´ì•¼ í•˜ëŠ” ê²½ìš° boost::spirit ì‚¬ìš© ì˜ˆì‹œì´ë‹¤.  
+ì¼ë‹¨ ë°‘ê³¼ ê°™ì´ ```boost::spirit::qi::grammar```ë¥¼ ìƒì†í•˜ëŠ” í´ë˜ìŠ¤ë¥¼ ë§Œë“¤ì–´ì¤€ë‹¤.  
+```c++
+template <typename Iterator, typename Skipper>
+struct my_grammar : boost::spirit::qi::grammar<Iterator, std::vector<std::variant<int, std::string>>, Skipper>
+{
+    my_grammar()
+        : my_grammar::base_type{values}
+    {
+        value = boost::spirit::qi::int_ | boost::spirit::qi::as_string[boost::spirit::qi::lexeme[+(boost::spirit::qi::char_ - boost::spirit::qi::char_(",0-9"))]];
+        values = value % ',';
+    }
+
+    boost::spirit::qi::rule<Iterator, std::variant<int, std::string>, Skipper> value;
+    boost::spirit::qi::rule<Iterator, std::vector<std::variant<int, std::string>>, Skipper> values;
+};
+```
+í•˜ë‚˜ì”© ì‚´í´ë³´ì.  
+qi::ruleê³¼ qi::grammarì—ëŠ” í…œí”Œë¦¿ ì¸ìë¡œ ë°˜ë³µì, íŒŒì‹±í•  ìë£Œí˜•, íŒŒì‹± ê±´ë„ˆë›¸ ë¬¸ì íƒ€ì…ì´ ë“¤ì–´ê°„ë‹¤.  
+my_grammar í´ë˜ìŠ¤ ë‚´ë¶€ì—ì„œëŠ” ```value := int | ((char - ("," | digit) { (char - ("," | digit) })```, ```values := value | { "," value }``` ì´ëŸ¬í•œ íŒŒì‹± ê·œì¹™ì„ ì •ì˜í•˜ì˜€ë‹¤.  
+ê·¸ë¦¬ê³  ìƒì„±ìì—ì„œ base_typeì„ ì •í•˜ì—¬ íŒŒì‹± ì‹œì‘ ê·œì¹™ì´ ë¬´ì—‡ì¸ì§€ ì•Œë ¤ì¤˜ì•¼ í•œë‹¤.  
+boost::spiritì—ì„  ëª¨ë“  ë¬¸ìì—´ì„ ê¸°ë³¸ì ìœ¼ë¡œ ```std::vector<char>```ì— íŒŒì‹±í•˜ì—¬ ë‹´ìœ¼ë ¤í•œë‹¤.  
+í•˜ì§€ë§Œ qi::as_stringë¥¼ ì‚¬ìš©í•˜ë©´ ë¬¸ìì—´ì„ std::string í˜•íƒœë¡œ íŒŒì‹±í•œë‹¤. (std::wstringì„ ìœ„í•œ qi::as_wstringë„ ì¡´ì¬í•œë‹¤.)  
+qi::lexemeì€ ê°ì‹¸ì§„ ì˜ì—­ì— í•œí•˜ì—¬ Skipperë¥¼ ë¬´ì‹œí•œë‹¤.  
+ì˜ˆë¥¼ ë“¤ì–´ ```This is cool```ë¼ëŠ” ë¬¸ìì—´ì„ íŒŒì‹±í•  ë•Œ Skipperê°€ ê³µë°±ì´ë¼ë©´ ```Thisiscool``` ìš”ë ‡ê²Œ ê³µë°±ì€ ë¬´ì‹œë˜ì–´ íŒŒì‹±ëœë‹¤.  
+qi::lexemeì„ ì‚¬ìš©í•˜ë©´ ê³µë°±ê¹Œì§€ íŒŒì‹±í•˜ì—¬ ```This is cool``` ìš”ë ‡ê²Œ íŒŒì‹±ëœë‹¤.  
+ì´ ì™¸ì—ë„ ë§ì€ ì§€ì‹œì–´ê°€ ì¡´ì¬í•˜ë‹ˆ https://www.boost.org/doc/libs/1_81_0/libs/spirit/doc/html/spirit/qi/quick_reference/qi_parsers/directive.html ë§í¬ë¥¼ ì°¸ì¡°í•˜ì.  
+&nbsp;  
+
+íŒŒì‹± ê·œì¹™ í´ë˜ìŠ¤ë¥¼ ë§Œë“¤ì—ˆìœ¼ë‹ˆ ì ìš©í•´ë³´ì.  
+```c++
+std::string str = "11, hello world, 45, tongstar";
+auto it_start = str.begin();
+auto it_end = str.end();
+
+std::vector<std::variant<int, std::string>> parsed;
+my_grammar<std::string::iterator, boost::spirit::ascii::space_type> gram;
+bool success = boost::spirit::qi::phrase_parse(it_start, it_end, gram, boost::spirit::ascii::space, parsed);
+
+if (success)
+    std::cout << std::get<int>(parsed[0]) << ", "
+              << std::get<std::string>(parsed[1]) << ", "
+              << std::get<int>(parsed[2]) << ", "
+              << std::get<std::string>(parsed[3]);
+```
+my_grammar í´ë˜ìŠ¤ë¥¼ ì„ ì–¸í•˜ê³  qi::phrase_parse() í•¨ìˆ˜ì— ê·œì¹™ìœ¼ë¡œ ë„£ì–´ì£¼ë©´ ëœë‹¤.  
+ì§€ê¸ˆê¹Œì§€ì˜ ì˜ˆì‹œë“¤ì„ ë³´ë©´ ì•Œê² ì§€ë§Œ int, std::vector, std::variant ë“± c++ì— ì›ë˜ ì¡´ì¬í–ˆë˜ ìë£Œí˜•ì—ë§Œ íŒŒì‹±ëœ ìë£Œë¥¼ ì €ì¥í•˜ê³  ìˆë‹¤.  
+ê·¸ë ‡ë‹¤ë©´ ì»¤ìŠ¤í…€ í´ë˜ìŠ¤ì— íŒŒì‹±ëœ ìë£Œí˜•ì„ ë„£ìœ¼ë ¤ë©´ ì–´ë–»ê²Œ í•´ì•¼ í• ê¹Œ?  
+&nbsp;  
+
+ë°‘ì€ ì»¤ìŠ¤í…€ í´ë˜ìŠ¤ì— íŒŒì‹±ëœ ìë£Œí˜•ì„ ë„£ëŠ” ì˜ˆì‹œì´ë‹¤.   
 ```c++
 struct Object
 {
@@ -519,10 +602,10 @@ struct Object
 
 BOOST_FUSION_ADAPT_STRUCT(Object, name, int_or_bool, vec)
 ```
-ÀÏ´Ü À§¿Í °°ÀÌ Object ±¸Á¶Ã¼¸¦ fusion ±¸Á¶Ã¼¿¡ µî·ÏÇØÁØ´Ù.  
+ì¼ë‹¨ ìœ„ì™€ ê°™ì´ Object êµ¬ì¡°ì²´ë¥¼ fusion êµ¬ì¡°ì²´ì— ë“±ë¡í•´ì¤€ë‹¤.  
 &nbsp;  
 
-Object ÆÄ½ÌÀ» À§ÇÑ grammer Å¬·¡½º¸¦ ÀÛ¼ºÇØÁØ´Ù.  
+Object íŒŒì‹±ì„ ìœ„í•œ grammer í´ë˜ìŠ¤ë¥¼ ì‘ì„±í•´ì¤€ë‹¤.  
 ```c++
 template <typename Iterator, typename Skipper>
 struct my_grammar : boost::spirit::qi::grammar<Iterator, Object, Skipper>
@@ -540,11 +623,11 @@ struct my_grammar : boost::spirit::qi::grammar<Iterator, Object, Skipper>
     boost::spirit::qi::rule<Iterator, Object, Skipper> value;
 };
 ```
-ÆÄ½ÌÇÒ ¶§ »ç¿ëÇÒ ¹®ÀÚ¿­Àº ```object name, 777, 10.139, 34.3, 56.82``` ÀÌ·¸°Ô »ı°å´Ù.  
-```¹®ÀÚ¿­, [int | bool], double, double...``` ÀÌ·¯ÇÑ ±ÔÄ¢ÀÌ±â¿¡ ÀÌ¿¡ ¸Â´Â ÆÄ½Ì ±ÔÄ¢À» Â¥ÁÖ¾ú´Ù.  
+íŒŒì‹±í•  ë•Œ ì‚¬ìš©í•  ë¬¸ìì—´ì€ ```object name, 777, 10.139, 34.3, 56.82``` ì´ë ‡ê²Œ ìƒê²¼ë‹¤.  
+```ë¬¸ìì—´, [int | bool], double, double...``` ì´ëŸ¬í•œ ê·œì¹™ì´ê¸°ì— ì´ì— ë§ëŠ” íŒŒì‹± ê·œì¹™ì„ ì§œì£¼ì—ˆë‹¤.  
 &nbsp;  
 
-¾Æ·¡ ÄÚµå·Î ÁøÇàÇØº¸¸é ÆÄ½ÌÀÌ Àß µÇ´Â °ÍÀ» È®ÀÎÇÒ ¼ö ÀÖ´Ù.  
+ì•„ë˜ ì½”ë“œë¡œ ì§„í–‰í•´ë³´ë©´ íŒŒì‹±ì´ ì˜ ë˜ëŠ” ê²ƒì„ í™•ì¸í•  ìˆ˜ ìˆë‹¤.  
 ```c++
 std::string str = "object name, 777, 10.139, 34.3, 56.82";
 auto it_start = str.begin();
@@ -563,231 +646,61 @@ if (success)
 ```
 &nbsp;  
 
-±×·¯¸é ¸¶Áö¸·À¸·Î boost::spiritÀ» ÅëÇØ ¼ö½ÄÀ» ÆÄ½ÌÇÏ°í °è»êÀ» ¼öÇàÇÏ´Â ¿¹½Ã¸¦ º¸ÀÚ.  
+ê·¸ëŸ¬ë©´ ë§ˆì§€ë§‰ìœ¼ë¡œ boost::spiritì„ í†µí•´ ìˆ˜ì‹ì„ íŒŒì‹±í•˜ê³  ê³„ì‚°ì„ ìˆ˜í–‰í•˜ëŠ” ì˜ˆì‹œë¥¼ ë³´ì.  
+ì´í•´í•˜ê¸°ê°€ ì‚´ì§ ê¹Œë‹¤ë¡­ê¸°ì— ì—¬ëŸ¬ë²ˆ ë´ì•¼í•  ê²ƒì´ë‹¤.  
+ë¨¼ì € ìˆ˜ì‹ êµ¬ì„±ì— í•„ìš”í•œ ë‹¤ìŒê³¼ ê°™ì€ êµ¬ì¡°ì²´ë“¤ì´ í•„ìš”í•˜ë‹¤.  
 ```c++
+struct Number;
+struct Expression;
 
+using Factor = boost::variant<boost::blank, unsigned int, boost::recursive_wrapper<Number>, boost::recursive_wrapper<Expression>>;
+
+struct Number
+{
+    char _sign;
+    Factor _operand;
+};
+
+struct Operation
+{
+    char _operator;
+    Factor _operand;
+};
+
+struct Expression
+{
+    Factor _first;
+    std::list<Operation> _rest;
+};
+
+BOOST_FUSION_ADAPT_STRUCT(Number, _sign, _operand)
+
+BOOST_FUSION_ADAPT_STRUCT(Operation, _operator, _operand)
+
+BOOST_FUSION_ADAPT_STRUCT(Expression, _first, _rest)
 ```
+NumberëŠ” ìˆ«ìë‹¤.  
+ìˆ˜ì‹ì´ ```+7+-10+4``` ì´ëŸ¬í•œ ê²½ìš° +7, -10ê³¼ ê°™ì€ ìˆ«ìë“¤ì„ ë‹¤ë£¨ê¸° ìœ„í•´ ì¡´ì¬í•œë‹¤.  
+Operationì€ ì—°ì‚°ìë‹¤.  
+ì‚¬ì¹™ì—°ì‚° ë¶€í˜¸ë“¤ê³¼ ìš°ì¸¡ ë‚˜ë¨¸ì§€ ìˆ˜ì‹ì´ ì €ì¥ëœë‹¤.  
+ExpressionëŠ” ìˆ˜ì‹ì´ë‹¤.  
+ë§Œì•½ ```10-40+10``` ì´ëŸ¬í•œ ì‹ì´ë¼ë©´ firstì— 10ì´ ì €ì¥ë˜ê³  _rest[0]ì— (-, 40), _rest[1]ì— (+, 10)ì´ ì €ì¥ëœë‹¤.  
+FactorëŠ” ìˆ˜ì‹ì„ êµ¬ì„±í•˜ëŠ” ë…¸ë“œë¼ê³  ë³´ë©´ ëœë‹¤.  
+ìˆ«ìë‚˜ ë˜ ë‹¤ë¥¸ ìˆ˜ì‹ì´ ë  ìˆ˜ ìˆë‹¤.  
+ë˜ ë‹¤ë¥¸ ìˆ˜ì‹ì´ ë˜ëŠ” ê²½ìš°ëŠ” ê´„í˜¸ ì† ìˆ˜ì‹ì¸ ê²½ìš°ë‹¤.  
+íŒŒì‹±ì„ ìœ„í•´ Number, Operation, Expression êµ¬ì¡°ì²´ë¥¼ fusion êµ¬ì¡°ì²´ë¡œ ë“±ë¡í•´ì¤€ë‹¤.  
 &nbsp;  
 
-
+ë‹¤ìŒìœ¼ë¡œ íŒŒì‹± ê·œì¹™ì„ ë³´ì.  
 ```c++
-#include <algorithm>
-#include <array>
-#include <bitset>
-#include <cmath>
-#include <cstdio>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <limits>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <random>
-#include <regex>
-#include <sstream>
-#include <stack>
-#include <stdexcept>
-#include <string>
-#include <thread>
-#include <unordered_map>
-#include <unordered_set>
-#include <variant>
-#include <vector>
-
-#include <boost/archive/text_iarchive.hpp>
-#include <boost/archive/text_oarchive.hpp>
-#include <boost/bimap/bimap.hpp>
-#include <boost/config/warning_disable.hpp>
-#include <boost/flyweight.hpp>
-#include <boost/flyweight/key_value.hpp>
-#include <boost/foreach.hpp>
-#include <boost/fusion/adapted/struct/adapt_struct.hpp>
-#include <boost/fusion/include/adapt_struct.hpp>
-#include <boost/fusion/include/at_c.hpp>
-#include <boost/fusion/include/for_each.hpp>
-#include <boost/fusion/include/make_vector.hpp>
-#include <boost/fusion/include/push_back.hpp>
-#include <boost/fusion/include/remove_if.hpp>
-#include <boost/gil.hpp>
-#include <boost/noncopyable.hpp>
-#include <boost/serialization/serialization.hpp>
-#include <boost/serialization/singleton.hpp>
-#include <boost/signals2/signal.hpp>
-#include <boost/spirit/include/qi.hpp>
-#include <boost/variant/apply_visitor.hpp>
-#include <boost/variant/recursive_variant.hpp>
-
-namespace client
-{
-namespace ast
-{
-//  The AST
-
-struct signed_;
-struct program;
-
-typedef boost::variant<boost::blank, unsigned int, boost::recursive_wrapper<signed_>, boost::recursive_wrapper<program>> operand;
-
-struct signed_
-{
-    char sign;
-    operand operand_;
-};
-
-struct operation
-{
-    char operator_;
-    operand operand_;
-};
-
-struct program
-{
-    operand first;
-    std::list<operation> rest;
-};
-} // namespace ast
-} // namespace client
-
-BOOST_FUSION_ADAPT_STRUCT(client::ast::signed_, sign, operand_)
-
-BOOST_FUSION_ADAPT_STRUCT(client::ast::operation, operator_, operand_)
-
-BOOST_FUSION_ADAPT_STRUCT(client::ast::program, first, rest)
-
-namespace client
-{
-namespace ast
-{
-//  The AST Printer
-struct printer
-{
-    void operator()(boost::blank) const
-    {
-    }
-
-    void operator()(unsigned int n) const
-    {
-        std::cout << n;
-    }
-
-    void operator()(operation const &x) const
-    {
-        boost::apply_visitor(*this, x.operand_);
-        switch (x.operator_)
-        {
-        case '+':
-            std::cout << " add";
-            break;
-        case '-':
-            std::cout << " subt";
-            break;
-        case '*':
-            std::cout << " mult";
-            break;
-        case '/':
-            std::cout << " div";
-            break;
-        }
-    }
-
-    void operator()(signed_ const &x) const
-    {
-        boost::apply_visitor(*this, x.operand_);
-        switch (x.sign)
-        {
-        case '-':
-            std::cout << " neg";
-            break;
-        case '+':
-            std::cout << " pos";
-            break;
-        }
-    }
-
-    void operator()(program const &x) const
-    {
-        boost::apply_visitor(*this, x.first);
-        BOOST_FOREACH (operation const &oper, x.rest)
-        {
-            std::cout << ' ';
-            (*this)(oper);
-        }
-    }
-};
-
-//  The AST evaluator
-struct eval
-{
-    int operator()(boost::blank) const
-    {
-        BOOST_ASSERT(0);
-        return 0;
-    }
-
-    int operator()(unsigned int n) const
-    {
-        return n;
-    }
-
-    int operator()(operation const &x, int lhs) const
-    {
-        int rhs = boost::apply_visitor(*this, x.operand_);
-        switch (x.operator_)
-        {
-        case '+':
-            return lhs + rhs;
-        case '-':
-            return lhs - rhs;
-        case '*':
-            return lhs * rhs;
-        case '/':
-            return lhs / rhs;
-        }
-        BOOST_ASSERT(0);
-        return 0;
-    }
-
-    int operator()(signed_ const &x) const
-    {
-        int rhs = boost::apply_visitor(*this, x.operand_);
-        switch (x.sign)
-        {
-        case '-':
-            return -rhs;
-        case '+':
-            return +rhs;
-        }
-        BOOST_ASSERT(0);
-        return 0;
-    }
-
-    int operator()(program const &x) const
-    {
-        int state = boost::apply_visitor(*this, x.first);
-        for (auto const &oper : x.rest)
-            state = (*this)(oper, state);
-        return state;
-    }
-};
-} // namespace ast
-} // namespace client
-
-namespace client
-{
-namespace qi = boost::spirit::qi;
-namespace ascii = boost::spirit::ascii;
-
-//  The calculator grammar
 template <typename Iterator>
-struct calculator : qi::grammar<Iterator, ast::program, ascii::space_type>
+struct Calculator : boost::spirit::qi::grammar<Iterator, Expression, boost::spirit::ascii::space_type>
 {
-    calculator()
-        : calculator::base_type(expression)
+    Calculator()
+        : Calculator::base_type(expression)
     {
-        qi::uint_type uint_;
-        qi::char_type char_;
+        boost::spirit::qi::uint_type uint_;
+        boost::spirit::qi::char_type char_;
 
         expression = term >> *((char_('+') >> term) | (char_('-') >> term));
 
@@ -796,39 +709,104 @@ struct calculator : qi::grammar<Iterator, ast::program, ascii::space_type>
         factor = uint_ | '(' >> expression >> ')' | (char_('-') >> factor) | (char_('+') >> factor);
     }
 
-    qi::rule<Iterator, ast::program, ascii::space_type> expression;
-    qi::rule<Iterator, ast::program, ascii::space_type> term;
-    qi::rule<Iterator, ast::operand, ascii::space_type> factor;
+    boost::spirit::qi::rule<Iterator, Expression, boost::spirit::ascii::space_type> expression;
+    boost::spirit::qi::rule<Iterator, Expression, boost::spirit::ascii::space_type> term;
+    boost::spirit::qi::rule<Iterator, Factor, boost::spirit::ascii::space_type> factor;
 };
-} // namespace client
+```
+íŒŒì‹± ê·œì¹™ì„ EBNFë¡œ í‘œí˜„í•˜ë©´ ë°‘ê³¼ ê°™ë‹¤.  
+```ebnf 
+expression = term { ("-" term) | ("+" term) }
+term = factor { ("*" factor) | ("/" factor) }
+factor = unsigned int | ( "(" expression ")" ) | ("-" factor) | ("+" factor)
+```
+ì‚¬ì¹™ì—°ì‚°ì˜ ìš°ì„  ìˆœìœ„ë¥¼ ìƒê°í•˜ë©´ ì´í•´í•˜ê¸° ì‰½ë‹¤.  
+ê´„í˜¸ ì†ì— ë‹´ê¸´ ìˆ˜ì‹ì´ ìµœìš°ì„ ì´ê³  ê·¸ ë‹¤ìŒ ê³±ì…ˆ, ë‚˜ëˆ—ì…ˆì´ê³  ì œì¼ ë‚®ì€ ìš°ì„ ìˆœìœ„ëŠ” ë§ì…ˆ, ëº„ì…ˆì´ë‹¤.  
+ê·¸ë˜ì„œ íŒŒì‹± ì‹œì‘ ê·œì¹™ì— ë§ì…ˆ, ëº„ì…ˆì´ ì¡´ì¬í•˜ê³  í•˜ìœ„ ê·œì¹™ìœ¼ë¡œ ê³±ì…ˆ, ëº„ì…ˆì´ ìˆê³  ì œì¼ í•˜ìœ„ì— ìˆ«ì or ê´„í˜¸ ì† ìˆ˜ì‹ ê·œì¹™ì´ ìœ„ì¹˜í•œë‹¤.  
+íŒŒì‹±ì´ ë˜ë©´ ë†’ì€ ê³„ì‚° ìš°ì„ ìˆœìœ„ì¼ìˆ˜ë¡ ì ë…¸ë“œì— ê°€ê¹Œì›Œì§€ëŠ” ìˆ˜ì‹ íŠ¸ë¦¬ê°€ Expressionì— ë‹´ê¸°ê²Œ ëœë‹¤.  
+&nbsp;  
 
-int main()
+íŒŒì‹±ì„ í†µí•´ ë§Œë“¤ì–´ì§„ ìˆ˜ì‹ íŠ¸ë¦¬ì¸ Expression êµ¬ì¡°ì²´ë¥¼ ê³„ì‚°í•˜ëŠ” functorì´ë‹¤.  
+```c++
+struct Evaluation
 {
-    typedef std::string::const_iterator iterator_type;
-    typedef client::calculator<iterator_type> calculator;
-    typedef client::ast::program ast_program;
-    typedef client::ast::printer ast_print;
-    typedef client::ast::eval ast_eval;
-
-    std::string str = "10-((13-4)*(9+1))/5";
-
-    calculator calc;     // Our grammar
-    ast_program program; // Our program (AST)
-    ast_print print;     // Prints the program
-    ast_eval eval;       // Evaluates the program
-
-    std::string::const_iterator iter = str.begin();
-    std::string::const_iterator end = str.end();
-    boost::spirit::ascii::space_type space;
-    bool r = boost::spirit::qi::phrase_parse(iter, end, calc, space, program);
-
-    if (r && iter == end)
+    int operator()(boost::blank) const
     {
-        print(program);
-        std::cout << "\n"
-                  << eval(program);
+        BOOST_ASSERT(0);
+        return 0;
     }
 
-    return 0;
-}
+    int operator()(unsigned int const &n) const
+    {
+        return n;
+    }
+
+    int operator()(Operation const &x, int left) const
+    {
+        int right = boost::apply_visitor(*this, x._operand);
+        switch (x._operator)
+        {
+        case '+':
+            return left + right;
+        case '-':
+            return left - right;
+        case '*':
+            return left * right;
+        case '/':
+            return left / right;
+        }
+        BOOST_ASSERT(0);
+        return 0;
+    }
+
+    int operator()(Number const &x) const
+    {
+        int right = boost::apply_visitor(*this, x._operand);
+        switch (x._sign)
+        {
+        case '-':
+            return -right;
+        case '+':
+            return +right;
+        }
+        BOOST_ASSERT(0);
+        return 0;
+    }
+
+    int operator()(Expression const &x) const
+    {
+        int left = boost::apply_visitor(*this, x._first);
+        for (auto const &oper : x._rest)
+            left = (*this)(oper, left);
+        return left;
+    }
+};
 ```
+boost::apply_visitor()ë¥¼ ì‚¬ìš©í•˜ì—¬ ìˆ˜ì‹ íŠ¸ë¦¬ë¥¼ ì¬ê·€ì ìœ¼ë¡œ ìˆœíšŒí•˜ë©´ì„œ ê³„ì‚°ì„ ì§„í–‰í•œë‹¤.  
+&nbsp;  
+
+ë°‘ê³¼ ê°™ì´ ë§Œë“¤ì–´ë‘” ê·œì¹™ì„ ì‚¬ìš©í•˜ì—¬ ìˆ˜ì‹ ê³„ì‚°ì„ ì§„í–‰í•œë‹¤.  
+```c++
+std::string str = "10-((13-4)*(9+1))/5";
+    
+Calculator<std::string::iterator> calc;
+Expression parsed;
+Evaluation evaluation;
+    
+auto it_start = str.begin();
+auto it_end = str.end();
+bool success = boost::spirit::qi::phrase_parse(it_start, it_end, calc, boost::spirit::ascii::space, parsed);
+    
+if (success)
+   std::cout << evaluation(parsed);
+```
+```-8```ì´ ì˜¬ë°”ë¥´ê²Œ ì¶œë ¥ë˜ëŠ” ê²ƒì„ í™•ì¸í•  ìˆ˜ ìˆë‹¤.  
+&nbsp;  
+
+## ìš”ì•½  
+
+1. íŒŒì„œë¥¼ ì§ì ‘ ë§Œë“¤ì–´ì•¼ í•˜ëŠ” ê²½ìš°ê°€ ë³´í†µ ì—†ê¸°ì— ì¸í„°í”„ë¦¬í„° íŒ¨í„´ì€ ê·¸ë ‡ê²Œ ë§ì´ ì“°ì´ì§€ ì•ŠëŠ”ë‹¤.  
+
+2. íŒŒì„œë¥¼ ë§Œë“œëŠ”ë° Boost.Spiritê³¼ ê°™ì€ ë¼ì´ë¸ŒëŸ¬ë¦¬ë¥¼ ì‚¬ìš©í•œë‹¤ë©´ ì½”ë“œë¥¼ ë§ì´ ì¤„ì¼ ìˆ˜ ìˆë‹¤.  
+
+3. ì¸í„°í”„ë¦¬í„°ëŠ” ì»´í“¨í„° ê³¼í•™ì˜ í•œ ë¶„ì•¼ì´ê¸°ì— ë§¤ìš° ë°©ëŒ€í•˜ë¯€ë¡œ ê´€ì‹¬ì´ ìˆë‹¤ë©´ Lex/Yacc, ANTLR, AST ë“±ì„ ê³µë¶€í•´ë³´ì.  
