@@ -408,9 +408,9 @@ int main()
 boost::apply_visitor() 함수에 functor or 람다 함수와 boost:variant 값을 넣어주면 자료형에 알맞는 함수를 호출해준다.  
 &nbsp;  
 
-### Boost.Fustion  
+### Boost.Fusion  
 
-boost::fustion은 구조체, 클래스를 좀 더 쉽게 다룰 수 있도록 다양한 확장 기능을 제공한다.  
+boost::fusion은 구조체, 클래스를 좀 더 쉽게 다룰 수 있도록 다양한 확장 기능을 제공한다.  
 boost::spirit에서 커스텀 구조체나 클래스에 파싱 정보를 담고자할 때 같이 사용된다.  
 일단 밑과 같은 구조체가 존재한다.  
 ```c++
