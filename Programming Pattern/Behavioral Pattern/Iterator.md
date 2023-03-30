@@ -86,31 +86,6 @@ for (const auto &item : vec)
 ## 이진 트리의 탐색  
 
 ```c++
-#include <algorithm>
-#include <array>
-#include <bitset>
-#include <cmath>
-#include <cstdio>
-#include <filesystem>
-#include <fstream>
-#include <functional>
-#include <iostream>
-#include <limits>
-#include <map>
-#include <memory>
-#include <mutex>
-#include <random>
-#include <regex>
-#include <sstream>
-#include <stack>
-#include <stdexcept>
-#include <string>
-#include <thread>
-#include <unordered_map>
-#include <unordered_set>
-#include <variant>
-#include <vector>
-
 template <typename T>
 struct BinaryTree;
 
@@ -189,14 +164,15 @@ struct BinaryTree
         {
             if (current->left)
                 current = current->left;
-            else if (current->right)
-                current = current->right;
             else
             {
                 Node<T> *p = current->parent;
-                while (p && p->right)
+                if (p->right == current)
+                    p = p->parent;
+                current = current->right;
+                while (!current && p)
                 {
-                    current = p;
+                    current = p->right;
                     p = p->parent;
                 }
             }
@@ -219,17 +195,18 @@ struct BinaryTree
 
     iterator begin()
     {
-        Node<T> *n = root;
-
-        if (n)
-            while (n->left)
-                n = n->left;
-        return iterator{n};
+        return iterator{root};
     }
 };
 
 int main()
 {
+    //         me
+    //        /  \
+    //   mother   father
+    //      / \
+    //   m'm   m'f
+
     BinaryTree<std::string> family{
         new Node<std::string>{"me",
                               new Node<std::string>{"mother",
