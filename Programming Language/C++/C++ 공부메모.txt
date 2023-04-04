@@ -862,7 +862,7 @@ void printCoordinate(const Coordinate<int>&a) { cout << a.x << ' ' << a.y << end
 C++에서는 thread라는 자료형을 통해 쓰레딩을 사용한다.
 
 단순한 예시를 들어보자
-void func(int &p) { p++; return p; }
+int func(int &p) { p++; return p; }
 이러한 함수를 쓰레딩으로 돌리기 위해선 std::thread th_for_func = thread(func, std::ref(i)); 이렇게 사용한다.
 아니면 std::thread th_for_func(func, std::ref(i)); 이렇게 생성자로 넣어준다.
 std::bind 함수와 인자가 유사하다.
