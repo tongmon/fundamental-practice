@@ -686,4 +686,52 @@ int main()
 안그러면 계속 수면 상태에 있어 join() 함수도 반환이 안될 것이고 프로그램 동작이 더 나아가질 못한다.  
 &nbsp;  
 
+wait() 이외에도 wait_for(), wait_until() 등이 존재한다.  
+
+```wait_for()```는 wait()에 시간 조건을 더 부여한 함수다.  
+밑과 같이 사용이 가능하다.  
+```c++
+// 시간 조건 + Callable 사용
+auto status = cv.wait_for(lock, std::chrono::seconds(10), [&]() -> bool { return !contents.empty() || completed == 200; });
+if (!status)
+{
+    // 시간 초과
+}
+```
+위 예시에서는 쓰레드의 수면 상태가 10초를 초과하여 유지되면 시간 초과가 발생한다.   
+10초 내에 쓰레드가 깨어나 ```!contents.empty() || completed == 200``` 조건이 true인 경우에만 시간 초과가 발생하지 않는다.  
+시간 초과가 발생하면 수면 상태인 쓰레드를 깨우고 lock이 잠금 처리되며 timeout을 반환한다.  
+```cv.wait_for(lock, std::chrono::seconds(10));``` 이렇게 시간 조건만 사용할 수도 있는데 해당 녀석이 사용된 라인에 도달하면 그 쓰레드는 바로 수면 모드로 돌입하고 카운트 다운을 시작한다.   
+이 경우 ```notify_all()```, ```notify_one()```로 10초 안에 깨워줘야 timeout이 발생하지 않는다.  
+&nbsp;  
+
+```wait_until()```는 특정 시각까지 기다려준다.  
+```wait_until()```와 ```wait_for()```는 시각과 시간의 차이만 있을뿐 나머지 기능은 동일하다.  
+```wait_until()```는 밑과 같이 사용이 가능하다.  
+```c++
+// 해당 시점부터 시각 측정
+auto now = std::chrono::system_clock::now();
+
+// 측정 시점부터 10초 체크
+auto status = cv.wait_until(lock, now + std::chrono::seconds(10), [&]() -> bool { return !contents.empty() || completed == 200; });
+if (!status)
+{
+    // 시간 초과
+}
+```
+```cv.wait_for(lock, std::chrono::seconds(10));```는 ```cv.wait_until(lock, std::chrono::system_clock::now() + std::chrono::seconds(10));```와 동일한 표현이다.  
+&nbsp;  
+
+#### Spurious Wakeup  
+
+```std::condition_variable```를 다룰 때 유의해야 할 점이 있는데 바로 Spurious Wakeup 현상이다.  
+Spurious Wakeup은 잠자던 쓰레드가 비정상적으로 깨어나는 현상을 말한다.  
+위에서 설명한 생산자-소비자 패턴의 예시에서는 큐의 empty() 여부를 판단하여 Spurious Wakeup 현상을 방지했다.  
+&nbsp;  
+
+정확히 어떤 경우에 해당 현상이 발생하는지 예시를 통해 알아보자.  
+
+
+
+
 ### Atomic  
