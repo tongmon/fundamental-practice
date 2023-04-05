@@ -726,12 +726,103 @@ if (!status)
 
 ```std::condition_variable```를 다룰 때 유의해야 할 점이 있는데 바로 Spurious Wakeup 현상이다.  
 Spurious Wakeup은 잠자던 쓰레드가 비정상적으로 깨어나는 현상을 말한다.  
-위에서 설명한 생산자-소비자 패턴의 예시에서는 큐의 empty() 여부를 판단하여 Spurious Wakeup 현상을 방지했다.  
+말그대로 정말 비정상적이다.  
+```notify_all()```, ```notify_one()``` 요런 녀석으로 수면 상태를 깨우지도 않았고, timeout이 발생한 것도 아닌데 그냥 깨어나는 경우가 있다!  
+이는 비단 C++만의 문제가 아니라 쓰레드 관련하여 조건 변수를 사용하는 대부분의 프로그래밍 언어에서 발생하는 문제이다.  
 &nbsp;  
 
 정확히 어떤 경우에 해당 현상이 발생하는지 예시를 통해 알아보자.  
+```c++
+void producer(std::queue<std::string> &contents, std::mutex &mut, std::condition_variable &cv)
+{
+    for (int i = 0; i < 5; i++)
+    {
+        mut.lock();
+        contents.push("some data");
+        mut.unlock();
 
+        cv.notify_one();
+    }
+}
 
+void consumer(std::queue<std::string> &contents, std::mutex &mut, std::condition_variable &cv, int &completed)
+{
+    while (completed < 25)
+    {
+        std::unique_lock<std::mutex> lock(mut);
+
+        if (contents.empty())
+            cv.wait(lock);
+
+        if (completed == 25)
+            return;
+
+        auto content = contents.front();
+        contents.pop();
+        completed++;
+        lock.unlock();
+
+        std::cout << content;
+    }
+}
+
+int main()
+{
+    std::queue<std::string> contents;
+    std::mutex mut;
+    std::condition_variable cv;
+    int completed = 0;
+
+    std::vector<std::thread> producers;
+    for (int i = 0; i < 5; i++)
+        producers.push_back(std::thread(producer,
+                                        std::ref(contents),
+                                        std::ref(mut),
+                                        std::ref(cv)));
+
+    std::vector<std::thread> consumers;
+    for (int i = 0; i < 8; i++)
+        consumers.push_back(std::thread(consumer,
+                                        std::ref(contents),
+                                        std::ref(mut),
+                                        std::ref(cv),
+                                        std::ref(completed)));
+
+    for (auto &prod : producers)
+        prod.join();
+
+    cv.notify_all();
+
+    for (auto &cons : consumers)
+        cons.join();
+
+    return 0;
+}
+```
+생산자-소비자 패턴의 전형적인 구조를 갖추고 있다.  
+언뜻보면 정상적으로 작동할 듯하지만 해당 코드를 계속해서 돌려보면 오류가 발생하게 되어있다.  
+&nbsp;  
+
+오류가 발생할 수 있는 부분은 consumer 함수 내부에 있다.    
+```c++
+void consumer(std::queue<std::string> &contents, std::mutex &mut, std::condition_variable &cv, int &completed)
+{
+    // 생략
+    std::unique_lock<std::mutex> lock(mut);
+    if (contents.empty())
+        cv.wait(lock);
+    if (completed == 25)
+        return;
+    auto content = contents.front();
+    // 생략
+}
+```
+만약 큐가 비어있는 상태이고 완료된 컨텐츠가 25개 미만인데 수면 상태인 쓰레드가 멋대로 깨어나버린다면?    
+비어있는 큐에서 front() 함수가 호출되어 오류가 발생할 것이다.  
+이를 해결하기 위해서 wait() 함수에 ```cv.wait(lock, [&]() -> bool { return !contents.empty() || completed == 25; });```와 같이 Callable 조건을 인자로 넣어주면 멋대로 깨어나도 조건에 걸려 다시 잠들게 된다.  
+&nbsp;  
+
+그렇다면 특정 시간을 기다려주는 ```wait_until()```와 ```wait_for()```의 경우 Spurious Wakeup을 어떻게 방지할까?  
 
 
 ### Atomic  
