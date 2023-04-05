@@ -732,6 +732,7 @@ Spurious Wakeup은 잠자던 쓰레드가 비정상적으로 깨어나는 현상
 &nbsp;  
 
 정확히 어떤 경우에 해당 현상이 발생하는지 예시를 통해 알아보자.  
+밑과 같은 생산자가 존재한다.  
 ```c++
 void producer(std::queue<std::string> &contents, std::mutex &mut, std::condition_variable &cv)
 {
@@ -744,7 +745,11 @@ void producer(std::queue<std::string> &contents, std::mutex &mut, std::condition
         cv.notify_one();
     }
 }
+```
+큐에 일거리를 추가한다.   
 
+밑과 같은 소비자도 존재한다.  
+```c++
 void consumer(std::queue<std::string> &contents, std::mutex &mut, std::condition_variable &cv, int &completed)
 {
     while (completed < 25)
@@ -765,7 +770,11 @@ void consumer(std::queue<std::string> &contents, std::mutex &mut, std::condition
         std::cout << content;
     }
 }
+```
+총 25개의 일을 처리하기 전까지 수행되고 큐가 비어있다면 신호가 오기 전까지 기다린다.  
 
+밑은 활용 코드이다.  
+```c++
 int main()
 {
     std::queue<std::string> contents;
@@ -799,7 +808,6 @@ int main()
     return 0;
 }
 ```
-생산자-소비자 패턴의 전형적인 구조를 갖추고 있다.  
 언뜻보면 정상적으로 작동할 듯하지만 해당 코드를 계속해서 돌려보면 오류가 발생하게 되어있다.  
 &nbsp;  
 
@@ -819,10 +827,35 @@ void consumer(std::queue<std::string> &contents, std::mutex &mut, std::condition
 ```
 만약 큐가 비어있는 상태이고 완료된 컨텐츠가 25개 미만인데 수면 상태인 쓰레드가 멋대로 깨어나버린다면?    
 비어있는 큐에서 front() 함수가 호출되어 오류가 발생할 것이다.  
-이를 해결하기 위해서 wait() 함수에 ```cv.wait(lock, [&]() -> bool { return !contents.empty() || completed == 25; });```와 같이 Callable 조건을 인자로 넣어주면 멋대로 깨어나도 조건에 걸려 다시 잠들게 된다.  
 &nbsp;  
 
-그렇다면 특정 시간을 기다려주는 ```wait_until()```와 ```wait_for()```의 경우 Spurious Wakeup을 어떻게 방지할까?  
+첫번째 해결 방법은 밑과 같이 wait() 보다 늦게 큐의 상태를 체크하는 것이다.  
+```c++
+void consumer(std::queue<std::string> &contents, std::mutex &mut, std::condition_variable &cv, int &completed)
+{
+    // 생략
+    std::unique_lock<std::mutex> lock(mut);
+    cv.wait(lock);
+    if (contents.empty())
+        continue;
+    // 생략
+}
+```
+멋대로 깨어나도 continue로 빈 큐 참조가 방지된다.  
+&nbsp;  
 
+두번째 해결 방법은 wait() 함수에 Callable 조건 함수를 같이 넘기는 것이다.  
+```c++
+void consumer(std::queue<std::string> &contents, std::mutex &mut, std::condition_variable &cv, int &completed)
+{
+    // 생략
+    std::unique_lock<std::mutex> lock(mut);
+    cv.wait(lock, [&]() -> bool { return !contents.empty() || completed == 25; });
+    // 생략
+}
+```
+멋대로 깨어나도 조건에 걸려 다시 잠들게 된다.  
+```wait_until()```, ```wait_for()```도 시간만 지정해주면 Spurious Wakeup이 발생할 수 있기에 꼭 Callable 조건 함수를 인자에 같이 넣어 이를 방지해야 한다.  
+&nbsp;  
 
 ### Atomic  
