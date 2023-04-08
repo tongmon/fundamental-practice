@@ -1157,7 +1157,44 @@ int main()
     즉 CPU 코어 1에서 x->true, y->false이고 CPU 코어 2에서 x->false, y->true인 모순적인 상황이 발생할 수 있다.  
     
 CPU의 각 코어들이 항상 동기화가 된 상태가 아니기 때문에 예상치 못한 결과가 발생할 수 있다.  
-&nbsp;
+&nbsp;  
 
 #### 명령 순서 조절  
+
+이렇게 눈에 보이는 데로 수행되지 않는 명령들을 통제하기 위해 std::atomic은 다양한 옵션을 제공한다.  
+각 옵션들의 특징을 알아보자.  
+&nbsp;  
+
+##### memory_order_relexed  
+
+제일 느슨하고 속도가 빠른 옵션이다.  
+해당 옵션을 사용하면 쓰레드 수행부터 종료까지 메모리 연산의 순서가 어떻게 바뀌던 이상할 것이 없다.  
+그러면 이 옵션은 어떤 곳에 사용할 수 있을까?  
+```c++
+void th_func(std::atomic<int> &s)
+{
+    for (int i = 0; i < 100; i++)
+        s.fetch_add(1, std::memory_order_relaxed);
+}
+
+int main()
+{
+    std::vector<std::thread> vec;
+    std::atomic<int> sum(0);
+
+    for (int i = 0; i < 3; i++)
+        vec.push_back(std::thread(th_func, std::ref(sum)));
+
+    for (auto &th : vec)
+        th.join();
+
+    std::cout << (sum == 300 ? "Complete!" : "Something is Wrong!");
+}
+```
+단순히 위 처럼 연산 순서를 고려할 필요가 없는 상황에 쓸 수 있다.  
+join() 전에 더하기 연산이 어떤 순서로 수행되던 join() 이후에는 300이라는 결과가 확정이 되기 때문에 이러한 경우 속도가 빠른 std::memory_order_relaxed 옵션을 사용하는 것이 좋다.  
+&nbsp;  
+
+##### memory_order_acquire, memory_order_release   
+
 
