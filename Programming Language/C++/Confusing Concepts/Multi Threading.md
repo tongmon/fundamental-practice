@@ -1245,6 +1245,7 @@ reader() 함수에서 data들을 읽을 때 is_ready를 읽는 라인 전으로 
 
 memory_order_release와 memory_order_acquire를 합쳐놓은 녀석이다.  
 읽기, 쓰기를 모두 사용하는 명령에서 사용하면 좋다.  
+&nbsp;  
 
 ##### memory_order_seq_cst      
 
@@ -1291,3 +1292,5 @@ void read_y_then_x()
 // 동일 구현부 생략
 ```
 모든 쓰레드에서 동일한 값이 관찰되는 것이 보장되기에 z의 값이 0으로 나올 수 없다.  
+&nbsp;  
+
