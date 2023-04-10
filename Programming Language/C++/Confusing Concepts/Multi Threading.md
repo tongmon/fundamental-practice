@@ -17,7 +17,7 @@ CPU가 점점 진보할수록 동시에 여러 개의 일을 시켜 더 효율�
 이것은 멀티 쓰레드의 **병렬성**으로 인한 장점이다.  
 &nbsp;  
 
-그렇다면 CPU의 코어가 하나인 경우 멀티 쓰레드와 멀티 프로세스를 사용할 필요가 없냐?  
+그렇다면 CPU의 코어가 하나인 경우 멀티 쓰레드를 사용할 필요가 없냐?  
 전혀 아니다.  
 다량의 문서를 서버에서 다운받는 상황을 생각해보자.  
 요청을 보내면 대략 3분 뒤부터 답변이 도착해 다운로드가 시작되는 서버라고 가정하자.  
@@ -886,7 +886,7 @@ num -= 17;
 위 명령은 모두 thread-safe 하다.  
 &nbsp;  
 
-단 주의할 점이 있는데 할당과 획득에 있어서는 주의해야 한다.  
+단 할당과 획득에 있어서는 신중해야 한다.  
 ```c++
 std::atomic<int> num;
 num = num + 17; // 원자적이지 않음
@@ -942,7 +942,7 @@ Mutex를 사용한 것보다 빠른 것을 볼 수 있다.
 이렇게만 보면 atomic이 좋아보이지만 껄끄러운 부분들이 몇몇 존재한다.   
 일단 ```std::atomic<T>```에서 T 자리에 올 수 있는 자료형이 그렇게 많지는 않다.  
 대표적으로 정수형, boolean, 포인터가 있다고 보면 된다.  
-더 많은 정보는 https://en.cppreference.com/w/cpp/atomic/atomic 링크에서 확인해보자.  
+더 많은 정보는 [이곳에서](https://en.cppreference.com/w/cpp/atomic/atomic) 확인해보자.  
 &nbsp;  
 
 그리고 CPU마다 원자적인 명령을 내리지 못하는 것도 존재하기 때문에 밑과 같이 is_lock_free() 함수를 통해 알아봐야 한다.  
@@ -1087,7 +1087,7 @@ CPU 캐시는 코어 별로 존재하기에 멀티 코어 환경에서 특정 �
 ```c++
 bool x = false;
 bool y = false;
-int z = 0;
+std::atomic<int> z = 0;
 
 void write_x()
 {
@@ -1195,6 +1195,99 @@ int main()
 join() 전에 더하기 연산이 어떤 순서로 수행되던 join() 이후에는 300이라는 결과가 확정이 되기 때문에 이러한 경우 속도가 빠른 std::memory_order_relaxed 옵션을 사용하는 것이 좋다.  
 &nbsp;  
 
-##### memory_order_acquire, memory_order_release   
+##### memory_order_release, memory_order_acquire   
 
+memory_order_relexed보다 좀 더 엄격하다.  
+memory_order_release가 사용된 쓰레드 내부 한정으로 memory_order_release가 쓰인 라인 **이전** 명령들이 memory_order_release가 쓰인 라인 이후로 재배치되는 것을 방지한다.  
+반대로 memory_order_acquire는 사용된 쓰레드 내부 한정으로 memory_order_acquire가 쓰인 라인 **이후** 명령들이 memory_order_acquire가 쓰인 라인 **이전**으로 재배치되는 것을 방지한다.  
+&nbsp;  
 
+이해를 돕기 위한 예시는 밑과 같다.  
+```c++
+std::atomic<bool> is_ready;
+
+void writer(std::atomic<int> *data)
+{
+    data[0].store(1, std::memory_order_relaxed);
+    data[1].store(2, std::memory_order_relaxed);
+    data[2].store(3, std::memory_order_relaxed);
+    is_ready.store(true, std::memory_order_release);
+}
+
+void reader(std::atomic<int> *data)
+{
+    while (!is_ready.load(std::memory_order_acquire));
+
+    std::cout << "data[0] : " << data[0].load(std::memory_order_relaxed) << std::endl;
+    std::cout << "data[1] : " << data[1].load(std::memory_order_relaxed) << std::endl;
+    std::cout << "data[2] : " << data[2].load(std::memory_order_relaxed) << std::endl;
+}
+
+int main()
+{
+    std::atomic<int> data[3] = { 0, };
+    std::vector<std::thread> threads;
+
+    threads.push_back(std::thread(writer, data));
+    threads.push_back(std::thread(reader, data));
+
+    for (int i = 0; i < 2; i++)
+        threads[i].join();
+}
+```
+writer() 함수에서 data들을 변경할 때 is_ready를 저장하는 라인을 넘어갈 수 없다.  
+reader() 함수에서 data들을 읽을 때 is_ready를 읽는 라인 전으로 올라갈 수 없다.  
+물론 위의 규칙을 지킨 상태에서 std::memory_order_relaxed가 사용된 명령들은 마음대로 재배치가 될 수 있다.  
+확실한 점은 reader() 함수에서 data 값을 참조할 때 무조건 ```data = {1,2,3}``` 상태가 보장된다는 것이다.  
+&nbsp;  
+
+##### memory_order_acq_rel   
+
+memory_order_release와 memory_order_acquire를 합쳐놓은 녀석이다.  
+읽기, 쓰기를 모두 사용하는 명령에서 사용하면 좋다.  
+
+##### memory_order_seq_cst      
+
+memory_order_acq_rel, memory_order_release, memory_order_acquire 요 녀석들은 [명령어 재배치 문제](#눈으로-보는-것이-다가-아니다)는 해결해주지만 [코어간 캐시 동기화 문제](#동기화-문제)는 해결해주지 않는다.  
+즉 어떤 쓰레드에서는 1인 값이 다른 쓰레드에서는 2로 존재할 수 있다.  
+하지만 memory_order_seq_cst 옵션을 사용하면 저장 버퍼에 대한 flush가 보장되기에 코어간 캐시 동기화 문제까지 해결된다. (모든 명령에 대한 순차적 일관성이 보장된다.)  
+하지만 모든 옵션 중 가장 속도가 느리다.  
+&nbsp;  
+
+[해당 목차](#동기화-문제)에서 살펴본 예시를 memory_order_seq_cst 옵션을 사용하여 변경해보자.  
+```c++
+std::atomic<bool> x = false;
+std::atomic<bool> y = false;
+std::atomic<int> z = 0;
+
+void write_x()
+{
+    x.store(true, std::memory_order_seq_cst);
+}
+
+void write_y()
+{
+    y.store(true, std::memory_order_seq_cst);
+}
+
+void read_x_then_y()
+{
+    while (!x.load(std::memory_order_seq_cst))
+    {
+    }
+    if (y.load(std::memory_order_seq_cst))
+        ++z;
+}
+
+void read_y_then_x()
+{
+    while (!y.load(std::memory_order_seq_cst))
+    {
+    }
+    if (x.load(std::memory_order_seq_cst))
+        ++z;
+}
+
+// 동일 구현부 생략
+```
+모든 쓰레드에서 동일한 값이 관찰되는 것이 보장되기에 z의 값이 0으로 나올 수 없다.  
