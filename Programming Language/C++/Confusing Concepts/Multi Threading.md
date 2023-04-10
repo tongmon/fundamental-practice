@@ -1249,6 +1249,7 @@ memory_order_release와 memory_order_acquire를 합쳐놓은 녀석이다.
 
 ##### memory_order_seq_cst      
 
+std::atomic에 아무런 옵션도 설정하지 않으면 memory_order_seq_cst가 기본으로 설정된다.  
 memory_order_acq_rel, memory_order_release, memory_order_acquire 요 녀석들은 [명령어 재배치 문제](#눈으로-보는-것이-다가-아니다)는 해결해주지만 [코어간 캐시 동기화 문제](#동기화-문제)는 해결해주지 않는다.  
 즉 어떤 쓰레드에서는 1인 값이 다른 쓰레드에서는 2로 존재할 수 있다.  
 하지만 memory_order_seq_cst 옵션을 사용하면 저장 버퍼에 대한 flush가 보장되기에 코어간 캐시 동기화 문제까지 해결된다. (모든 명령에 대한 순차적 일관성이 보장된다.)  
