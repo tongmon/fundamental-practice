@@ -1426,6 +1426,47 @@ while (true) {
 &nbsp;  
 
 ### Packaged Task  
+
+std::thread에서는 밑과 같이 값을 반환하는 함수를 처리하지 못한다.  
+```c++
+int get_partial_sum(std::vector<int> *vec, int s, int e)
+{
+    return std::accumulate(vec->begin() + s, vec->begin() + e, 0);
+}
+```
+하지만 std::packaged_task를 사용하면 가능하다.  
+&nbsp;  
+
+밑은 1 ~ 9까지의 합을 3개의 쓰레드로 나누어 돌리는 예시이다.  
+```c++
+int get_partial_sum(std::vector<int> *vec, int s, int e)
+{
+    return std::accumulate(vec->begin() + s, vec->begin() + e, 0);
+}
+
+int main()
+{
+    std::vector<std::future<int>> futures;
+    std::vector<int> ary{1, 2, 3, 4, 5, 6, 7, 8, 9};
+    std::vector<std::thread> vec;
+
+    for (int i = 0; i < 3; i++)
+    {
+        std::packaged_task<int(std::vector<int> *, int, int)> task(get_partial_sum);
+        futures.push_back(task.get_future());
+        vec.push_back(std::thread(std::move(task), &ary, i * 3, (i + 1) * 3));
+    }
+
+    int sum = 0;
+    for (auto &val : futures)
+        sum += val.get();
+    std::cout << sum;
+
+    for (auto &th : vec)
+        th.join();
+}
+```
+
 &nbsp;  
 
 ### Async  
