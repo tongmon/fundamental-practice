@@ -493,7 +493,7 @@ CPU 코어 2 → 쓰레드 2 수행 | mut_2을 잠금 | mut_1의 try_lock()을 �
 >예시에서도 mut_1, mut_2의 획득 순서가 꼬여서 데드락 현상이 발생했다.  
 &nbsp;  
 
-#### Condition Variable  
+### Condition Variable  
 
 위에서 말한 ```try_lock()의 성공 여부를 계속 체크하는 곳에서 발생하는 오버헤드```를 최소화할 수 있는 방법이 존재한다.  
 while() 문을 계속 돌면서 try_lock() 함수를 호출하는 것이 아니라 쉬고 있다가 확실히 mut_1을 잠금 처리할 수 있는 경우에 try_lock() 함수를 호출하면 오버헤드가 많이 줄어들 것이다.  
@@ -1295,10 +1295,141 @@ void read_y_then_x()
 모든 쓰레드에서 동일한 값이 관찰되는 것이 보장되기에 z의 값이 0으로 나올 수 없다.  
 &nbsp;  
 
-### Task  
+## Task  
 
-기존에 다루었던 std::thread를 이용한 병렬처리는 각 쓰레드의 스케쥴 관리를 운영체제에게 위임한다.  
-운영체제가 쓰레드를 대신 관리해주는 것이 떨떠름한 사람들은 자체적인 thread pool을 구현하여 std::thread를 활용했다.  
-이렇게 떨떠름한 사람들을 위해 자체적인 thread pool이 구현되어 있는 task 기반의 std::async가 C++에 준비되어 있다.  
+기존에 다루었던 std::thread는 **쓰레드 기반**이다.  
+말 그대로 별도의 쓰레드를 만들어 활용하는 것에 초점이 맞춰져있다.  
+흐름의 시작과 종료는 쓰레드의 수명으로 구분된다.     
+쓰레드간 특정 값을 전달해 소통하던지 어떤 처리만 비동기로 진행하던지 어떻게 하던 개발자 마음이다.  
 
+반면에 지금 다루려는 std::async, std::packaged_task, std::future, std::promise는 **테스크 기반**이다.  
+특정 쓰레드에서 어떤 값을 미래에 전달 받는 것에 초점이 맞춰져있다.  
+흐름의 시작과 종료가 특정 값의 획득으로 구분된다.  
+테스크는 기본적으로 thread pool을 사용하여 쓰레드 기반의 상위 개념이라고 볼 수 있다.  
+std::future, std::promise, std::async, std::packaged_task는 ```#include <future>```를 포함하여 사용할 수 있다.   
+&nbsp;  
+
+### Future, Promise  
+
+std::future, std::promise는 내부적으로 std::condition_variable, std::mutex를 사용해 구현된 변수 동기화 구조체라고 보면된다.  
+일단 std::condition_variable를 사용한 예시부터 보자.  
+```c++
+void worker(std::mutex *m, std::condition_variable *cv, std::string *data)
+{
+    m->lock();
+    *data = "hello world";
+    m->unlock();
+    cv->notify_one();
+}
+
+int main()
+{
+    std::condition_variable cv;
+    std::mutex m;
+    std::string data;
+
+    std::thread th(worker, &m, &cv, &data);
+
+    std::unique_lock<std::mutex> lock(m);
+    cv.wait(lock, [&]() -> bool { return !data.empty(); });
+    lock.unlock();
+
+    std::cout << data;
+
+    th.join();
+}
+```
+한 개의 쓰레드를 생성하여 data를 획득할 때까지 기다리는 코드이다.  
+&nbsp;  
+
+같은 동작을 하는 std::future, std::promise 예시를 보자.  
+```c++
+void worker(std::promise<std::string> *data)
+{
+    data->set_value("hello world");
+}
+
+int main()
+{
+    std::promise<std::string> p;
+    std::future<std::string> data = p.get_future();
+
+    std::thread th(worker, &p);
+
+    // 생략 가능
+    data.wait();
+
+    std::cout << data.get();
+
+    th.join();
+}
+```
+코드가 훨씬 깔끔해졌다.  
+사용법은 요약하면 밑과 같다.  
+
+1. std::promise 변수를 std::future 변수와 연결해 약속한다.  
+2. std::future의 wait() 함수를 통해 변수값이 설정되길 기다린다.  
+3. std::promise의 set_value() 함수로 값을 설정해준다.  
+4. std::future의 get() 함수를 통해 값을 획득한다.  
+
+심지어 data.wait()은 data.get()을 수행될 때 알아서 처리되기에 생략해도 무방하다.  
+주의할 점은 std::future의 get() 함수를 사용하면 저장된 객체가 이동하기 때문에 단 한 번만 사용해야 한다.  
+&nbsp;  
+
+get()을 여러번 사용하려면 밑과 같이 std::shared_future를 이용하면 된다.  
+```c++
+void producer(std::promise<std::string> *data)
+{
+    data->set_value("hello world");
+}
+
+void consumer(std::shared_future<std::string> *data)
+{
+    static int num = 0;
+    printf("num: %d, data: %s\n", num++, data->get().c_str());
+}
+
+int main()
+{
+    std::promise<std::string> p;
+    std::shared_future<std::string> data = p.get_future();
+
+    std::thread th(producer, &p);
+
+    std::vector<std::thread> vec;
+    for (int i = 0; i < 5; i++)
+        vec.push_back(std::thread(consumer, &data));
+
+    th.join();
+    for (auto &thread : vec)
+        thread.join();
+}
+```
+get()이 여러번 가능해 별도의 참조, 포인터 변수가 불필요하다.  
+&nbsp;  
+
+std::future에는 std::condition_variable와 같이 wait_for() 함수가 존재한다.  
+```c++
+while (true) {
+    std::future_status status = data.wait_for(std::chrono::seconds(1));
+
+    if (status == std::future_status::timeout) {
+        // 아직 값 설정이 안됨.
+    }
+    else if (status == std::future_status::ready) {
+        // std::promise의 set_value()로 값이 설정됨.
+        break;
+    }
+}
+```
+위와 같이 사용할 수 있고 std::future에서는 [Spurious Wakeup](#spurious-wakeup) 현상이 발생하지 않는다.  
+&nbsp;  
+
+### Packaged Task  
+&nbsp;  
+
+### Async  
+&nbsp;  
+
+## Coroutine  
 
