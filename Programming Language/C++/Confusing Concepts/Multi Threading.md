@@ -69,6 +69,7 @@ int num = 10;
 auto thread_func = std::thread(func_ref, std::ref(num));
 ```
 값으로 넘기는 게 아니라는 걸 std::ref()를 통해 알려줘야 한다.  
+만약 ```const int &```라면 std::cref()를 이용한다.  
 &nbsp;  
 
 포인터는 밑과 같다.  
@@ -1466,10 +1467,50 @@ int main()
         th.join();
 }
 ```
+사용법은 간단하다.  
 
+1. std::packaged_task에 적당한 Callable을 넣어 생성한다.  
+2. 생성된 std::packaged_task를 std::future에 연결한다.  
+3. std::thread를 생성할 때 Callable 대신 std::packaged_task를 std::move() 함수를 통해 넘긴다.  
+
+주의할 점은 std::packaged_task는 복사가 불가능하기에 명시적으로 std::move()를 이용하여 옮겨야 한다.  
 &nbsp;  
 
 ### Async  
+
+std::promise, std::packaged_task 이런 녀석들은 std::thread를 task 기반으로 사용할 때 도움을 주기 위한 것이라 쓰레드 생성은 결국엔 std::thread를 이용해야 한다.  
+std::async는 쓰레드 생성까지 해주기 때문에 std::thread를 대체할 수 있다.  
+위에서 살펴본 [예제](#packaged-task)를 std::async 사용하여 바꿔보자.  
+```c++
+// 동일 함수 생략
+
+int main()
+{
+    std::vector<std::future<int>> futures;
+    std::vector<int> ary{1, 2, 3, 4, 5, 6, 7, 8, 9};
+
+    for (int i = 0; i < 3; i++)
+        futures.push_back(std::async(std::launch::async, get_partial_sum, &ary, i * 3, (i + 1) * 3));
+
+    int sum = 0;
+    for (auto &val : futures)
+        sum += val.get();
+    std::cout << sum;
+}
+```
+std::thread를 사용할 때보다 훨씬 간결해졌다.  
+단지 std::async가 전달하는 std::future를 저장했다가 값이 필요할 때 get()으로 획득하면 된다.  
+궁금한 것이라면 std::async의 옵션일 것이다.  
+std::async는 3가지 선택지를 제공한다.  
+
+1. std::launch::async  
+    std::async 호출시 바로 쓰레드를 생성하여 비동기적으로 작업을 수행한다.   
+2. std::launch::deferred  
+    std::async가 전달한 std::future 변수의 get()이나 wait() 함수가 호출될 때 쓰레드를 생성하고 동기적으로 작업을 시작한다.  
+3. 아무런 옵션을 주지 않는 경우  
+    어떤 정책으로 쓰레드가 생성되고 종료되는지 보장할 수 없다.  
+
+std::async를 활용하는 경우 std::thread의 join() 함수를 std::future의 get() 함수가 대신한다고 생각하면 된다.   
 &nbsp;  
 
 ## Coroutine  
