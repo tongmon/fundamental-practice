@@ -1569,8 +1569,7 @@ std::async를 활용하는 경우 std::thread의 join() 함수를 std::future의
 내부적으로 별도의 thread pool을 가지고 있는 std::async는 위의 1,2번 장점은 챙길 수 있지만 3번에 대해서는 통제가 어렵기에 std::thread를 이용한 별도의 쓰레드 풀을 만들어 사용하기도 한다.  
 &nbsp;  
 
-지금부터 만들 thread_pool 클래스는 C++17 이상에서만 작동한다.  
-하위 버전에서 사용하려면 std::invoke_result에 대한 구현부의 수정이 이루어져야 한다.  
+그렇다면 thread pool을 한번 구현해보자.  
 먼저 thread pool 클래스의 멤버 변수부터 보자.  
 ```c++
 class thread_pool
@@ -1653,11 +1652,11 @@ class thread_pool
 
         using ret_type = std::invoke_result_t<F, Args...>;
 
-        auto job = std::make_shared<std::packaged_task<ret_type(Args...)>>(std::forward<F>(func));
+        auto job = std::make_shared<std::packaged_task<ret_type()>>(std::bind(std::forward<F>(func), std::forward<Args>(args)...));
         std::future<ret_type> job_result = job.get()->get_future();
 
         m_mut_job.lock();
-        m_jobs.push([&, job]() -> void { (*job)(std::forward<Args>(args)...); });
+        m_jobs.push([job]() -> void { (*job)(); });
         m_mut_job.unlock();
 
         m_cv_jobs.notify_one();
@@ -1665,6 +1664,53 @@ class thread_pool
         return job_result;
     }
 };
+```
+템플릿이 많이 사용되어 복잡해 보이지만 하나 하나 뜯어보면 생각보다 쉽다.  
+&nbsp;  
+
+일단 작업을 넘겨줘야 하니 작업에 대한 Callable이 F 타입으로 존재한다.  
+작업과 같이 넘겨줄 인수들도 템플릿 파라메터 팩 Args 타입으로 존재한다.  
+```c++
+template <typename F, typename... Args>
+```
+&nbsp;  
+
+std::invoke_result_t을 이용해 Callable인 F 자료형의 반환 타입을 알아낸다.  
+```c++
+using ret_type = std::invoke_result_t<F, Args...>;
+```
+예를 들어 ```float add(int a, int b)```라면 여기선 ret_type은 float형이 된다.  
+&nbsp;  
+
+std::packaged_task를 생성해준다.  
+```c++
+auto job = std::make_shared<std::packaged_task<ret_type()>>(std::bind(std::forward<F>(func), std::forward<Args>(args)...));
+```
+std::packaged_task를 스마트 포인터로 동적 할당하여 push_job() 함수가 종료되어도 수명이 유지되어 m_jobs 멤버 변수에 추가된 작업 정보가 사라지지 않는다.  
+std::bind()를 통해 함수의 인자를 고정시킨다.  
+std::forward를 통해 불필요한 복사를 막는다.  
+&nbsp;  
+
+작업시킬 함수의 반환값을 받기 위한 std::future를 받아온다.  
+```c++
+std::future<ret_type> job_result = job.get()->get_future();
+```
+&nbsp;  
+
+생성된 std::packaged_task를 람다 함수에 넣고 m_jobs 작업 목록에 추가시켜준다.  
+```c++
+m_mut_job.lock();
+m_jobs.push([job]() -> void { (*job)(); });
+m_mut_job.unlock();
+```
+std::queue는 thread-safe하지 않기에 mutex로 감싸준다.  
+람다 함수에서 캡쳐를 ```[job]``` 이렇게 넘긴 이유는 std::shared_ptr의 참조 카운터를 하나 증가시키기 위해서이다.  
+따라서 해당 람다 함수가 사라지지 않는 이상 생성된 std::packaged_task의 수명도 유지된다.  
+&nbsp;  
+
+m_jobs에 작업이 추가되었으니 수면 상태인 쓰레드 중 하나를 깨워 일을 시키면 된다.  
+```c++
+m_cv_jobs.notify_one();
 ```
 &nbsp;  
 
@@ -1684,6 +1730,8 @@ class thread_pool
     }
 };
 ```
+notify_all() 함수를 통해 자고 있던 나머지 쓰레드들도 같이 종료시켜준다.  
+&nbsp;  
 
 전체 코드는 밑과 같다.  
 ```c++
@@ -1722,27 +1770,6 @@ class thread_pool
 
         using ret_type = std::invoke_result_t<F, Args...>;
 
-        auto job = std::make_shared<std::packaged_task<ret_type(Args...)>>(std::forward<F>(func));
-        std::future<ret_type> job_result = job.get()->get_future();
-
-        m_mut_job.lock();
-        m_jobs.push([&args..., job]() -> void { (*job)(std::forward<Args>(args)...); });
-        m_mut_job.unlock();
-
-        m_cv_jobs.notify_one();
-
-        return job_result;
-    }
-
-    /*
-    template <typename F, typename... Args>
-    std::future<std::invoke_result_t<F, Args...>> push_job(F &&func, Args &&...args)
-    {
-        if (m_stop_all)
-            throw std::runtime_error("thread pool is in exist state!");
-
-        using ret_type = std::invoke_result_t<F, Args...>;
-
         auto job = std::make_shared<std::packaged_task<ret_type()>>(std::bind(std::forward<F>(func), std::forward<Args>(args)...));
         std::future<ret_type> job_result = job.get()->get_future();
 
@@ -1754,7 +1781,6 @@ class thread_pool
 
         return job_result;
     }
-    */
 
   private:
     void worker()
@@ -1775,6 +1801,54 @@ class thread_pool
     }
 };
 ```
+&nbsp;  
+
+해당 thread_pool 클래스를 밑과 같이 활용할 수 있다.  
+```c++
+int add_and_print(int a, int b)
+{
+    printf("%d + %d = %d\n", a, b, a + b);
+    return a + b;
+}
+
+struct Number
+{
+    int number;
+
+    Number(int n = 0) : number{n}
+    {
+    }
+
+    float get_and_print(float num)
+    {
+        printf("Number: %f\n", num);
+        return num;
+    }
+
+    void operator()(int a, int b)
+    {
+        printf("Big Number: %d\n", std::max(std::max(a, b), number));
+    }
+};
+
+int main()
+{
+    thread_pool pool(2);
+    auto ret_1 = pool.push_job(add_and_print, 3, 4);
+
+    Number num;
+    auto ret_2 = pool.push_job(&Number::get_and_print, &num, 3.14f);
+
+    auto ret_3 = pool.push_job(Number(10), 7, 8);
+
+    int sum = ret_1.get();
+    float fnum = ret_2.get();
+    ret_3.get();
+
+    std::cout << "Result from add_and_print(): " << sum << "\nResult from get_and_print(): " << fnum;
+}
+```
+push_job() 함수가 템플릿으로 짜여져 있어 위와 같이 다양한 Callable을 대처할 수 있다.  
 
 ## Coroutine  
 
