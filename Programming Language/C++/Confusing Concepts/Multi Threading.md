@@ -1334,9 +1334,6 @@ void read_y_then_x()
 모든 쓰레드에서 동일한 값이 관찰되는 것이 보장되기에 z의 값이 0으로 나올 수 없다.  
 &nbsp;  
 
-## Thread Pool  
-&nbsp;  
-
 ## Task  
 
 기존에 다루었던 std::thread는 **쓰레드 기반**이다.  
@@ -1553,6 +1550,231 @@ std::async는 3가지 선택지를 제공한다.
 
 std::async를 활용하는 경우 std::thread의 join() 함수를 std::future의 get() 함수가 대신한다고 생각하면 된다.   
 &nbsp;  
+
+## Thread Pool  
+
+쓰레드 풀이란 쓰레드를 사용할 만큼 미리 여러개 만들어 놓은 집합이다.  
+쓰레드를 이용할 때마다 그때 그때 생성하여 사용하면 되는데 왜 굳이 쓰레드 풀을 사용할까?  
+쓰레드 풀을 사용할 때 얻을 수 있는 장점은 밑과 같다.  
+
+1. **쓰레드 생성, 소멸에 대한 오버헤드가 적어진다.**  
+    미리 만들어 놓은 쓰레드를 사용하기에 새 쓰레드 작업이 필요할 때마다 새로운 쓰레드를 생성하고 폐기할 필요가 없어 오버헤드가 적다.  
+2. **사용할 전체 쓰레드 개수에 대한 제한을 둘 수 있다.**  
+    만약 8코어 CPU를 사용 중인데 생성된 쓰레드의 개수가 20개라고 하면 12개의 쓰레드는 분명히 대기 상태에 빠지게 되고 필요없는 곳에 시스템 자원이 낭비된다.  
+    차리리 8개의 쓰레드만 생성해놓고 수행해야 할 작업을 리스트에 저장해놓고 뽑아 수행하는 것이 효과적이다.  
+3. **쓰레드 작업 방식을 통제할 수 있다.**  
+    쓰레드 스케쥴링 방식을 유동적으로 조정할 수 있다.  
+    또 특정 작업을 몇 분마다 주기적으로 수행하는 등 쓰레드 작업 방식을 정의하는 데 유연하다.  
+
+내부적으로 별도의 thread pool을 가지고 있는 std::async는 위의 1,2번 장점은 챙길 수 있지만 3번에 대해서는 통제가 어렵기에 std::thread를 이용한 별도의 쓰레드 풀을 만들어 사용하기도 한다.  
+&nbsp;  
+
+지금부터 만들 thread_pool 클래스는 C++17 이상에서만 작동한다.  
+하위 버전에서 사용하려면 std::invoke_result에 대한 구현부의 수정이 이루어져야 한다.  
+먼저 thread pool 클래스의 멤버 변수부터 보자.  
+```c++
+class thread_pool
+{
+    size_t m_thread_num;                       // 총 thread 개수
+    std::vector<std::thread> m_worker_threads; // 쓰레드 보관 벡터
+    std::queue<std::function<void()>> m_jobs;  // 할 일에 대한 큐
+    std::condition_variable m_cv_jobs;         // 큐의 thread-safe를 위한 조건 변수
+    std::mutex m_mut_job;                      // 큐의 thread-safe를 위한 뮤텍스
+    bool m_stop_all;                           // 모든 쓰레드를 종료 시키는 플래그
+};
+```
+주석에 적힌 설명 그대로다.  
+제일 먼저 들어온 작업부터 처리하기 위해 std::queue를 사용했다.  
+std::queue에서 작업을 참조할 때는 thread-safe해야 하기에 m_cv_jobs, m_mut_job와 같은 상호배제에 대한 변수들도 존재한다.  
+&nbsp;  
+
+생성자는 밑과 같다.  
+```c++
+class thread_pool
+{
+    // 동일 구현부 생략
+
+  public:
+    thread_pool(size_t thread_num)
+        : m_thread_num(thread_num), m_stop_all(false)
+    {
+        m_worker_threads.reserve(m_thread_num);
+        for (size_t i = 0; i < m_thread_num; i++)
+            m_worker_threads.push_back(std::thread([this]() -> void { this->worker(); }));
+    }
+};
+```
+지정된 숫자만큼 쓰레드를 미리 생성한다.  
+worker()는 실제 작업이 처리되는 함수로 바로 밑에서 설명한다.  
+&nbsp;  
+
+worker() 함수는 밑과 같다.  
+```c++
+class thread_pool
+{
+    // 동일 구현부 생략
+
+  private:
+    void worker()
+    {
+        while (true)
+        {
+            std::unique_lock<std::mutex> lock(m_mut_job);
+            m_cv_jobs.wait(lock, [this]() -> bool { return !this->m_jobs.empty() || this->m_stop_all; });
+            if (m_stop_all && m_jobs.empty())
+                return;
+
+            std::function<void()> job = std::move(m_jobs.front());
+            m_jobs.pop();
+            lock.unlock();
+
+            job();
+        }
+    }
+};
+```
+생산자-소비자 패턴에서 소비자에 해당한다.  
+대기 상태에서 깨어날 때 작업이 있으면 처리하고 없다면 다시 잠든다.  
+m_stop_all가 설정되어 있고 남아있는 작업이 없다면 그대로 종료된다.  
+&nbsp;  
+
+다음으로는 수행할 작업을 리스트에 추가하는 push_job() 함수를 알아보자.  
+```c++
+class thread_pool
+{
+    // 동일 구현부 생략
+
+  public:
+    template <typename F, typename... Args>
+    std::future<std::invoke_result_t<F, Args...>> push_job(F &&func, Args &&...args)
+    {
+        if (m_stop_all)
+            throw std::runtime_error("thread pool is in exist state!");
+
+        using ret_type = std::invoke_result_t<F, Args...>;
+
+        auto job = std::make_shared<std::packaged_task<ret_type(Args...)>>(std::forward<F>(func));
+        std::future<ret_type> job_result = job.get()->get_future();
+
+        m_mut_job.lock();
+        m_jobs.push([&, job]() -> void { (*job)(std::forward<Args>(args)...); });
+        m_mut_job.unlock();
+
+        m_cv_jobs.notify_one();
+
+        return job_result;
+    }
+};
+```
+&nbsp;  
+
+다음은 소멸자를 보자.  
+```c++
+class thread_pool
+{
+    // 동일 구현부 생략
+
+    ~thread_pool()
+    {
+        m_stop_all = true;
+        m_cv_jobs.notify_all();
+
+        for (auto &th : m_worker_threads)
+            th.join();
+    }
+};
+```
+
+전체 코드는 밑과 같다.  
+```c++
+class thread_pool
+{
+    size_t m_thread_num;                       // 총 thread 개수
+    std::vector<std::thread> m_worker_threads; // 쓰레드 보관 벡터
+    std::queue<std::function<void()>> m_jobs;  // 할 일에 대한 큐
+    std::condition_variable m_cv_jobs;         // 큐의 thread-safe를 위한 조건 변수
+    std::mutex m_mut_job;                      // 큐의 thread-safe를 위한 뮤텍스
+    bool m_stop_all;                           // 모든 쓰레드를 종료 시키는 플래그
+
+  public:
+    thread_pool(size_t thread_num)
+        : m_thread_num(thread_num), m_stop_all(false)
+    {
+        m_worker_threads.reserve(m_thread_num);
+        for (size_t i = 0; i < m_thread_num; i++)
+            m_worker_threads.push_back(std::thread([this]() -> void { this->worker(); }));
+    }
+
+    ~thread_pool()
+    {
+        m_stop_all = true;
+        m_cv_jobs.notify_all();
+
+        for (auto &th : m_worker_threads)
+            th.join();
+    }
+
+    template <typename F, typename... Args>
+    std::future<std::invoke_result_t<F, Args...>> push_job(F &&func, Args &&...args)
+    {
+        if (m_stop_all)
+            throw std::runtime_error("thread pool is in exist state!");
+
+        using ret_type = std::invoke_result_t<F, Args...>;
+
+        auto job = std::make_shared<std::packaged_task<ret_type(Args...)>>(std::forward<F>(func));
+        std::future<ret_type> job_result = job.get()->get_future();
+
+        m_mut_job.lock();
+        m_jobs.push([&args..., job]() -> void { (*job)(std::forward<Args>(args)...); });
+        m_mut_job.unlock();
+
+        m_cv_jobs.notify_one();
+
+        return job_result;
+    }
+
+    /*
+    template <typename F, typename... Args>
+    std::future<std::invoke_result_t<F, Args...>> push_job(F &&func, Args &&...args)
+    {
+        if (m_stop_all)
+            throw std::runtime_error("thread pool is in exist state!");
+
+        using ret_type = std::invoke_result_t<F, Args...>;
+
+        auto job = std::make_shared<std::packaged_task<ret_type()>>(std::bind(std::forward<F>(func), std::forward<Args>(args)...));
+        std::future<ret_type> job_result = job.get()->get_future();
+
+        m_mut_job.lock();
+        m_jobs.push([job]() -> void { (*job)(); });
+        m_mut_job.unlock();
+
+        m_cv_jobs.notify_one();
+
+        return job_result;
+    }
+    */
+
+  private:
+    void worker()
+    {
+        while (true)
+        {
+            std::unique_lock<std::mutex> lock(m_mut_job);
+            m_cv_jobs.wait(lock, [this]() -> bool { return !this->m_jobs.empty() || this->m_stop_all; });
+            if (m_stop_all && m_jobs.empty())
+                return;
+
+            std::function<void()> job = std::move(m_jobs.front());
+            m_jobs.pop();
+            lock.unlock();
+
+            job();
+        }
+    }
+};
+```
 
 ## Coroutine  
 
