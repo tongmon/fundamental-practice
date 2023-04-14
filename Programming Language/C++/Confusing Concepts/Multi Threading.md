@@ -1815,7 +1815,8 @@ struct Number
 {
     int number;
 
-    Number(int n = 0) : number{n}
+    Number(int n = 0)
+        : number{n}
     {
     }
 
@@ -1841,14 +1842,160 @@ int main()
 
     auto ret_3 = pool.push_job(Number(10), 7, 8);
 
+    auto ret_4 = pool.push_job([]() -> void { printf("Just Lambda...\n"); });
+
     int sum = ret_1.get();
     float fnum = ret_2.get();
     ret_3.get();
+    ret_4.get();
 
-    std::cout << "Result from add_and_print(): " << sum << "\nResult from get_and_print(): " << fnum;
+    std::cout
+        << "Result from add_and_print(): " << sum
+        << "\nResult from get_and_print(): " << fnum;
 }
 ```
 push_job() 함수가 템플릿으로 짜여져 있어 위와 같이 다양한 Callable을 대처할 수 있다.  
 
 ## Coroutine  
+
+코루틴이란 중단점을 가지는 함수다.  
+대충 예를 들면 밑과 같이 표현할 수 있다.  
+```c++
+int co_func(int num)
+{
+    return num;
+    [suspend_point 1]
+
+    return num * 10;
+    [suspend_point 2]
+
+    return num + 5;
+    [suspend_point 3]
+}
+```
+위 함수는 중단점이 3개인 함수다.  
+물론 설명을 위해 대략적인 모습을 구현한 것이지 실제 C++의 코루틴을 위와 같은 모습으로 사용한다는 것은 아니다.  
+&nbsp;  
+
+코루틴 함수 co_func()는 같은 인자를 넘기더라도 호출할 때마다 반환값이 달라진다.  
+```c++
+std::cout << co_func(10) << " " << co_func(10) << " " << co_func(10) << std::endl;
+```
+위 코드의 결과 값은 ```10 100 15```가 된다.  
+즉 return으로 값을 반환한다고 함수가 완전히 종료되는 것이 아니고 중단점 전까지 수행했던 정보들을 모두 가진 상태로 코루틴 함수를 재개할 수 있다.  
+&nbsp;  
+
+C++20에서는 코루틴을 공식적으로 지원한다.  
+하지만 C++ 답게 기본적인 틀만 제공하고 나머지 세부적인 요소는 직접 구현해서 사용해줘야 한다.  
+먼저 대략적인 사용법을 알아보자.  
+밑과 같은 구조체는 필수적으로 구현해줘야 한다.  
+```c++
+// 코루틴 함수의 반환형은 최소한 밑과 같은 클래스 형식을 갖춰야 한다. (클래스 이름은 맘대로 지정해도 된다.)
+class task
+{
+  public:
+    // 코루틴을 이용하기 위해 promise_type 이라는 동일한 이름의 sub struct 타입이 정의되어야 한다.
+    struct promise_type
+    {
+        // 사용자 정의 "코루틴 반환 객체"를 반환 한다
+        task get_return_object()
+        {
+            return task{std::coroutine_handle<promise_type>::from_promise(*this)};
+        }
+
+        // 코루틴 함수 최초 실행 시 호출된다.
+        // awaitable 객체를 반환 한다.
+        auto initial_suspend()
+        {
+            return std::suspend_always{};
+        }
+
+        // 코루틴의 마지막 반환을 나타내는 co_return을 사용하는 경우 상황에 따라 구현된다.
+        auto return_void()
+        {
+            return;
+        }
+
+        // 코루틴 함수의 완전한 종료시 호출된다.
+        auto final_suspend() noexcept
+        {
+            return std::suspend_always{};
+        }
+
+        // 코루틴 수행 중 예외 발생 시 호출
+        void unhandled_exception()
+        {
+            std::exit(1);
+        }
+    };
+
+    // std::coroutine_handle<promise_type> 을 인자로 받아 멤버 변수를 초기화 하는 생성자가 있어야 한다.
+    task(std::coroutine_handle<promise_type> handler)
+        : co_handler(handler)
+    {
+    }
+
+    // 소멸자에서 std::coroutine_handle<promise_type> 타입의 코루틴 핸들러 멤버 변수의 destroy를 호출 해야 한다.
+    ~task()
+    {
+        if (true == static_cast<bool>(co_handler))
+        {
+            co_handler.destroy();
+        }
+    }
+
+    // 코루틴 반환 자료형에는 std::coroutine_handle<promise_type> 타입의 멤버 변수가 있어야 한다.
+    std::coroutine_handle<promise_type> co_handler;
+};
+```
+구체적인 주석 설명은 추후에 다시 설명하니 구조 위주로 봐라.  
+모든 코루틴 함수의 반환형은 위와 같은 클래스 형태를 갖춰야 한다.  
+위 클래스의 세부 구현에 따라 코루틴의 동작 결과가 달라지게 된다.  
+&nbsp;  
+
+밑과 같이 활용할 수 있다.  
+```c++
+task co_func()
+{
+    std::cout << "Hello\n";
+    co_await std::suspend_always{};
+    std::cout << "World\n";
+}
+
+int main()
+{
+    task co_task = co_func();
+
+    std::cout << "coroutine first start!\n";
+
+    co_task.co_handler.resume();
+
+    std::cout << "coroutine second start!\n";
+
+    co_task.co_handler.resume();
+}
+```
+출력 결과는 밑과 같다.  
+```text
+coroutine first start!
+Hello
+coroutine second start!
+World
+```
+co_func()의 중단점은 ```co_await std::suspend_always{};``` 이렇게 잡아주었다.  
+코드를 보면 알겠지만 코루틴 함수를 호출한다고 무조건 수행되는 것이 아니다. (세부 구현에 따라 무조건 수행되도록 만들 수도 있다.)  
+```std::coroutine_handle<promise_type>``` 자료형의 resume() 함수를 호출해야 중단점으로 구분되어 수행된다.  
+&nbsp;  
+
+이 정도가 대략적인 사용법이고 세부적으로 들어가면 코루틴의 사용법은 4가지로 나눌 수 있다.  
+
+1. co_await을 이용하여 함수에 중단점을 찍는 방법  
+2. co_yield를 이용하여 함수에 중단점을 찍으면서 값을 반환하는 방법  
+3. co_return을 이용하여 함수의 마지막 중단점을 찍는 방법  
+4. 코루틴 함수와 반복자를 함께 사용하는 방법  
+
+4가지에 대해 세부적으로 알아보자.  
+&nbsp;  
+
+### co_await  
 
