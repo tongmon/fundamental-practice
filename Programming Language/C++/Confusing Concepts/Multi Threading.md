@@ -1948,7 +1948,7 @@ class task
     std::coroutine_handle<promise_type> co_handler;
 };
 ```
-구체적인 주석 설명은 추후에 다시 설명하니 구조 위주로 봐라.  
+구체적인 주석 설명은 추후에 다시 설명하니 구조 위주로 보자.   
 모든 코루틴 함수의 반환형은 위와 같은 클래스 형태를 갖춰야 한다.  
 위 클래스의 세부 구현에 따라 코루틴의 동작 결과가 달라지게 된다.  
 &nbsp;  
@@ -1983,7 +1983,7 @@ coroutine second start!
 World
 ```
 co_func()의 중단점은 ```co_await std::suspend_always{};``` 이렇게 잡아주었다.  
-코드를 보면 알겠지만 코루틴 함수를 호출한다고 무조건 수행되는 것이 아니다. (세부 구현에 따라 무조건 수행되도록 만들 수도 있다.)  
+코드를 보면 알겠지만 코루틴 함수를 호출한다고 무조건 수행되는 것이 아니다.  
 ```std::coroutine_handle<promise_type>``` 자료형의 resume() 함수를 호출해야 중단점으로 구분되어 수행된다.  
 &nbsp;  
 
@@ -1998,4 +1998,121 @@ co_func()의 중단점은 ```co_await std::suspend_always{};``` 이렇게 잡아
 &nbsp;  
 
 ### co_await  
+
+co_await을 이용하면 코루틴 함수에 중단점을 찍을 수 있다.  
+중단점에도 종류가 있는데 코루틴 함수가 멈추는 중단점은 ```std::suspend_always{};``` 요 녀석으로 설정한다.  
+중단점이긴 하지만 코루틴 함수가 멈추지 않는 중단점은 ```std::suspend_never{};``` 요 녀석으로 설정한다.  
+```std::suspend_always{};```, ```std::suspend_never{};``` 구조를 알면 커스텀 중단점도 만들 수 있다.  
+중단점 구조체들을 awaitable 객체라고 부른다.  
+먼저 ```std::suspend_always{};```와 ```std::suspend_never{};```의 차이를 간단히 알아보자.  
+&nbsp;  
+
+밑과 같은 코루틴 함수라면 resume()을 호출하면 Hello가 출력된다.   
+```c++
+task co_func()
+{
+    std::cout << "Hello ";
+    co_await std::suspend_always{};
+    std::cout << "World\n";
+}
+```
+중단점에 걸려 World는 출력되지 않는다.  
+&nbsp;  
+
+C++에 구현되어 있는 ```std::suspend_always{};```의 모습은 밑과 같다.  
+```c++
+_EXPORT_STD struct suspend_always {
+    _NODISCARD constexpr bool await_ready() const noexcept {
+        return false;
+    }
+
+    constexpr void await_suspend(coroutine_handle<>) const noexcept {}
+    constexpr void await_resume() const noexcept {}
+};
+```
+await_suspend(), await_resume()는 빈 껍데기일 뿐이고 await_ready()에서 false를 반환해주어 코루틴 함수가 멈춰설 수 있던 것이다.  
+&nbsp;  
+
+반면에 밑과 같은 코루틴 함수라면 resume() 호출시 Hello World가 모두 출력된다.  
+```c++
+task co_func()
+{
+    std::cout << "Hello ";
+    co_await std::suspend_never{};
+    std::cout << "World\n";
+}
+```
+이와 같이 ```std::suspend_never{}```는 중단하지 않는 아이러니한 중단점이다.  
+&nbsp;  
+
+C++에 구현되어 있는 ```std::suspend_never{};```의 모습은 밑과 같다.  
+```c++
+_EXPORT_STD struct suspend_never {
+    _NODISCARD constexpr bool await_ready() const noexcept {
+        return true;
+    }
+
+    constexpr void await_suspend(coroutine_handle<>) const noexcept {}
+    constexpr void await_resume() const noexcept {}
+};
+```
+await_ready()에서 true를 반환해주어 중단점에 걸려도 그대로 통과하게 된다.  
+&nbsp;  
+
+이렇게 awaitable 객체(밑에서는 ```std::suspend_always```를 사용했다고 가정)를 만나면 컴파일러는 co_func()을 밑과 해석하게 된다.  
+```c++
+task co_func()
+{
+    std::cout << "Hello\n";
+
+    // std::suspend_always{};는 밑과 같이 바뀜
+    std::suspend_always awaitable;
+    if (!awaitable.await_ready())
+        awaitable.await_suspend([코루틴 핸들]);
+    awaitable.await_resume();
+
+    std::cout << "World\n";
+}
+```
+```std::suspend_always``` 중단점이 멈췄던 이유는 await_ready() 반환값이 false이기에 await_suspend()가 호출되어서 그렇다.  
+await_ready(), await_suspend(), await_resume() 함수만 구성해주면 커스텀 awaitable 객체를 만들 수도 있다.  
+&nbsp;  
+
+예를 들어 밑과 같은 awaitable이 있다고 하자.  
+```c++
+struct custom_suspend
+{
+    constexpr bool await_ready() const noexcept
+    {
+        std::cout << "await_ready() called!\n";
+        return false;
+    }
+    void await_suspend(std::coroutine_handle<> handle) const noexcept
+    {
+        std::thread t([handle]() {
+            handle.resume();
+        });
+        t.detach();
+    }
+    constexpr void await_resume() const noexcept
+    {
+        std::cout << "await_resume() called!\n";
+    }
+};
+```
+await_suspend() 함수가 호출되면 다른 쓰레드에서 코루틴 함수를 진행시켜버린다.  
+&nbsp;  
+
+co_func() 함수에 custom_suspend 중단점을 이용해보면 독특한 결과가 도출된다.  
+```c++
+task co_func()
+{
+    std::cout << std::this_thread::get_id() << " Hello\n";
+
+    co_await custom_suspend{};
+
+    std::cout << std::this_thread::get_id() << "World\n";
+}
+```
+
 
