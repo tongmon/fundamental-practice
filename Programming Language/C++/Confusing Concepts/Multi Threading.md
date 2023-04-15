@@ -2019,7 +2019,7 @@ task co_func()
 중단점에 걸려 World는 출력되지 않는다.  
 &nbsp;  
 
-C++에 구현되어 있는 ```std::suspend_always{};```의 모습은 밑과 같다.  
+C++에 구현되어 있는 ```std::suspend_always```의 모습은 밑과 같다.  
 ```c++
 _EXPORT_STD struct suspend_always {
     _NODISCARD constexpr bool await_ready() const noexcept {
@@ -2033,7 +2033,7 @@ _EXPORT_STD struct suspend_always {
 await_suspend(), await_resume()는 빈 껍데기일 뿐이고 await_ready()에서 false를 반환해주어 코루틴 함수가 멈춰설 수 있던 것이다.  
 &nbsp;  
 
-반면에 밑과 같은 코루틴 함수라면 resume() 호출시 Hello World가 모두 출력된다.  
+반면에 밑과 같이 ```std::suspend_never``` 를 사용한 코루틴 함수라면 resume() 호출시 Hello World가 모두 출력된다.  
 ```c++
 task co_func()
 {
@@ -2042,7 +2042,7 @@ task co_func()
     std::cout << "World\n";
 }
 ```
-이와 같이 ```std::suspend_never{}```는 중단하지 않는 아이러니한 중단점이다.  
+이와 같이 ```std::suspend_never```는 중단하지 않는 아이러니한 중단점이다.  
 &nbsp;  
 
 C++에 구현되어 있는 ```std::suspend_never{};```의 모습은 밑과 같다.  
@@ -2068,7 +2068,7 @@ task co_func()
     // std::suspend_always{};는 밑과 같이 바뀜
     std::suspend_always awaitable;
     if (!awaitable.await_ready())
-        awaitable.await_suspend([코루틴 핸들]);
+        awaitable.await_suspend([코루틴 핸들]); // resume()이 호출되기 전까지 대기
     awaitable.await_resume();
 
     std::cout << "World\n";
@@ -2082,7 +2082,7 @@ await_ready(), await_suspend(), await_resume() 함수만 구성해주면 커스�
 ```c++
 struct custom_suspend
 {
-    constexpr bool await_ready() const noexcept
+    bool await_ready() const noexcept
     {
         std::cout << "await_ready() called!\n";
         return false;
@@ -2094,7 +2094,7 @@ struct custom_suspend
         });
         t.detach();
     }
-    constexpr void await_resume() const noexcept
+    void await_resume() const noexcept
     {
         std::cout << "await_resume() called!\n";
     }
@@ -2111,8 +2111,73 @@ task co_func()
 
     co_await custom_suspend{};
 
-    std::cout << std::this_thread::get_id() << "World\n";
+    std::cout << std::this_thread::get_id() << " World\n";
 }
 ```
 
 
+```c++
+
+struct custom_suspend
+{
+    std::future<void> &ret;
+
+    custom_suspend(std::future<void> &ret)
+        : ret(ret)
+    {
+    }
+
+    bool await_ready() const noexcept
+    {
+        // std::cout << "await_ready() called!\n";
+        return false;
+    }
+    void await_suspend(std::coroutine_handle<> handle) const noexcept
+    {
+        std::promise<void> p;
+        ret = p.get_future();
+        std::thread th([handle, &p]() {
+            handle.resume();
+            p.set_value();
+        });
+        th.detach();
+
+        // std::thread t([handle]() {
+        //     handle.resume();
+        // });
+        // t.detach();
+    }
+    void await_resume() const noexcept
+    {
+        // std::cout << "await_resume() called!\n";
+    }
+};
+
+task co_func(std::future<void> &ret)
+{
+    std::cout << std::this_thread::get_id() << " Hello\n";
+
+    co_await custom_suspend{ret};
+
+    std::cout << std::this_thread::get_id() << " World\n";
+}
+
+int main()
+{
+    std::future<void> ret;
+    auto f = co_func(ret);
+
+    std::cout << "Thread id : " << std::this_thread::get_id() << "\n";
+    f.co_handler.resume();
+    std::cout << "Thread id : " << std::this_thread::get_id() << "\n";
+
+    while (true)
+    {
+        std::future_status status = ret.wait_for(std::chrono::milliseconds(10));
+        if (status == std::future_status::ready)
+            break;
+    }
+
+    _sleep(10);
+}
+```
