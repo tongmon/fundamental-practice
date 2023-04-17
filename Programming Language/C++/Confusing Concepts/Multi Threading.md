@@ -1938,10 +1938,8 @@ class task
     // 소멸자에서 std::coroutine_handle<promise_type> 타입의 코루틴 핸들러 멤버 변수의 destroy를 호출 해야 한다.
     ~task()
     {
-        if (true == static_cast<bool>(co_handler))
-        {
+        if (co_handler)
             co_handler.destroy();
-        }
     }
 
     // 코루틴 반환 자료형에는 std::coroutine_handle<promise_type> 타입의 멤버 변수가 있어야 한다.
@@ -1994,7 +1992,7 @@ co_func()의 중단점은 ```co_await std::suspend_always{};``` 이렇게 잡아
 3. co_return을 이용하여 함수의 마지막 중단점을 찍는 방법  
 4. 코루틴 함수와 반복자를 함께 사용하는 방법  
 
-4가지에 대해 세부적으로 알아보자.  
+4가지에 대해 세부적으로 알아보고 마지막으로 task 클래스를 템플릿화하는 것으로 마무리하겠다.  
 &nbsp;  
 
 ### co_await  
@@ -2017,6 +2015,7 @@ task co_func()
 }
 ```
 중단점에 걸려 World는 출력되지 않는다.  
+resume()을 한 번 더 호출해야 World가 출력될 것이다.  
 &nbsp;  
 
 C++에 구현되어 있는 ```std::suspend_always```의 모습은 밑과 같다.  
@@ -2063,12 +2062,12 @@ await_ready()에서 true를 반환해주어 중단점에 걸려도 그대로 통
 ```c++
 task co_func()
 {
-    std::cout << "Hello\n";
+    std::cout << "Hello ";
 
     // std::suspend_always{};는 밑과 같이 바뀜
     std::suspend_always awaitable;
     if (!awaitable.await_ready())
-        awaitable.await_suspend([코루틴 핸들]); // resume()이 호출되기 전까지 대기
+        awaitable.await_suspend([코루틴 핸들]); // resume()이 호출되기 전까지 해당 라인에서 대기
     awaitable.await_resume();
 
     std::cout << "World\n";
@@ -2084,7 +2083,7 @@ struct custom_suspend
 {
     bool await_ready() const noexcept
     {
-        std::cout << "await_ready() called!\n";
+        std::cout << "await_ready() called in thread : " << std::this_thread::get_id() << "\n";
         return false;
     }
     void await_suspend(std::coroutine_handle<> handle) const noexcept
@@ -2096,7 +2095,7 @@ struct custom_suspend
     }
     void await_resume() const noexcept
     {
-        std::cout << "await_resume() called!\n";
+        std::cout << "await_resume() called in thread : " << std::this_thread::get_id() << "\n";
     }
 };
 ```
@@ -2107,77 +2106,439 @@ co_func() 함수에 custom_suspend 중단점을 이용해보면 독특한 결과
 ```c++
 task co_func()
 {
-    std::cout << std::this_thread::get_id() << " Hello\n";
+    std::cout << "co_func() called in thread : " << std::this_thread::get_id() << "\n";
 
     co_await custom_suspend{};
 
-    std::cout << std::this_thread::get_id() << " World\n";
-}
-```
-
-
-```c++
-
-struct custom_suspend
-{
-    std::future<void> &ret;
-
-    custom_suspend(std::future<void> &ret)
-        : ret(ret)
-    {
-    }
-
-    bool await_ready() const noexcept
-    {
-        // std::cout << "await_ready() called!\n";
-        return false;
-    }
-    void await_suspend(std::coroutine_handle<> handle) const noexcept
-    {
-        std::promise<void> p;
-        ret = p.get_future();
-        std::thread th([handle, &p]() {
-            handle.resume();
-            p.set_value();
-        });
-        th.detach();
-
-        // std::thread t([handle]() {
-        //     handle.resume();
-        // });
-        // t.detach();
-    }
-    void await_resume() const noexcept
-    {
-        // std::cout << "await_resume() called!\n";
-    }
-};
-
-task co_func(std::future<void> &ret)
-{
-    std::cout << std::this_thread::get_id() << " Hello\n";
-
-    co_await custom_suspend{ret};
-
-    std::cout << std::this_thread::get_id() << " World\n";
+    std::cout << "co_func() called in thread : " << std::this_thread::get_id() << "\n";
 }
 
 int main()
 {
-    std::future<void> ret;
-    auto f = co_func(ret);
+    task co_task = co_func();
+    std::cout << "main thread id: " << std::this_thread::get_id() << "\n";
+    co_task.co_handler.resume();
+    std::cout << "main thread id: " << std::this_thread::get_id() << "\n";
 
-    std::cout << "Thread id : " << std::this_thread::get_id() << "\n";
-    f.co_handler.resume();
-    std::cout << "Thread id : " << std::this_thread::get_id() << "\n";
-
-    while (true)
-    {
-        std::future_status status = ret.wait_for(std::chrono::milliseconds(10));
-        if (status == std::future_status::ready)
-            break;
-    }
-
+    // await_suspend()에서 detach()된 쓰레드의 수행이 끝날 때 까지 대기하는 역할
     _sleep(10);
 }
 ```
+결과는 밑과 같다.  
+```
+main thread id: 12852
+co_func() called in thread : 12852
+await_ready() called in thread : 12852
+main thread id: 12852
+await_resume() called in thread : 18224
+co_func() called in thread : 18224
+```
+이렇게 코루틴 함수의 특정 부분만 다른 쓰레드에서 수행되게 만들 수도 있다.  
+&nbsp;  
+
+### co_yield  
+
+함수에 중단점을 찍어주는 co_await과 다르게 co_yield는 중단점을 찍어주면서 함수에서 특정 값을 반환하는 경우 사용된다.  
+co_yield를 사용하려면 promise_type 구조체를 co_yield에 맞게 재정의해줘야 한다.  
+[여기](#coroutine)에서 만들었던 task 클래스 내부의 promise_type 구조체를 수정해보자.  
+```c++
+class task
+{
+    // 동일 구현부 생략
+
+    struct promise_type
+    {
+        // 동일 구현부 생략
+
+        int value;
+
+        std::suspend_always yield_value(int value)
+        {
+            this->value = value;
+            return {};
+        }
+    };
+};
+```
+yield_value() 함수의 반환형은 awaitable 객체다.  
+즉 커스텀 awaitable 객체도 반환이 가능하다.   
+&nbsp;  
+
+co_yield를 이용한 함수를 만들어보자.  
+```c++
+task co_func()
+{
+    co_yield 7;
+    co_yield 77;
+    co_yield 777;
+}
+```
+호출할 때마다 반환 값이 달라지는 함수다.  
+&nbsp;  
+
+사용법은 밑과 같다.  
+```c++
+auto func = co_func();
+
+func.co_handler.resume();
+std::cout << func.co_handler.promise().value << " ";
+
+func.co_handler.resume();
+std::cout << func.co_handler.promise().value << " ";
+
+func.co_handler.resume();
+std::cout << func.co_handler.promise().value;
+```
+resume()을 호출하고 promise().value를 통해 값을 획득한다.  
+위 예시의 실행 결과는 ```7 77 777```이 된다.  
+&nbsp;  
+
+### co_return  
+
+co_return은 코루틴 함수의 완전한 종료를 알리는 역할을 한다.  
+위에서 예시로 다루었던 co_func() 함수들의 구현부를 보면 모두 co_return를 명시적으로 사용하지 않았는데 이러면 코루틴 함수에 대한 정보가 메모리에서 해제되지 않고 상주하게 된다.  
+따라서 co_return을 명시적으로 사용하여 코루틴 함수에 대한 정보를 깔끔히 지워줘야 한다.  
+co_return가 수행된 후에 final_suspend() 함수가 호출된다.  
+&nbsp;  
+
+반환형이 void인 코루틴 함수를 구현한다면 promise_type 구조체에 return_void()를 정의하면 된다.  
+```c++
+class task
+{
+    // 동일 구현부 생략
+
+    struct promise_type
+    {
+        // 동일 구현부 생략
+
+        auto return_void()
+        {
+            return;
+        }
+    };
+};
+
+task co_func()
+{
+    std::cout << "coroutine is good!\n";
+    co_return;
+}
+```
+&nbsp;  
+
+특정 값을 반환하는 코루틴 함수를 구현한다면 promise_type 구조체에 return_value()를 정의하면 된다.  
+```c++
+class task
+{
+    // 동일 구현부 생략
+
+    struct promise_type
+    {
+        // 동일 구현부 생략
+
+        auto return_value(int value)
+        {
+            this->value = value;
+            return;
+        }
+    };
+};
+
+task co_func()
+{
+    co_yield 7;
+    co_yield 77;
+    co_return 777;
+}
+```
+return_void()와 return_value()를 동시에 promise_type 구조체에 구현해 놓을 수는 없다.  
+둘 중 하나만 선택하여 정의해야 한다.  
+&nbsp;  
+
+### done  
+
+코루틴 함수에 iterator를 적용하여 배열처럼 작동하도록 만들 수 있다.  
+밑과 같은 코루틴 반환 클래스가 존재한다.  
+```c++
+class ary_task
+{
+  public:
+    struct promise_type
+    {
+        int value;
+
+        ary_task get_return_object()
+        {
+            return ary_task{std::coroutine_handle<promise_type>::from_promise(*this)};
+        }
+
+        auto initial_suspend()
+        {
+            return std::suspend_always{};
+        }
+
+        auto return_value(int value)
+        {
+            this->value = value;
+            return;
+        }
+
+        auto final_suspend() noexcept
+        {
+            return std::suspend_always{};
+        }
+
+        void unhandled_exception()
+        {
+            std::exit(1);
+        }
+
+        auto yield_value(int value)
+        {
+            this->value = value;
+            return std::suspend_always{};
+        }
+    };
+
+    ary_task(std::coroutine_handle<promise_type> handler)
+        : co_handler(handler)
+    {
+    }
+
+    ~ary_task()
+    {
+        if (co_handler)
+            co_handler.destroy();
+    }
+
+    std::coroutine_handle<promise_type> co_handler;
+};
+```
+int 형을 반환하는 코루틴 함수에 맞춰 구현되었다.  
+&nbsp;  
+
+밑과 같이 범위에 대한 수를 반환하는 함수가 있다.  
+```c++
+ary_task create_ranged_ary(int first, int last)
+{
+    for (int i = first; i < last; i++)
+        co_yield i;
+    co_return last;
+}
+```
+create_ranged_ary(0, 10)이라면 호출할 때마다 0,1,2...10까지 계속해서 반환 값이 바뀔 것이다.  
+&nbsp;  
+
+create_ranged_ary() 함수를 배열처럼 사용해보자.  
+```c++
+auto range_task = create_ranged_ary(0, 10);
+while (true)
+{
+    range_task.co_handler.resume();
+    std::cout << range_task.co_handler.promise().value << ' ';
+    if (range_task.co_handler.done())
+        break;
+}
+```
+done() 함수는 final_suspend()가 호출되었다면 true 값을 반환한다.  
+co_return을 통해 반환 값 10에서 final_suspend()가 호출되니 출력 값은 ```0 1 2 3 4 5 6 7 8 9 10```가 될 것이다.  
+&nbsp;  
+
+더 나아가 iterator를 적용해 범위 기반 for문에서도 사용할 수 있게 만들자.  
+먼저 ary_task 클래스 내부에 iterator를 정의해준다.  
+
+
+
+
+
+
+
+```c++
+class ary_task
+{
+  public:
+    struct promise_type
+    {
+        int value;
+
+        ary_task get_return_object()
+        {
+            return ary_task{std::coroutine_handle<promise_type>::from_promise(*this)};
+        }
+
+        auto initial_suspend()
+        {
+            return std::suspend_always{};
+        }
+
+        auto return_value(int value)
+        {
+            this->value = value;
+            return;
+        }
+
+        auto final_suspend() noexcept
+        {
+            return std::suspend_always{};
+        }
+
+        void unhandled_exception()
+        {
+            std::exit(1);
+        }
+
+        auto yield_value(int value)
+        {
+            this->value = value;
+            return std::suspend_always{};
+        }
+    };
+
+    class iterator
+    {
+        std::coroutine_handle<promise_type> co_handler;
+
+      public:
+        iterator(std::coroutine_handle<promise_type> handler)
+            : co_handler(handler)
+        {
+        }
+
+        const int &operator*() const
+        {
+            return co_handler.promise().value;
+        }
+
+        iterator &operator++()
+        {
+            co_handler.resume();
+            return *this;
+        };
+
+        bool operator==(std::default_sentinel_t) const
+        {
+            return !co_handler || co_handler.done();
+        }
+    };
+
+    iterator begin()
+    {
+        if (co_handler)
+            co_handler.resume();
+        return iterator{co_handler};
+    }
+
+    std::default_sentinel_t end()
+    {
+        return {};
+    }
+
+    ary_task(std::coroutine_handle<promise_type> handler)
+        : co_handler(handler)
+    {
+    }
+
+    ~ary_task()
+    {
+        if (co_handler)
+            co_handler.destroy();
+    }
+
+    std::coroutine_handle<promise_type> co_handler;
+};
+
+ary_task create_ranged_ary(int first, int last)
+{
+    for (int i = first; i < last; i++)
+        co_yield i;
+    co_return last;
+}
+
+int main()
+{
+    auto range_task = create_ranged_ary(0, 10);
+    // while (true)
+    //{
+    //     range_task.co_handler.resume();
+    //     std::cout << range_task.co_handler.promise().value << ' ';
+    //     if (range_task.co_handler.done())
+    //         break;
+    // }
+
+    // for (auto value : range_task)
+    //     std::cout << value << ' ';
+
+    for (auto iter = range_task.begin(); iter != range_task.end(); ++iter)
+        std::cout << *iter << ' ';
+}
+```
+
+
+
+
+
+
+
+
+
+
+### 템플릿 적용  
+
+promise_type은 딱 봐도 템플릿을 적용해야 할 것 처럼 생겼다.  
+위에서 구현한 promise_type은 int형만 다루고 있는데 다양한 자료형을 모두 대처하기 위해 task 클래스에 템플릿을 적용해보자.  
+```c++
+template <typename T>
+class task
+{
+  public:
+    struct promise_type
+    {
+        T value;
+
+        task<T> get_return_object()
+        {
+            return task<T>{std::coroutine_handle<promise_type>::from_promise(*this)};
+        }
+
+        auto initial_suspend()
+        {
+            return std::suspend_always{};
+        }
+
+        auto return_void()
+        {
+        }
+
+        auto final_suspend() noexcept
+        {
+            return std::suspend_always{};
+        }
+
+        void unhandled_exception()
+        {
+            std::exit(1);
+        }
+
+        auto yield_value(const T &val)
+        {
+            value = val;
+            return std::suspend_always{};
+        }
+    };
+
+    task(std::coroutine_handle<promise_type> handler)
+        : co_handler(handler)
+    {
+    }
+
+    ~task()
+    {
+        if (co_handler)
+            co_handler.destroy();
+    }
+
+    std::coroutine_handle<promise_type> co_handler;
+};
+```
+위와 같이 promise_type에 템플릿을 적용해주면 다양한 형식에 co_yield를 사용할 수 있다.  
+&nbsp;  
