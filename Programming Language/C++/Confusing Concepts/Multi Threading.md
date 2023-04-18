@@ -2196,12 +2196,12 @@ resume()을 호출하고 promise().value를 통해 값을 획득한다.
 ### co_return  
 
 co_return은 코루틴 함수의 완전한 종료를 알리는 역할을 한다.  
-위에서 예시로 다루었던 co_func() 함수들의 구현부를 보면 모두 co_return를 명시적으로 사용하지 않았는데 이러면 코루틴 함수에 대한 정보가 메모리에서 해제되지 않고 상주하게 된다.  
-따라서 co_return을 명시적으로 사용하여 코루틴 함수에 대한 정보를 깔끔히 지워줘야 한다.  
-co_return가 수행된 후에 final_suspend() 함수가 호출된다.  
+즉 co_return이 수행되면 final_suspend() 함수가 호출된다.  
+구현할 promise_type에는 return_void()나 return_value()가 선택적으로 구현되어 있어야 한다.  
+두 함수 모두 구현해 놓을 수는 없다.  
 &nbsp;  
 
-반환형이 void인 코루틴 함수를 구현한다면 promise_type 구조체에 return_void()를 정의하면 된다.  
+promise_type 구조체에 return_void()는 밑과 같이 정의할 수 있다.  
 ```c++
 class task
 {
@@ -2217,16 +2217,62 @@ class task
         }
     };
 };
+```
+그냥 void 반환형 함수다.  
+&nbsp;  
 
-task co_func()
+밑 두 함수는 동일한 역할을 한다.  
+```c++
+task co_func_ex()
 {
     std::cout << "coroutine is good!\n";
+    co_await std::suspend_always{};
+    std::cout << "coroutine is hard!\n";
+    co_return;
+}
+
+task co_func_im()
+{
+    std::cout << "coroutine is good!\n";
+    co_await std::suspend_always{};
+    std::cout << "coroutine is hard!\n";
+}
+```
+즉 return_void() 함수를 이용하는 co_return은 명시적으로 적어주지 않아도 된다.  
+&nbsp;  
+
+밑과 같이 co_yield를 이용해 특정 값을 반환하는 함수에서도 ```co_return;```을 사용할 수 있다.  
+```c++
+task co_func()
+{
+    co_yield 1;
+    co_yield 2;
+    co_yield 3;
     co_return;
 }
 ```
 &nbsp;  
 
-특정 값을 반환하는 코루틴 함수를 구현한다면 promise_type 구조체에 return_value()를 정의하면 된다.  
+밑 처럼 co_return이 명시적으로 적히지 않은 함수에서 co_return은 언제 수행될까?  
+```c++
+task co_func()
+{
+    co_yield 1;
+    co_yield 2;
+    co_yield 3;
+}
+
+auto co_task = co_func();
+co_task.resume();
+co_task.resume();
+co_task.resume();
+co_task.resume();
+```
+co_func()는 3번의 호출까지 각기 다른 값을 반환한다.  
+그 후 4번의 호출 시점에서 숨겨져 있던 ```co_return;```을 통해 return_void() 함수가 실행된다.  
+&nbsp;  
+
+특정 값을 반환하는 co_return을 만들고 싶다면 promise_type 구조체에 return_value()를 정의하면 된다.  
 ```c++
 class task
 {
@@ -2243,7 +2289,12 @@ class task
         }
     };
 };
+```
+모든 원리는 return_void() 함수를 이용하는 co_return과 같고 추가적으로 값을 반환할 뿐이다.  
+&nbsp;  
 
+밑과 같은 함수에서는 3번째 resume()이 진행될 때 777을 반환하고 final_suspend() 함수가 수행될 것이다.  
+```c++
 task co_func()
 {
     co_yield 7;
@@ -2251,8 +2302,7 @@ task co_func()
     co_return 777;
 }
 ```
-return_void()와 return_value()를 동시에 promise_type 구조체에 구현해 놓을 수는 없다.  
-둘 중 하나만 선택하여 정의해야 한다.  
+값을 반환하는 co_return을 사용한다면 코루틴 함수에 명시적으로 co_return을 사용해줘야 한다.  
 &nbsp;  
 
 ### done  
@@ -2277,9 +2327,8 @@ class ary_task
             return std::suspend_always{};
         }
 
-        auto return_value(int value)
+        auto return_void()
         {
-            this->value = value;
             return;
         }
 
@@ -2311,7 +2360,7 @@ class ary_task
             co_handler.destroy();
     }
 
-    std::coroutine_handle<promise_type> co_handler;
+    std::coroutine_handle<promise_type> co_handler = nullptr;
 };
 ```
 int 형을 반환하는 코루틴 함수에 맞춰 구현되었다.  
@@ -2321,78 +2370,34 @@ int 형을 반환하는 코루틴 함수에 맞춰 구현되었다.
 ```c++
 ary_task create_ranged_ary(int first, int last)
 {
-    for (int i = first; i < last; i++)
+    for (int i = first; i <= last; i++)
         co_yield i;
-    co_return last;
 }
 ```
-create_ranged_ary(0, 10)이라면 호출할 때마다 0,1,2...10까지 계속해서 반환 값이 바뀔 것이다.  
+create_ranged_ary(1, 10)이라면 호출할 때마다 1,2...10까지 계속해서 반환 값이 바뀔 것이다.  
 &nbsp;  
 
 create_ranged_ary() 함수를 배열처럼 사용해보자.  
 ```c++
-auto range_task = create_ranged_ary(0, 10);
+auto range_task = create_ranged_ary(1, 10);
 while (true)
 {
     range_task.co_handler.resume();
-    std::cout << range_task.co_handler.promise().value << ' ';
     if (range_task.co_handler.done())
         break;
+    std::cout << range_task.co_handler.promise().value << ' ';
 }
 ```
 done() 함수는 final_suspend()가 호출되었다면 true 값을 반환한다.  
-co_return을 통해 반환 값 10에서 final_suspend()가 호출되니 출력 값은 ```0 1 2 3 4 5 6 7 8 9 10```가 될 것이다.  
+11번째 resume()이 수행되는 시점에 co_return을 통해 final_suspend()가 호출되니 출력 값은 ```1 2 3 4 5 6 7 8 9 10```가 될 것이다.  
 &nbsp;  
 
 더 나아가 iterator를 적용해 범위 기반 for문에서도 사용할 수 있게 만들자.  
 먼저 ary_task 클래스 내부에 iterator를 정의해준다.  
-
-
-
-
-
-
-
 ```c++
-class ary_task
+class task
 {
-  public:
-    struct promise_type
-    {
-        int value;
-
-        ary_task get_return_object()
-        {
-            return ary_task{std::coroutine_handle<promise_type>::from_promise(*this)};
-        }
-
-        auto initial_suspend()
-        {
-            return std::suspend_always{};
-        }
-
-        auto return_value(int value)
-        {
-            this->value = value;
-            return;
-        }
-
-        auto final_suspend() noexcept
-        {
-            return std::suspend_always{};
-        }
-
-        void unhandled_exception()
-        {
-            std::exit(1);
-        }
-
-        auto yield_value(int value)
-        {
-            this->value = value;
-            return std::suspend_always{};
-        }
-    };
+    // 동일 구현부 생략
 
     class iterator
     {
@@ -2412,88 +2417,65 @@ class ary_task
         iterator &operator++()
         {
             co_handler.resume();
+            if (co_handler.done())
+                co_handler = nullptr;
             return *this;
         };
 
-        bool operator==(std::default_sentinel_t) const
+        void operator++(int)
         {
-            return !co_handler || co_handler.done();
+            ++*this;
+        }
+
+        bool operator!=(const iterator &r) const
+        {
+            return co_handler != r.co_handler;
         }
     };
 
     iterator begin()
     {
         if (co_handler)
+        {
             co_handler.resume();
-        return iterator{co_handler};
+            if (co_handler.done())
+                return {nullptr};
+        }
+        return {co_handler};
     }
 
-    std::default_sentinel_t end()
+    iterator end()
     {
-        return {};
+        return {nullptr};
     }
-
-    ary_task(std::coroutine_handle<promise_type> handler)
-        : co_handler(handler)
-    {
-    }
-
-    ~ary_task()
-    {
-        if (co_handler)
-            co_handler.destroy();
-    }
-
-    std::coroutine_handle<promise_type> co_handler;
 };
-
-ary_task create_ranged_ary(int first, int last)
-{
-    for (int i = first; i < last; i++)
-        co_yield i;
-    co_return last;
-}
-
-int main()
-{
-    auto range_task = create_ranged_ary(0, 10);
-    // while (true)
-    //{
-    //     range_task.co_handler.resume();
-    //     std::cout << range_task.co_handler.promise().value << ' ';
-    //     if (range_task.co_handler.done())
-    //         break;
-    // }
-
-    // for (auto value : range_task)
-    //     std::cout << value << ' ';
-
-    for (auto iter = range_task.begin(); iter != range_task.end(); ++iter)
-        std::cout << *iter << ' ';
-}
 ```
+코루틴 iterator를 구성할 때 주의해야할 것은 done() 함수의 사용 시점이다.  
+위 코드에서도 resume()을 사용한 뒤 꼭 done() 함수로 체크하는 것을 볼 수 있다.  
+&nbsp;  
 
+이렇게 iterator가 구현되었다면 밑과 같이 사용할 수 있다.  
+```c++
+for (auto iter = range_task.begin(); iter != range_task.end(); ++iter)
+    std::cout << *iter << ' ';
 
-
-
-
-
-
-
-
+for (auto value : range_task)
+    std::cout << value << ' ';
+```
+range_task는 함수지만 마치 배열처럼 사용되고 있다.  
+&nbsp;  
 
 ### 템플릿 적용  
 
-promise_type은 딱 봐도 템플릿을 적용해야 할 것 처럼 생겼다.  
-위에서 구현한 promise_type은 int형만 다루고 있는데 다양한 자료형을 모두 대처하기 위해 task 클래스에 템플릿을 적용해보자.  
+템플릿을 이용해 코루틴 반환 클래스를 구현해보자.  
 ```c++
-template <typename T>
+template <typename T, typename AWAITABLE = std::suspend_always>
 class task
 {
   public:
     struct promise_type
     {
-        T value;
+        T const *value;
 
         task<T> get_return_object()
         {
@@ -2502,16 +2484,16 @@ class task
 
         auto initial_suspend()
         {
-            return std::suspend_always{};
-        }
-
-        auto return_void()
-        {
+            return AWAITABLE{};
         }
 
         auto final_suspend() noexcept
         {
-            return std::suspend_always{};
+            return AWAITABLE{};
+        }
+
+        void return_void()
+        {
         }
 
         void unhandled_exception()
@@ -2521,10 +2503,176 @@ class task
 
         auto yield_value(const T &val)
         {
-            value = val;
-            return std::suspend_always{};
+            value = &val;
+            return AWAITABLE{};
         }
     };
+
+    std::coroutine_handle<promise_type> co_handler = nullptr;
+
+    class iterator
+    {
+        std::coroutine_handle<promise_type> co_handler;
+
+      public:
+        iterator(std::coroutine_handle<promise_type> handler)
+            : co_handler(handler)
+        {
+        }
+
+        const T &operator*() const
+        {
+            return *co_handler.promise().value;
+        }
+
+        iterator &operator++()
+        {
+            co_handler.resume();
+            if (co_handler.done())
+                co_handler = nullptr;
+            return *this;
+        };
+
+        void operator++(int)
+        {
+            ++*this;
+        }
+
+        bool operator!=(const iterator &r) const
+        {
+            return co_handler != r.co_handler;
+        }
+    };
+
+    iterator begin()
+    {
+        if (co_handler)
+        {
+            co_handler.resume();
+            if (co_handler.done())
+                return {nullptr};
+        }
+        return {co_handler};
+    }
+
+    iterator end()
+    {
+        return {nullptr};
+    }
+
+    task(std::coroutine_handle<promise_type> handler)
+        : co_handler(handler)
+    {
+    }
+
+    ~task()
+    {
+        if (co_handler)
+            co_handler.destroy();
+    }
+};
+```
+&nbsp;  
+
+
+
+```c++
+template <typename T, typename AWAITABLE = std::suspend_always>
+class task
+{
+  public:
+    struct promise_type
+    {
+        T const *value;
+
+        task<T, AWAITABLE> get_return_object()
+        {
+            return task<T, AWAITABLE>{std::coroutine_handle<promise_type>::from_promise(*this)};
+        }
+
+        auto initial_suspend()
+        {
+            return AWAITABLE{};
+        }
+
+        auto final_suspend() noexcept
+        {
+            return AWAITABLE{};
+        }
+
+        void return_value(const T &val)
+            requires(!std::is_same_v<T, void>)
+        {
+            value = &val;
+        }
+
+        void return_void()
+            requires(std::is_same_v<T, void>)
+        {
+        }
+
+        void unhandled_exception()
+        {
+            std::exit(1);
+        }
+
+        auto yield_value(const T &val)
+        {
+            value = &val;
+            return AWAITABLE{};
+        }
+    };
+
+    class iterator
+    {
+        std::coroutine_handle<promise_type> co_handler;
+
+      public:
+        iterator(std::coroutine_handle<promise_type> handler)
+            : co_handler(handler)
+        {
+        }
+
+        const T &operator*() const
+            requires(!std::is_same_v<T, void>)
+        {
+            return *co_handler.promise().value;
+        }
+
+        iterator &operator++()
+        {
+            co_handler.resume();
+            if (co_handler.done())
+                co_handler = nullptr;
+            return *this;
+        };
+
+        void operator++(int)
+        {
+            ++*this;
+        }
+
+        bool operator!=(const iterator &r) const
+        {
+            return co_handler != r.co_handler;
+        }
+    };
+
+    iterator begin()
+    {
+        if (co_handler)
+        {
+            co_handler.resume();
+            if (co_handler.done())
+                return {nullptr};
+        }
+        return {co_handler};
+    }
+
+    iterator end()
+    {
+        return {nullptr};
+    }
 
     task(std::coroutine_handle<promise_type> handler)
         : co_handler(handler)
@@ -2537,8 +2685,130 @@ class task
             co_handler.destroy();
     }
 
-    std::coroutine_handle<promise_type> co_handler;
+  protected:
+    std::coroutine_handle<promise_type> co_handler = nullptr;
 };
+
+/*
+template <typename AWAITABLE>
+class task<void, AWAITABLE>
+{
+  public:
+    struct promise_type
+    {
+        task<void, AWAITABLE> get_return_object()
+        {
+            return task<void, AWAITABLE>{std::coroutine_handle<promise_type>::from_promise(*this)};
+        }
+
+        auto initial_suspend()
+        {
+            return AWAITABLE{};
+        }
+
+        auto final_suspend() noexcept
+        {
+            return AWAITABLE{}; // std::suspend_always{};
+        }
+
+        void return_void()
+        {
+        }
+
+        void unhandled_exception()
+        {
+            std::exit(1);
+        }
+    };
+
+    class iterator
+    {
+        std::coroutine_handle<promise_type> co_handler;
+
+      public:
+        iterator(std::coroutine_handle<promise_type> handler)
+            : co_handler(handler)
+        {
+        }
+
+        iterator &operator++()
+        {
+            co_handler.resume();
+            if (co_handler.done())
+                co_handler = nullptr;
+            return *this;
+        };
+
+        void operator++(int)
+        {
+            ++*this;
+        }
+
+        bool operator!=(const iterator &r) const
+        {
+            return co_handler != r.co_handler;
+        }
+    };
+
+    iterator begin()
+    {
+        if (co_handler)
+        {
+            co_handler.resume();
+            if (co_handler.done())
+                return {nullptr};
+        }
+        return {co_handler};
+    }
+
+    iterator end()
+    {
+        return {nullptr};
+    }
+
+    task(std::coroutine_handle<promise_type> handler)
+        : co_handler(handler)
+    {
+    }
+
+    ~task()
+    {
+        if (co_handler)
+            co_handler.destroy();
+    }
+
+  protected:
+    std::coroutine_handle<promise_type> co_handler = nullptr;
+};
+*/
+
+// template <typename T, typename AWAITABLE = std::suspend_always>
+// class task_wrapper : public task<T, AWAITABLE>
+//{
+//     using typename task<T, AWAITABLE>::promise_type;
+//
+//   public:
+//     task_wrapper(std::coroutine_handle<promise_type> handler)
+//         : task(handler)
+//     {
+//     }
+// };
+
+task<void> test_func()
+{
+    co_await std::suspend_always{};
+}
+
+task<int> test_func_2()
+{
+    co_yield 1;
+    co_return 2;
+}
+
+int main()
+{
+    auto t = test_func();
+}
 ```
-위와 같이 promise_type에 템플릿을 적용해주면 다양한 형식에 co_yield를 사용할 수 있다.  
-&nbsp;  
+
+https://stackoverflow.com/questions/43051882/how-to-disable-a-class-member-function-for-certain-template-types
