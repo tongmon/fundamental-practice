@@ -2654,5 +2654,5 @@ class task
     std::shared_ptr<Impl> impl;
 };
 ```
-
+위와 같이 pimpl 패턴을 사용하여 promise_type에 템플릿을 적용할 수 있다.  
 https://stackoverflow.com/questions/43051882/how-to-disable-a-class-member-function-for-certain-template-types
