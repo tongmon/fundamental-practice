@@ -1985,7 +1985,7 @@ co_func()의 중단점은 ```co_await std::suspend_always{};``` 이렇게 잡아
 ```std::coroutine_handle<promise_type>``` 자료형의 resume() 함수를 호출해야 중단점으로 구분되어 수행된다.  
 &nbsp;  
 
-이 정도가 대략적인 사용법이고 세부적으로 들어가면 코루틴의 사용법은 4가지로 나눌 수 있다.  
+이 정도가 대략적인 사용법이고 세부적으로 들어가면 코루틴의 사용법은 크게 4가지로 나눌 수 있다.  
 
 1. co_await을 이용하여 함수에 중단점을 찍는 방법  
 2. co_yield를 이용하여 함수에 중단점을 찍으면서 값을 반환하는 방법  
@@ -2553,7 +2553,7 @@ class task
         }
 
         template <typename R = T>
-        std::enable_if_t<std::is_same_v<R, T> && !std::is_same_v<R, void>, const R &> operator*() const
+        std::enable_if_t<std::is_same_v<R, T> && !std::is_void_v<R>, const R &> operator*() const
         {
             return handler.promise().value;
         }
@@ -2628,7 +2628,7 @@ class task
     }
 
     template <typename R = T>
-    std::enable_if_t<std::is_same_v<R, T> && !std::is_same_v<R, void>, const R &> value()
+    std::enable_if_t<std::is_same_v<R, T> && !std::is_void_v<R>, const R &> value()
     {
         return promise().value;
     }
@@ -2654,7 +2654,9 @@ class task
     std::shared_ptr<Impl> impl;
 };
 ```
-위와 같이 pimpl 패턴을 사용하여 promise_type에 템플릿을 적용할 수 있다.  
+코루틴 반환형에 대한 클래스의 구조가 길어졌는데 이는 promise_type에서 return_void()와 return_value()를 함께 정의하지 못하는 문제를 피해가기 위해 pimpl 패턴을 사용했기 때문이다.  
+복잡해 보이지만 뜯어보면 이해하기 쉽다.  
+value()와 operator*()는 템플릿 인자가 void인 경우에 std::enable_if_t를 통해 비활성화 된다.  
 &nbsp;  
 
 활용은 밑과 같다.  
@@ -2689,4 +2691,14 @@ int main()
     std::cout << int_task.value();
 }
 ```
-한 가지 유의점이라면 값을 반환하는 코루틴 함수는 return_value 함수가 정의되어 있기에 
+한 가지 유의점이라면 void 자료형이 아닌 코루틴 함수는 return_void() 대신에 return_value()가 정의되어 있기에 co_return을 생략할 수 없어 반드시 아무 값이라도 co_return에 넘겨 명시해줘야 한다.  
+&nbsp;  
+
+결과 출력 값은 밑과 같다.  
+```
+coroutine
+is
+good
+1 2 3 4
+```
+이렇게 코루틴에 대한 사용법을 알아봤다.   
