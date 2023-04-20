@@ -2469,19 +2469,14 @@ range_task는 함수지만 마치 배열처럼 사용되고 있다.
 
 템플릿을 이용해 코루틴 반환 클래스를 구현해보자.  
 ```c++
-template <typename T, typename AWAITABLE = std::suspend_always>
+template <typename T, class AWAITABLE = std::suspend_always>
 class task
 {
-  public:
-    struct promise_type
+  private:
+    class Impl;
+
+    struct promise_base
     {
-        T const *value;
-
-        task<T> get_return_object()
-        {
-            return task<T>{std::coroutine_handle<promise_type>::from_promise(*this)};
-        }
-
         auto initial_suspend()
         {
             return AWAITABLE{};
@@ -2492,158 +2487,82 @@ class task
             return AWAITABLE{};
         }
 
-        void return_void()
-        {
-        }
-
         void unhandled_exception()
         {
             std::exit(1);
         }
+    };
 
-        auto yield_value(const T &val)
+    template <typename U>
+    struct promise_child : public promise_base
+    {
+        U value;
+
+        task get_return_object()
         {
-            value = &val;
+            return task{std::make_shared<Impl>(std::coroutine_handle<promise_child>::from_promise(*this))};
+        }
+
+        void return_value(U &&val)
+        {
+            value = val;
+        }
+
+        void return_value(const U &val)
+        {
+            value = val;
+        }
+
+        auto yield_value(U &&val)
+        {
+            value = val;
+            return AWAITABLE{};
+        }
+
+        auto yield_value(const U &val)
+        {
+            value = val;
             return AWAITABLE{};
         }
     };
 
-    std::coroutine_handle<promise_type> co_handler = nullptr;
-
-    class iterator
+    template <>
+    struct promise_child<void> : public promise_base
     {
-        std::coroutine_handle<promise_type> co_handler;
-
-      public:
-        iterator(std::coroutine_handle<promise_type> handler)
-            : co_handler(handler)
+        task get_return_object()
         {
+            return task{std::make_shared<Impl>(std::coroutine_handle<promise_child>::from_promise(*this))};
         }
 
-        const T &operator*() const
+        void return_void()
         {
-            return *co_handler.promise().value;
-        }
-
-        iterator &operator++()
-        {
-            co_handler.resume();
-            if (co_handler.done())
-                co_handler = nullptr;
-            return *this;
-        };
-
-        void operator++(int)
-        {
-            ++*this;
-        }
-
-        bool operator!=(const iterator &r) const
-        {
-            return co_handler != r.co_handler;
         }
     };
 
-    iterator begin()
-    {
-        if (co_handler)
-        {
-            co_handler.resume();
-            if (co_handler.done())
-                return {nullptr};
-        }
-        return {co_handler};
-    }
-
-    iterator end()
-    {
-        return {nullptr};
-    }
-
-    task(std::coroutine_handle<promise_type> handler)
-        : co_handler(handler)
-    {
-    }
-
-    ~task()
-    {
-        if (co_handler)
-            co_handler.destroy();
-    }
-};
-```
-&nbsp;  
-
-
-
-```c++
-template <typename T, typename AWAITABLE = std::suspend_always>
-class task
-{
   public:
-    struct promise_type
-    {
-        T const *value;
-
-        task<T, AWAITABLE> get_return_object()
-        {
-            return task<T, AWAITABLE>{std::coroutine_handle<promise_type>::from_promise(*this)};
-        }
-
-        auto initial_suspend()
-        {
-            return AWAITABLE{};
-        }
-
-        auto final_suspend() noexcept
-        {
-            return AWAITABLE{};
-        }
-
-        void return_value(const T &val)
-            requires(!std::is_same_v<T, void>)
-        {
-            value = &val;
-        }
-
-        void return_void()
-            requires(std::is_same_v<T, void>)
-        {
-        }
-
-        void unhandled_exception()
-        {
-            std::exit(1);
-        }
-
-        auto yield_value(const T &val)
-        {
-            value = &val;
-            return AWAITABLE{};
-        }
-    };
+    using promise_type = promise_child<typename T>;
 
     class iterator
     {
-        std::coroutine_handle<promise_type> co_handler;
+        std::coroutine_handle<promise_type> handler;
 
       public:
         iterator(std::coroutine_handle<promise_type> handler)
-            : co_handler(handler)
+            : handler(handler)
         {
         }
 
-        const T &operator*() const
-            requires(!std::is_same_v<T, void>)
+        template <typename R = T>
+        std::enable_if_t<sizeof(R) && !std::is_same_v<R, void>, const R &> operator*() const
         {
-            return *co_handler.promise().value;
+            return handler.promise().value;
         }
 
         iterator &operator++()
         {
-            co_handler.resume();
-            if (co_handler.done())
-                co_handler = nullptr;
+            handler.resume();
+            if (handler.done())
+                handler = nullptr;
             return *this;
         };
 
@@ -2654,19 +2573,15 @@ class task
 
         bool operator!=(const iterator &r) const
         {
-            return co_handler != r.co_handler;
+            return handler != r.handler;
         }
     };
 
     iterator begin()
     {
-        if (co_handler)
-        {
-            co_handler.resume();
-            if (co_handler.done())
-                return {nullptr};
-        }
-        return {co_handler};
+        if (!resume())
+            return {nullptr};
+        return {handle()};
     }
 
     iterator end()
@@ -2674,141 +2589,70 @@ class task
         return {nullptr};
     }
 
-    task(std::coroutine_handle<promise_type> handler)
-        : co_handler(handler)
+    task()
+        : impl(nullptr)
     {
     }
 
-    ~task()
+    task(std::shared_ptr<Impl> impl)
+        : impl(impl)
     {
-        if (co_handler)
-            co_handler.destroy();
     }
 
-  protected:
-    std::coroutine_handle<promise_type> co_handler = nullptr;
-};
-
-/*
-template <typename AWAITABLE>
-class task<void, AWAITABLE>
-{
-  public:
-    struct promise_type
+    task(const task &other)
+        : impl(other.impl)
     {
-        task<void, AWAITABLE> get_return_object()
-        {
-            return task<void, AWAITABLE>{std::coroutine_handle<promise_type>::from_promise(*this)};
-        }
+    }
 
-        auto initial_suspend()
-        {
-            return AWAITABLE{};
-        }
-
-        auto final_suspend() noexcept
-        {
-            return AWAITABLE{}; // std::suspend_always{};
-        }
-
-        void return_void()
-        {
-        }
-
-        void unhandled_exception()
-        {
-            std::exit(1);
-        }
-    };
-
-    class iterator
+    bool done() const
     {
-        std::coroutine_handle<promise_type> co_handler;
+        return !impl || !impl->handle || impl->handle.done();
+    }
 
+    bool resume() const
+    {
+        if (done())
+            return false;
+        impl->handle.resume();
+        return true;
+    }
+
+    promise_type &promise()
+    {
+        return impl->handle.promise();
+    }
+
+    std::coroutine_handle<promise_type> handle() const
+    {
+        return impl->handle;
+    }
+
+    template <typename R = T>
+    std::enable_if_t<sizeof(R) && !std::is_same_v<R, void>, const R &> value()
+    {
+        return promise().value;
+    }
+
+  private:
+    class Impl
+    {
       public:
-        iterator(std::coroutine_handle<promise_type> handler)
-            : co_handler(handler)
+        Impl(std::coroutine_handle<promise_type> handle)
+            : handle(handle)
         {
         }
 
-        iterator &operator++()
+        ~Impl()
         {
-            co_handler.resume();
-            if (co_handler.done())
-                co_handler = nullptr;
-            return *this;
-        };
-
-        void operator++(int)
-        {
-            ++*this;
+            if (handle)
+                handle.destroy();
         }
 
-        bool operator!=(const iterator &r) const
-        {
-            return co_handler != r.co_handler;
-        }
+        std::coroutine_handle<promise_type> handle;
     };
 
-    iterator begin()
-    {
-        if (co_handler)
-        {
-            co_handler.resume();
-            if (co_handler.done())
-                return {nullptr};
-        }
-        return {co_handler};
-    }
-
-    iterator end()
-    {
-        return {nullptr};
-    }
-
-    task(std::coroutine_handle<promise_type> handler)
-        : co_handler(handler)
-    {
-    }
-
-    ~task()
-    {
-        if (co_handler)
-            co_handler.destroy();
-    }
-
-  protected:
-    std::coroutine_handle<promise_type> co_handler = nullptr;
+    std::shared_ptr<Impl> impl;
 };
-*/
-
-// template <typename T, typename AWAITABLE = std::suspend_always>
-// class task_wrapper : public task<T, AWAITABLE>
-//{
-//     using typename task<T, AWAITABLE>::promise_type;
-//
-//   public:
-//     task_wrapper(std::coroutine_handle<promise_type> handler)
-//         : task(handler)
-//     {
-//     }
-// };
-
-task<void> test_func()
-{
-    co_await std::suspend_always{};
-}
-
-task<int> test_func_2()
-{
-    co_yield 1;
-    co_return 2;
-}
-
-int main()
-{
-    auto t = test_func();
-}
 ```
 
 https://stackoverflow.com/questions/43051882/how-to-disable-a-class-member-function-for-certain-template-types
