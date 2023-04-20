@@ -2553,7 +2553,7 @@ class task
         }
 
         template <typename R = T>
-        std::enable_if_t<sizeof(R) && !std::is_same_v<R, void>, const R &> operator*() const
+        std::enable_if_t<std::is_same_v<R, T> && !std::is_same_v<R, void>, const R &> operator*() const
         {
             return handler.promise().value;
         }
@@ -2628,7 +2628,7 @@ class task
     }
 
     template <typename R = T>
-    std::enable_if_t<sizeof(R) && !std::is_same_v<R, void>, const R &> value()
+    std::enable_if_t<std::is_same_v<R, T> && !std::is_same_v<R, void>, const R &> value()
     {
         return promise().value;
     }
@@ -2655,4 +2655,38 @@ class task
 };
 ```
 위와 같이 pimpl 패턴을 사용하여 promise_type에 템플릿을 적용할 수 있다.  
-https://stackoverflow.com/questions/43051882/how-to-disable-a-class-member-function-for-certain-template-types
+&nbsp;  
+
+활용은 밑과 같다.  
+```c++
+task<void> void_func()
+{
+    std::cout << "coroutine\n";
+    co_await std::suspend_always{};
+    std::cout << "is\n";
+    co_await std::suspend_always{};
+    std::cout << "good\n";
+}
+
+task<int> int_func()
+{
+    co_yield 1;
+    co_yield 2;
+    int num = 3;
+    co_yield num;
+    co_return 4;
+}
+
+int main()
+{
+    auto void_task = void_func();
+    for (auto iter = void_task.begin(); iter != void_task.end(); iter++)
+        ;
+
+    auto int_task = int_func();
+    for (const auto &num : int_task)
+        std::cout << num << " ";
+    std::cout << int_task.value();
+}
+```
+한 가지 유의점이라면 값을 반환하는 코루틴 함수는 return_value 함수가 정의되어 있기에 
