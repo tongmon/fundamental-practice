@@ -2503,25 +2503,16 @@ class task
             return task{std::make_shared<Impl>(std::coroutine_handle<promise_child>::from_promise(*this))};
         }
 
-        void return_value(U &&val)
+        template <typename R>
+        void return_value(R &&val)
         {
-            value = val;
+            value = std::forward<R>(val);
         }
 
-        void return_value(const U &val)
+        template <typename R>
+        auto yield_value(R &&val)
         {
-            value = val;
-        }
-
-        auto yield_value(U &&val)
-        {
-            value = val;
-            return AWAITABLE{};
-        }
-
-        auto yield_value(const U &val)
-        {
-            value = val;
+            value = std::forward<R>(val);
             return AWAITABLE{};
         }
     };
@@ -2540,7 +2531,7 @@ class task
     };
 
   public:
-    using promise_type = promise_child<typename T>;
+    using promise_type = typename promise_child<T>;
 
     class iterator
     {
