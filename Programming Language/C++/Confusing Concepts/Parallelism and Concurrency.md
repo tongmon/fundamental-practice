@@ -404,6 +404,7 @@ printf() 함수는 메모리 영역의 값을 수정하는 행위가 아니기�
 
 CPU 캐시는 코어 별로 존재하기에 멀티 코어 환경에서 특정 쓰레드에서 변경한 값이 다른 쓰레드에서도 항상 그 값이라는 보장이 없다.  
 이를 보장하기 위해서는 특정 코어의 캐시 데이터가 변경될 때 다른 코어와 캐시 동기화 작업을 해줘야 하는데 이는 값 비싼 연산이기에 특수한 지시가 없다면 CPU는 매번 동기화를 진행하지 않는다.  
+물론 매번 동기화를 하지 않아 그 시점을 예측할 수 없다는 것이지 코어 간 동기화가 필요한 변수가 존재한다면 언젠가는 동기화가 된다.  
 다음 예시를 보자.  
 ```c++
 bool x = false;
@@ -1855,6 +1856,140 @@ int main()
 }
 ```
 push_job() 함수가 템플릿으로 짜여져 있어 위와 같이 다양한 Callable을 대처할 수 있다.  
+&nbsp;  
+
+## False Sharing  
+
+멀티 쓰레드 사용을 잘못하면 오히려 싱글 쓰레드를 사용할 때보다 성능이 더 하락하는 경우가 존재한다.  
+밑의 예제를 보자.  
+```c++
+void sum(int *sum, int f, int l)
+{
+    for (int i = f; i < l; i++)
+        *sum += 1;
+}
+
+int main()
+{
+    const int dest = 100000000;
+    clock_t start_time, end_time;
+    double result = 0;
+
+    int multi_ret[2] = { 0, };
+    int single_ret = 0;
+
+#pragma region Muti Thread Process
+    start_time = clock();
+    sum(&single_ret, 0, dest);
+    end_time = clock();
+    result = (double)(end_time - start_time) / 1e3;
+    std::cout << "Sum Result : " << single_ret << '\n';
+    std::cout << "Single Thread Time : " << result << "s\n\n";
+#pragma endregion
+
+#pragma region Single Thread Process
+    start_time = clock();
+    std::thread th1(sum, &multi_ret[0], 0, dest / 2);
+    std::thread th2(sum, &multi_ret[1], dest / 2, dest);
+    th1.join();
+    th2.join();
+    end_time = clock();
+    result = (double)(end_time - start_time) / 1e3;
+    std::cout << "Sum Result : " << multi_ret[0] + multi_ret[1] << '\n';
+    std::cout << "Multi Thread Time : " << result << "s\n";
+#pragma endregion
+
+    return 0;
+}
+```
+멀티 쓰레드를 이용할 때 multi_ret 배열을 이용해 따로 계산한 뒤에 마지막에 더해주기에 별다른 문제가 없어 보인다.  
+그렇다면 위 예시에서는 싱글 쓰레드보다 멀티 쓰레드가 더 빠를까?  
+&nbsp;  
+
+출력 결과는 밑과 같다.  
+```
+Sum Result : 100000000
+Single Thread Time : 0.134s
+
+Sum Result : 100000000
+Multi Thread Time : 0.156s
+```
+놀랍게도 멀티 쓰레드가 더 느리다!  
+이는 CPU 코어마다 한번에 읽어들이는 캐시 라인 크기과 관련이 있다.  
+&nbsp;  
+
+대부분의 CPU는 캐시 라인의 크기가 64 byte로 연속적으로 나열된 데이터들을 한번에 읽어 처리하게 된다.  
+그렇다면 위 코드 예시에서 멀티 쓰레드를 사용할 때 코어 두 개의 캐시 상태는 밑과 같다.  
+```
+-----------------------Core 1-----------------------
+|                                                  |
+| multi_ret[0] | multi_ret[1] | 나머지 56 byte...   |
+|                                                  |
+----------------------------------------------------
+
+-----------------------Core 2-----------------------
+|                                                  |
+| multi_ret[0] | multi_ret[1] | 나머지 56 byte...   |
+|                                                  |
+----------------------------------------------------
+```
+코어 1과 코어 2 모두 multi_ret 배열이 통째로 캐시에 담겨져 있다.  
+연속적인 메모리의 데이터를 64 byte 만큼 끊어 가져오기에 이렇게 나타난다.  
+&nbsp;  
+
+그렇다면 이게 속도 저하랑 무슨 연관인가?  
+이렇게 같은 배열이 각기 다른 코어의 캐시 라인에 동시에 존재해 공유되면 CPU는 해당 배열의 데이터 일관성을 위해 코어 간 캐시 동기화 작업을 진행한다.  
+즉 multi_ret 배열이 사용될 때마다 코어간 동기화가 발생할 수 있는 것이다.  
+이러한 동기화 작업은 [여기](#캐시-일관성-문제)에서 언급한 것처럼 값 비싼 연산이기에 싱글 쓰레드보다 더 느려진 것이다.  
+이를 해결하기 위해서는 두 가지 접근 방법이 있다.  
+&nbsp;  
+
+첫번째는 Padding을 이용하여 동일한 변수가 공유되지 않도록 막는 것이다.  
+```c++
+// 동일 함수 생략  
+
+int main()
+{
+    // 동일 구현부 생략 
+
+    int multi_ret[17] = { 0, };
+
+    // 동일 구현부 생략 
+
+    std::thread th1(sum, &multi_ret[0], 0, dest / 2);
+    std::thread th2(sum, &multi_ret[16], dest / 2, dest);
+
+    // 동일 구현부 생략 
+
+    std::cout << "Sum Result : " << multi_ret[0] + multi_ret[16] << '\n';
+
+    // 동일 구현부 생략 
+
+    return 0;
+}
+```
+위와 같이 각 코어의 연산 결과가 저장될 변수들 사이에 64byte 크기의 간격을 두어 계산하게 되면 같은 변수가 각기 다른 코어의 캐시 라인에 동시에 존재할 수 없기에 동기화가 발생하지 않아 연산 속도가 월등히 빨라진다.  
+그렇다면 굳이 ```int multi_ret[17] = { 0, };``` 이러한 배열을 만들지 않고 그냥 ```int ret1 = 0, ret2 = 0;``` 이렇게 해버리면 더 편하지 않나 생각할 수 있는데 int형 변수 두 개를 따로 선언을 해도 메모리에는 연속적으로 쌓일 확률이 높기에 ```int ret1 = 0, ret2 = 0;``` 이거나 ```int multi_ret[2] = { 0, };``` 이거는 False Sharing이 발생한다.  
+&nbsp;  
+
+두번째는 각 쓰레드마다 로컬 변수를 만들어 그곳에서 연산을 진행하는 것이다.  
+```c++
+void sum(int *sum, int f, int l)
+{
+    int local = 0;
+    for (int i = f; i < l; i++)
+        local += 1;
+    *sum = local;
+}
+```
+sum() 함수 내부의 로컬 변수 local을 이용해 연산을 처리하고 있다.  
+각 쓰레드 로컬 변수 간의 간격은 캐리 라인 크기보다 충분히 크기에 동기화가 발생하지 않는다.  
+동기화가 발생할 수 있는 부분은 ```*sum = local;``` 해당 라인 정도가 되는데 모든 더하기 수행이 끝난 후이기에 속도 측면에서 그렇게 큰 영향을 끼치지 않는다.  
+&nbsp;  
+
+### Object Alignment  
+
+&nbsp;  
 
 # Coroutine  
 
