@@ -1335,6 +1335,45 @@ void read_y_then_x()
 모든 쓰레드에서 동일한 값이 관찰되는 것이 보장되기에 z의 값이 0으로 나올 수 없다.  
 &nbsp;  
 
+#### Lock-Free 알고리즘  
+
+CAS -> 현재 쓰레드에 저장된 값과 메인 메모리에 저장된 값을 비교
+
+T1
+pop을 시도하다가 CAS를 하기 직전에 쓰레드가 멈추었다. 현재 local head에는 A의 pointer가, local next에는 B의 pointer가 들어가 있다.
+T2
+pop을 두 번 시도하여 A와 B를 꺼내오는 것을 완료하였다. A, B에 할당된 메모리는 free되었고, OS에 반환은 되지 않았다. 새로운 A'을 stack에 넣는데, 이때 A에 할당됐던 메모리를 재사용하여 push를 성공했다. stack에는 A'(head), C가 들어가 있는 상황이다.
+T1
+CAS를 시도한다. A'의 pointer 값은 A의 pointer와 같기 때문에 CAS는 성공하고 이미 pop되었고 메모리까지 free된 B의 pointer가 head에 저장된다. 실제로 stack에는 C만 있어야 하고, head도 C여야 하지만, stack의 head에는 C의 pointer가 아닌 B의 pointer가 저장되어 있다.
+
+1. 프로세스 P1이 일부 공유 메모리 위치에서 값 A를 읽습니다, 
+
+2. P1이 선점되어 프로세스 P2가 실행될 수 있습니다. 
+
+3. P2가 공유 메모리 위치에 값 B를 씁니다. 
+
+4. P2가 공유 메모리 위치에 값 A를 씁니다. 
+
+5. P2가 선점되어 프로세스 P1이 실행될 수 있습니다, 
+
+6. P1이 공유 메모리 위치에서 값 A를 읽습니다, 
+
+7. P1은 공유 메모리 값이 변경되지 않았다고 판단하고 계속 진행합니다.
+
+atomic_compare_exchange_strong -> lock free가 아님, 내부적으로 mutex 사용
+atomic<shared_ptr> -> lock free로 구현됨 c++20 부터 지원
+
+&nbsp;  
+
+##### ABA 문제  
+
+https://stackoverflow.com/questions/59241894/is-there-anything-like-javas-atomicstampedreference-in-c
+https://stackoverflow.com/questions/40223599/what-is-the-difference-between-stdshared-ptr-and-stdexperimentalatomic-sha
+https://popcorntree.tistory.com/39
+https://stackoverflow.com/questions/33489611/how-can-i-prevent-undefined-behavior-and-the-aba-issue-in-this-lock-free-stack-f
+
+&nbsp;  
+
 ## Task  
 
 기존에 다루었던 std::thread는 **쓰레드 기반**이다.  
