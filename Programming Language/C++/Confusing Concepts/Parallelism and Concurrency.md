@@ -1374,6 +1374,123 @@ https://stackoverflow.com/questions/33489611/how-can-i-prevent-undefined-behavio
 
 &nbsp;  
 
+
+```c++
+using U8 = std::uint64_t;
+
+struct TNode
+{
+    TNode *m_pNext;
+};
+
+template <class T>
+union THead {
+    // Bit field
+    struct
+    {
+        U8 m_nABA : 4, m_pNode : 60; // Windows only supports 44 bits addressing anyway.
+    };
+    U8 m_n64; // for CAS
+    // this constructor will make an atomic copy on intel
+    THead(THead &r)
+    {
+        m_n64 = r.m_n64;
+    }
+    T *Node()
+    {
+        return (T *)m_pNode;
+    }
+    // changeing Node bumps aba
+    void Node(T *p)
+    {
+        m_nABA++;
+        m_pNode = (U8)p;
+        return this;
+    }
+};
+```
+&nbsp;  
+
+```c++
+template <typename T>
+class Object
+{
+  public:
+    T data;
+    Object *next;
+};
+
+template <typename T>
+class Stack
+{
+    std::atomic<Object<T> *> m_top;
+
+  public:
+    Object<T> *pop()
+    {
+        while (true)
+        {
+            Object<T> *local_ptr = m_top.load(), *local_next;
+            if (!local_ptr)
+                break;
+            local_next = local_ptr->next;
+            if (m_top.compare_exchange_weak(local_ptr, local_next))
+                return local_ptr;
+        }
+        return nullptr;
+    }
+
+    void push(Object<T> *obj)
+    {
+        while (true)
+        {
+            Object<T> *local_ptr = m_top.load();
+            obj->next = local_ptr;
+            if (m_top.compare_exchange_weak(local_ptr, obj))
+                break;
+        }
+    }
+};
+```
+&nbsp;  
+
+```c++
+struct S
+{
+    unsigned int b : 2, c : 2;
+};
+
+union Union_Test {
+    struct
+    {
+        long long m_nABA : 4, m_pNode : 60;
+    };
+    long long m_n64;
+};
+
+int main()
+{
+    S s = {2, 1};
+    ++s.b;
+    printf("%d\n", s.b);
+    ++s.b;
+    printf("%d\n", s.b);
+
+    ++s.c;
+    printf("%d\n", s.c);
+    ++s.c;
+    printf("%d\n", s.c);
+    ++s.c;
+    printf("%d\n", s.c);
+
+    Union_Test t;
+    t.m_n64;
+    t.m_nABA;
+    t.m_pNode;
+}
+```
+&nbsp;  
+
 ## Task  
 
 기존에 다루었던 std::thread는 **쓰레드 기반**이다.  
