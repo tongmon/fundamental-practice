@@ -1360,9 +1360,6 @@ CAS를 시도한다. A'의 pointer 값은 A의 pointer와 같기 때문에 CAS�
 
 7. P1은 공유 메모리 값이 변경되지 않았다고 판단하고 계속 진행합니다.
 
-atomic_compare_exchange_strong -> lock free가 아님, 내부적으로 mutex 사용
-atomic<shared_ptr> -> lock free로 구현됨 c++20 부터 지원
-
 &nbsp;  
 
 ##### ABA 문제  
@@ -1371,6 +1368,7 @@ https://stackoverflow.com/questions/59241894/is-there-anything-like-javas-atomic
 https://stackoverflow.com/questions/40223599/what-is-the-difference-between-stdshared-ptr-and-stdexperimentalatomic-sha
 https://popcorntree.tistory.com/39
 https://stackoverflow.com/questions/33489611/how-can-i-prevent-undefined-behavior-and-the-aba-issue-in-this-lock-free-stack-f
+https://en.wikipedia.org/wiki/ABA_problem
 
 &nbsp;  
 
@@ -1489,6 +1487,97 @@ int main()
     t.m_pNode;
 }
 ```
+&nbsp;  
+
+```c++
+template <typename T>
+union tagged_ptr {
+    struct
+    {
+        std::uint64_t counter;
+        std::uint64_t pointer;
+    };
+    boost::multiprecision::uint128_t tagged;
+    tagged_ptr(T *ptr = nullptr, std::uint64_t cnt = 0)
+    {
+        counter = cnt;
+        pointer = reinterpret_cast<std::uint64_t>(ptr);
+    }
+    tagged_ptr(tagged_ptr &ptr)
+    {
+        *this = ptr;
+    }
+    T *ptr()
+    {
+        return reinterpret_cast<T *>(pointer);
+    }
+};
+
+template <typename T>
+class Object
+{
+  public:
+    T data;
+    Object *next;
+    Object(const T &data, Object *next = nullptr)
+    {
+        this->data = data;
+        this->next = next;
+    }
+};
+
+template <typename T>
+class Stack
+{
+    tagged_ptr<Object<T>> m_top;
+
+  public:
+    Stack()
+    {
+    }
+
+    ~Stack()
+    {
+        while (m_top.ptr())
+            delete pop();
+    }
+
+    Object<T> *pop()
+    {
+        tagged_ptr<Object<T>> local_ptr(m_top);
+        while (true)
+        {
+            if (!local_ptr.ptr())
+                break;
+            tagged_ptr<Object<T>> local_next(local_ptr.ptr()->next, local_ptr.counter);
+            if (std::atomic_compare_exchange_weak(m_top.tagged, local_ptr.tagged, local_next.tagged))
+                return local_ptr.ptr();
+        }
+        return nullptr;
+    }
+
+    void push(const T &data)
+    {
+        tagged_ptr<Object<T>> local_ptr(m_top);
+        Object<T> *new_data = new Object<T>(data);
+        while (true)
+        {
+            tagged_ptr<Object<T>> new_ptr(new_data, local_ptr.counter + 1);
+            if (std::atomic_compare_exchange_weak(m_top.tagged, local_ptr.tagged, new_ptr.tagged))
+                break;
+        }
+    }
+};
+```
+
+
+atomic_compare_exchange_strong -> lock free가 아님, 내부적으로 mutex 사용
+```atomic<shared_ptr>``` -> lock free로 구현됨 c++20 부터 지원
+compare_exchange_weak -> 내부적으로 cmpxchg 어셈블리로 치환
+
+x86은 cmpxchg가 64 bit cas까지 지원
+x64는 cmpxchg가 128 bit cas까지 지원
+arm, powerpc등은 다른 명령어를 통해 cas를 지원
 &nbsp;  
 
 ## Task  
