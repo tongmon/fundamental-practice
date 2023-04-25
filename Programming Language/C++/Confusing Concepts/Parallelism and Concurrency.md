@@ -2273,6 +2273,30 @@ int main()
 padding 부분은 컴파일러가 최적화를 위해서 임의로 채운 용량이다.  
 &nbsp;  
 
+```c++
+struct Object
+{
+    int num;
+    char ch;
+    bool boolean;
+};
+
+struct Test
+{
+    int test;
+    Object a;
+};
+
+int main()
+{
+    std::cout << sizeof(Test) << "byte\n";
+    std::cout << alignof(Test);
+    return 0;
+}
+```
+위에서 alignof(Object)는 4, sizeof(Object)는 8, alignof(Test)는 4, sizeof(Test)는 12
+alignof(Test)가 4인 이유는 Test의 멤버 변수를 자료형 크기를 비교하는데 멤버 변수 Object a;의 alignof()가 4이기에 int test;의 4와 비교해서 alignof(Test)는 4가 된다.  
+
 # Coroutine  
 
 코루틴이란 중단점을 가지는 함수다.  
