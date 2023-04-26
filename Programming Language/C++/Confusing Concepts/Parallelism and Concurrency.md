@@ -1490,86 +1490,237 @@ int main()
 &nbsp;  
 
 ```c++
+
 template <typename T>
 union tagged_ptr {
     struct
     {
-        std::uint64_t counter;
-        std::uint64_t pointer;
+        std::uint64_t tag : 12, ptr : 52;
     };
-    boost::multiprecision::uint128_t tagged;
-    tagged_ptr(T *ptr = nullptr, std::uint64_t cnt = 0)
+    std::uint64_t full;
+
+    tagged_ptr(const std::uint64_t &full)
     {
-        counter = cnt;
-        pointer = reinterpret_cast<std::uint64_t>(ptr);
+        this->full = full;
     }
-    tagged_ptr(tagged_ptr &ptr)
+    tagged_ptr(T *ptr = nullptr, std::uint16_t cnt = 0)
     {
-        *this = ptr;
+        tag = cnt;
+        this->ptr = reinterpret_cast<std::uint64_t>(ptr);
     }
-    T *ptr()
+    T *get()
     {
-        return reinterpret_cast<T *>(pointer);
+        return reinterpret_cast<T *>(ptr);
     }
 };
 
 template <typename T>
-class Object
+class lfstack
 {
+    struct Node
+    {
+        T data;
+        Node *next;
+        Node(const T &data, Node *next = nullptr)
+        {
+            this->data = data;
+            this->next = next;
+        }
+    };
+
+    std::atomic_uint64_t m_top;
+    std::atomic_size_t m_size;
+
   public:
-    T data;
-    Object *next;
-    Object(const T &data, Object *next = nullptr)
+    lfstack()
     {
-        this->data = data;
-        this->next = next;
-    }
-};
-
-template <typename T>
-class Stack
-{
-    tagged_ptr<Object<T>> m_top;
-
-  public:
-    Stack()
-    {
+        m_top = 0;
     }
 
-    ~Stack()
+    ~lfstack()
     {
-        while (m_top.ptr())
-            delete pop();
+        while (!empty())
+            pop();
     }
 
-    Object<T> *pop()
+    size_t size()
     {
-        tagged_ptr<Object<T>> local_ptr(m_top);
+        return m_size.load();
+    }
+
+    bool empty()
+    {
+        return !size();
+    }
+
+    const T &top()
+    {
+        return tagged_ptr<Node>(m_top.load(std::memory_order_relaxed)).get()->data;
+    }
+
+    std::optional<T> pop()
+    {
+        tagged_ptr<Node> local_ptr(m_top.load(std::memory_order_relaxed));
         while (true)
         {
-            if (!local_ptr.ptr())
-                break;
-            tagged_ptr<Object<T>> local_next(local_ptr.ptr()->next, local_ptr.counter);
-            if (std::atomic_compare_exchange_weak(m_top.tagged, local_ptr.tagged, local_next.tagged))
-                return local_ptr.ptr();
+            if (!local_ptr.get())
+                return std::nullopt;
+            tagged_ptr<Node> local_next(local_ptr.get()->next, local_ptr.tag);
+            if (m_top.compare_exchange_weak(local_ptr.full, local_next.full))
+            {
+                T ret_val = std::move(local_ptr.get()->data);
+                delete local_ptr.get();
+                m_size.fetch_sub(1, std::memory_order_relaxed);
+                return ret_val;
+            }
         }
-        return nullptr;
     }
 
     void push(const T &data)
     {
-        tagged_ptr<Object<T>> local_ptr(m_top);
-        Object<T> *new_data = new Object<T>(data);
+        tagged_ptr<Node> local_ptr(m_top.load(std::memory_order_relaxed));
+        Node *new_data = new Node(data);
         while (true)
         {
-            tagged_ptr<Object<T>> new_ptr(new_data, local_ptr.counter + 1);
-            if (std::atomic_compare_exchange_weak(m_top.tagged, local_ptr.tagged, new_ptr.tagged))
+            new_data->next = local_ptr.get();
+            tagged_ptr<Node> new_ptr(new_data, local_ptr.tag + 1);
+            if (m_top.compare_exchange_weak(local_ptr.full, new_ptr.full))
+            {
+                m_size.fetch_add(1, std::memory_order_relaxed);
                 break;
+            }
         }
     }
 };
+
+lfstack<int> st_1, st_2;
+std::mutex mut;
+
+void exchange_elements(int n, int m, int size)
+{
+    auto move_one = [&](lfstack<int> &a, lfstack<int> &b, int num) -> void {
+        for (size_t i = 0; i < num; i++)
+        {
+            // mut.lock();
+            // if (!a.empty())
+            //     b.push(a.top());
+            // a.pop();
+            // mut.unlock();
+
+            auto val = a.pop();
+            if (val.has_value())
+                b.push(val.value());
+        }
+    };
+
+    while (size--)
+    {
+        move_one(st_1, st_2, n);
+        move_one(st_2, st_1, m);
+    }
+}
+
+int main()
+{
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(0, 10);
+
+    int stack_size = 100000;
+    for (int i = 0; i < stack_size / 2; i++)
+    {
+        st_1.push(i);
+        st_2.push(i);
+    }
+
+    clock_t start_time, end_time;
+    double result = 0;
+
+    start_time = clock();
+    std::vector<std::thread> ths;
+    for (int i = 0; i < 8; i++)
+        ths.push_back(std::thread(exchange_elements, dis(gen), dis(gen), stack_size));
+    for (auto &th : ths)
+        th.join();
+    end_time = clock();
+    result = (double)(end_time - start_time) / 1e3;
+
+    std::cout << "Time Spand: " << result << "s\n";
+    std::cout << "Stack 1 size: " << st_1.size() << "\n";
+    std::cout << "Stack 2 size: " << st_2.size() << "\n";
+    std::cout << "Total Size: " << st_1.size() + st_2.size() << std::endl;
+}
 ```
 
+```c++
+template <typename T>
+class mutstack
+{
+    struct Node
+    {
+        T data;
+        Node *next;
+        Node(const T &data, Node *next = nullptr)
+        {
+            this->data = data;
+            this->next = next;
+        }
+    };
+
+    std::mutex mut;
+    size_t m_size;
+    Node *m_top;
+
+  public:
+    mutstack()
+    {
+        m_top = nullptr;
+        m_size = 0;
+    }
+
+    ~mutstack()
+    {
+        while (!empty())
+            pop();
+    }
+
+    size_t size()
+    {
+        return m_size;
+    }
+
+    bool empty()
+    {
+        return !size();
+    }
+
+    const T &top()
+    {
+        return m_top->data;
+    }
+
+    std::optional<T> pop()
+    {
+        std::unique_lock<std::mutex> ul(mut);
+        if (empty())
+            return std::nullopt;
+        Node *old_top = m_top;
+        m_top = m_top->next;
+        m_size--;
+        ul.unlock();
+        T ret_val = std::move(old_top->data);
+        delete old_top;
+        return ret_val;
+    }
+
+    void push(const T &data)
+    {
+        std::unique_lock<std::mutex> ul(mut);
+        m_top = new Node(data, m_top);
+        m_size++;
+    }
+};
+```
 
 atomic_compare_exchange_strong -> lock free가 아님, 내부적으로 mutex 사용
 ```atomic<shared_ptr>``` -> lock free로 구현됨 c++20 부터 지원
