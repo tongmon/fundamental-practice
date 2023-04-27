@@ -1337,6 +1337,84 @@ void read_y_then_x()
 
 #### Lock-Free 알고리즘  
 
+atomic 변수를 읽거나 쓰는 행위는 원자적이기 때문에 따로 Lock이 필요가 없다.  
+원자적인 어셈블리 영역의 명령을 활용하면 std::mutex를 이용하지 않고 상호 배제를 구현할 수가 있다.  
+이러한 구현 방식을 Lock-Free 알고리즘이라고 부른다.  
+심화 내용이니 이러한 것이 있다 정도만 이해하고 넘어가도 된다.  
+&nbsp;  
+
+기존의 ```std::stack<>```은 thread-safe하지 않다.  
+일단 스택 자료구조를 std::mutex를 이용해 thread-safe하게 만들어 보자.  
+```c++
+template <typename T>
+class lstack
+{
+    struct Node
+    {
+        T data;
+        Node *next;
+        Node(const T &data, Node *next = nullptr)
+        {
+            this->data = data;
+            this->next = next;
+        }
+    };
+
+    std::mutex mut;
+    size_t m_size;
+    Node *m_top;
+
+  public:
+    lstack()
+    {
+        m_top = nullptr;
+        m_size = 0;
+    }
+
+    ~lstack()
+    {
+        while (!empty())
+            pop();
+    }
+
+    size_t size()
+    {
+        return m_size;
+    }
+
+    bool empty()
+    {
+        return !size();
+    }
+
+    const T &top()
+    {
+        return m_top->data;
+    }
+
+    std::optional<T> pop()
+    {
+        std::unique_lock<std::mutex> ul(mut);
+        if (empty())
+            return std::nullopt;
+        Node *old_top = m_top;
+        m_top = m_top->next;
+        m_size--;
+        ul.unlock();
+        T ret_val = std::move(old_top->data);
+        delete old_top;
+        return ret_val;
+    }
+
+    void push(const T &data)
+    {
+        std::unique_lock<std::mutex> ul(mut);
+        m_top = new Node(data, m_top);
+        m_size++;
+    }
+};
+```
+
 CAS -> 현재 쓰레드에 저장된 값과 메인 메모리에 저장된 값을 비교
 
 T1
@@ -1360,6 +1438,19 @@ CAS를 시도한다. A'의 pointer 값은 A의 pointer와 같기 때문에 CAS�
 
 7. P1은 공유 메모리 값이 변경되지 않았다고 판단하고 계속 진행합니다.
 
+
+이는 '락이 없는 원자 유형을 사용하는 것이 락이 있는 원자 유형을 사용하는 것보다 더 나은 선택이 되는 경우는 없다'는 것을 의미하나요? (주로 사용 편의성보다는 성능 측면에서) 
+
+위 언급은 일반적으로 맞지 않습니다.
+
+실행 준비가 완료된 코어 2개와 스레드 3개가 있다고 가정해 보겠습니다. 스레드 A와 B가 동일한 컬렉션에 액세스하고 있어 경합이 심하고, 스레드 C는 완전히 다른 데이터에 액세스하고 있어 경합을 최소화한다고 가정해 보겠습니다.
+
+스레드 A와 B가 잠금을 사용하는 경우, 스레드 중 하나는 빠르게 스케줄이 해제되고 스레드 C는 하나의 코어에서 실행됩니다. 이렇게 하면 A와 B 중 어느 스레드가 스케줄링되든 경합이 거의 없이 실행될 수 있습니다.
+
+반면, 잠금 없는 컬렉션에서는 스케줄러가 스레드 A 또는 B의 스케줄을 해제할 기회가 전혀 없습니다. 따라서 스레드 A와 B가 전체 타임슬라이스에서 동시에 실행되어 L2 캐시 간에 동일한 캐시 라인을 계속 핑퐁할 가능성이 완전히 있습니다.
+
+일반적으로 잠금은 잠금이 없는 코드보다 더 효율적입니다. 이것이 바로 스레드 코드에서 잠금이 훨씬 더 자주 사용되는 이유입니다. 그러나 일반적으로 std::원자형은 이와 같은 컨텍스트에서 사용되지 않습니다. 잠금이 더 효율적이라고 생각할 만한 이유가 있는 상황에서 std::원자 형을 사용하는 것은 실수일 가능성이 높습니다.
+
 &nbsp;  
 
 ##### ABA 문제  
@@ -1372,85 +1463,6 @@ https://en.wikipedia.org/wiki/ABA_problem
 
 &nbsp;  
 
-
-```c++
-using U8 = std::uint64_t;
-
-struct TNode
-{
-    TNode *m_pNext;
-};
-
-template <class T>
-union THead {
-    // Bit field
-    struct
-    {
-        U8 m_nABA : 4, m_pNode : 60; // Windows only supports 44 bits addressing anyway.
-    };
-    U8 m_n64; // for CAS
-    // this constructor will make an atomic copy on intel
-    THead(THead &r)
-    {
-        m_n64 = r.m_n64;
-    }
-    T *Node()
-    {
-        return (T *)m_pNode;
-    }
-    // changeing Node bumps aba
-    void Node(T *p)
-    {
-        m_nABA++;
-        m_pNode = (U8)p;
-        return this;
-    }
-};
-```
-&nbsp;  
-
-```c++
-template <typename T>
-class Object
-{
-  public:
-    T data;
-    Object *next;
-};
-
-template <typename T>
-class Stack
-{
-    std::atomic<Object<T> *> m_top;
-
-  public:
-    Object<T> *pop()
-    {
-        while (true)
-        {
-            Object<T> *local_ptr = m_top.load(), *local_next;
-            if (!local_ptr)
-                break;
-            local_next = local_ptr->next;
-            if (m_top.compare_exchange_weak(local_ptr, local_next))
-                return local_ptr;
-        }
-        return nullptr;
-    }
-
-    void push(Object<T> *obj)
-    {
-        while (true)
-        {
-            Object<T> *local_ptr = m_top.load();
-            obj->next = local_ptr;
-            if (m_top.compare_exchange_weak(local_ptr, obj))
-                break;
-        }
-    }
-};
-```
-&nbsp;  
 
 ```c++
 struct S
@@ -1490,7 +1502,6 @@ int main()
 &nbsp;  
 
 ```c++
-
 template <typename T>
 union tagged_ptr {
     struct
@@ -1535,6 +1546,7 @@ class lfstack
     lfstack()
     {
         m_top = 0;
+        m_size = 0;
     }
 
     ~lfstack()
@@ -1555,7 +1567,7 @@ class lfstack
 
     const T &top()
     {
-        return tagged_ptr<Node>(m_top.load(std::memory_order_relaxed)).get()->data;
+        return tagged_ptr<Node>(m_top.load()).get()->data;
     }
 
     std::optional<T> pop()
@@ -1565,7 +1577,7 @@ class lfstack
         {
             if (!local_ptr.get())
                 return std::nullopt;
-            tagged_ptr<Node> local_next(local_ptr.get()->next, local_ptr.tag);
+            tagged_ptr<Node> local_next(local_ptr.get()->next, local_ptr.tag); // 해당 라인에서 local_ptr.get() 이 녀석이 nullptr일 가능성이 있음
             if (m_top.compare_exchange_weak(local_ptr.full, local_next.full))
             {
                 T ret_val = std::move(local_ptr.get()->data);
@@ -1578,12 +1590,11 @@ class lfstack
 
     void push(const T &data)
     {
-        tagged_ptr<Node> local_ptr(m_top.load(std::memory_order_relaxed));
-        Node *new_data = new Node(data);
+        tagged_ptr<Node> local_ptr(m_top.load(std::memory_order_relaxed)), new_ptr(new Node(data));
         while (true)
         {
-            new_data->next = local_ptr.get();
-            tagged_ptr<Node> new_ptr(new_data, local_ptr.tag + 1);
+            new_ptr.get()->next = local_ptr.get();
+            new_ptr.tag = local_ptr.tag + 1;
             if (m_top.compare_exchange_weak(local_ptr.full, new_ptr.full))
             {
                 m_size.fetch_add(1, std::memory_order_relaxed);
@@ -1593,68 +1604,8 @@ class lfstack
     }
 };
 
-lfstack<int> st_1, st_2;
-std::mutex mut;
-
-void exchange_elements(int n, int m, int size)
-{
-    auto move_one = [&](lfstack<int> &a, lfstack<int> &b, int num) -> void {
-        for (size_t i = 0; i < num; i++)
-        {
-            // mut.lock();
-            // if (!a.empty())
-            //     b.push(a.top());
-            // a.pop();
-            // mut.unlock();
-
-            auto val = a.pop();
-            if (val.has_value())
-                b.push(val.value());
-        }
-    };
-
-    while (size--)
-    {
-        move_one(st_1, st_2, n);
-        move_one(st_2, st_1, m);
-    }
-}
-
-int main()
-{
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dis(0, 10);
-
-    int stack_size = 100000;
-    for (int i = 0; i < stack_size / 2; i++)
-    {
-        st_1.push(i);
-        st_2.push(i);
-    }
-
-    clock_t start_time, end_time;
-    double result = 0;
-
-    start_time = clock();
-    std::vector<std::thread> ths;
-    for (int i = 0; i < 8; i++)
-        ths.push_back(std::thread(exchange_elements, dis(gen), dis(gen), stack_size));
-    for (auto &th : ths)
-        th.join();
-    end_time = clock();
-    result = (double)(end_time - start_time) / 1e3;
-
-    std::cout << "Time Spand: " << result << "s\n";
-    std::cout << "Stack 1 size: " << st_1.size() << "\n";
-    std::cout << "Stack 2 size: " << st_2.size() << "\n";
-    std::cout << "Total Size: " << st_1.size() + st_2.size() << std::endl;
-}
-```
-
-```c++
 template <typename T>
-class mutstack
+class lstack
 {
     struct Node
     {
@@ -1672,13 +1623,13 @@ class mutstack
     Node *m_top;
 
   public:
-    mutstack()
+    lstack()
     {
         m_top = nullptr;
         m_size = 0;
     }
 
-    ~mutstack()
+    ~lstack()
     {
         while (!empty())
             pop();
@@ -1720,6 +1671,45 @@ class mutstack
         m_size++;
     }
 };
+
+template <typename T>
+void push_and_pop(T &st, int num)
+{
+    for (int i = 0; i < num; i++)
+        st.push(i);
+    for (int i = 0; i < num; i++)
+        st.pop();
+}
+
+template <typename T>
+void print_stack_performance(T &st, int stack_size = 8000000)
+{
+    clock_t start_time, end_time;
+    double result = 0;
+
+    start_time = clock();
+    std::vector<std::thread> ths;
+    for (int i = 0; i < 8; i++)
+        ths.push_back(std::thread(push_and_pop<T>, std::ref(st), stack_size / 8));
+    for (auto &th : ths)
+        th.join();
+    end_time = clock();
+    result = (double)(end_time - start_time) / 1e3;
+
+    std::cout << "Time Spand: " << result << "s\n";
+    std::cout << "Stack Size: " << st.size() << "\n";
+}
+
+int main()
+{
+    lstack<int> lock_st;
+    std::cout << "Mutex base stack\n";
+    print_stack_performance(lock_st);
+
+    lfstack<int> lock_free_st;
+    std::cout << "\nTagged pointer base lock free stack\n";
+    print_stack_performance(lock_free_st);
+}
 ```
 
 atomic_compare_exchange_strong -> lock free가 아님, 내부적으로 mutex 사용
