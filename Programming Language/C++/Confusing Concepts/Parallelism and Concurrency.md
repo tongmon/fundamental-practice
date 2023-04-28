@@ -1414,6 +1414,118 @@ class lstack
     }
 };
 ```
+pop()과 push()가 mutex를 사용하여 여러 쓰레드에서 동시에 진행해도 안전하다.  
+&nbsp;  
+
+위의 mutex 방식 말고 lock-free 알고리즘을 이용한 방식으로 스택을 만들어보자.  
+lock-free 알고리즘 중 가장 널리 알려진 방식은 CAS(Compare and Swap) 방식이다.  
+CAS는 쓰레드에 저장된 로컬 캐시 데이터와 메모리에 저장된 데이터를 비교하여 두 개가 같으면 캐시 데이터를 메모리 데이터로 교체해주는 방식이다.  
+쓰레드간 공유되는 메모리 값을 받아와 캐시에 **복사**하여 저장해 놓으면 **복사**된 캐시 값을 어떻게 바꾸던 메모리 값에 영향이 없다는 사실을 적극적으로 이용한다.  
+
+핵심은 compare_exchange_weak() 함수에 있다.  
+```c++
+template <typename T>
+union tagged_ptr {
+    struct
+    {
+        std::uint64_t tag : 12, ptr : 52;
+    };
+    std::uint64_t full;
+
+    tagged_ptr(const std::uint64_t &full)
+    {
+        this->full = full;
+    }
+    tagged_ptr(T *ptr = nullptr, std::uint16_t cnt = 0)
+    {
+        tag = cnt;
+        this->ptr = reinterpret_cast<std::uint64_t>(ptr);
+    }
+    T *get()
+    {
+        return reinterpret_cast<T *>(ptr);
+    }
+};
+
+template <typename T>
+class lfstack
+{
+    struct Node
+    {
+        T data;
+        Node *next;
+        Node(const T &data, Node *next = nullptr)
+        {
+            this->data = data;
+            this->next = next;
+        }
+    };
+
+    std::atomic_uint64_t m_top;
+    std::atomic_size_t m_size;
+
+  public:
+    lfstack()
+    {
+        m_top = 0;
+        m_size = 0;
+    }
+
+    ~lfstack()
+    {
+        while (!empty())
+            pop();
+    }
+
+    size_t size()
+    {
+        return m_size.load();
+    }
+
+    bool empty()
+    {
+        return !size();
+    }
+
+    const T &top()
+    {
+        return tagged_ptr<Node>(m_top.load()).get()->data;
+    }
+
+    std::optional<T> pop()
+    {
+        tagged_ptr<Node> local_ptr(m_top.load(std::memory_order_relaxed));
+        while (true)
+        {
+            if (!local_ptr.get())
+                return std::nullopt;
+            tagged_ptr<Node> local_next(local_ptr.get()->next, local_ptr.tag); // 해당 라인에서 local_ptr.get() 이 녀석이 nullptr일 가능성이 있음
+            if (m_top.compare_exchange_weak(local_ptr.full, local_next.full))
+            {
+                T ret_val = std::move(local_ptr.get()->data);
+                delete local_ptr.get();
+                m_size.fetch_sub(1, std::memory_order_relaxed);
+                return ret_val;
+            }
+        }
+    }
+
+    void push(const T &data)
+    {
+        tagged_ptr<Node> local_ptr(m_top.load(std::memory_order_relaxed)), new_ptr(new Node(data));
+        while (true)
+        {
+            new_ptr.get()->next = local_ptr.get();
+            new_ptr.tag = local_ptr.tag + 1;
+            if (m_top.compare_exchange_weak(local_ptr.full, new_ptr.full))
+            {
+                m_size.fetch_add(1, std::memory_order_relaxed);
+                break;
+            }
+        }
+    }
+};
+```
 
 CAS -> 현재 쓰레드에 저장된 값과 메인 메모리에 저장된 값을 비교
 
