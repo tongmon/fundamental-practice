@@ -1421,8 +1421,137 @@ pop()과 push()가 mutex를 사용하여 여러 쓰레드에서 동시에 진행
 lock-free 알고리즘 중 가장 널리 알려진 방식은 CAS(Compare and Swap) 방식이다.  
 CAS는 쓰레드에 저장된 로컬 캐시 데이터와 메모리에 저장된 데이터를 비교하여 두 개가 같으면 캐시 데이터를 메모리 데이터로 교체해주는 방식이다.  
 쓰레드간 공유되는 메모리 값을 받아와 캐시에 **복사**하여 저장해 놓으면 **복사**된 캐시 값을 어떻게 바꾸던 메모리 값에 영향이 없다는 사실을 적극적으로 이용한다.  
+&nbsp;  
 
-핵심은 compare_exchange_weak() 함수에 있다.  
+lock-free를 이용한 스택을 대략적으로 구현한다면 밑과 같다.  
+```c++
+template <typename T>
+class lfstack
+{
+	struct Node
+	{
+		T data;
+		Node* next;
+		Node(const T& data, Node* next = nullptr)
+		{
+			this->data = data;
+			this->next = next;
+		}
+	};
+
+	std::atomic<Node*> m_top;
+	std::atomic_size_t m_size;
+
+public:
+	lfstack()
+	{
+		m_top.store(nullptr);
+		m_size = 0;
+	}
+
+	~lfstack()
+	{
+		Node* ptr = m_top.load(std::memory_order_relaxed), * next;
+		while (ptr)
+		{
+			next = ptr->next;
+			delete ptr;
+			ptr = next;
+		}
+	}
+
+	size_t size()
+	{
+		return m_size.load();
+	}
+
+	bool empty()
+	{
+		return !size();
+	}
+
+	const T& top()
+	{
+		return m_top.load()->data;
+	}
+
+	std::optional<T> pop()
+	{
+		auto local_ptr = m_top.load(std::memory_order_relaxed);
+		while (true)
+		{
+			if (!local_ptr)
+				return std::nullopt;
+			auto local_next = local_ptr->next;
+			if (m_top.compare_exchange_weak(local_ptr, local_next))
+			{
+				T ret_val = std::move(local_ptr->data);
+				delete local_ptr;
+				m_size.fetch_sub(1, std::memory_order_relaxed);
+				return ret_val;
+			}
+		}
+	}
+
+	void push(const T& data)
+	{
+		Node* local_ptr = m_top.load(std::memory_order_relaxed), * new_ptr = new Node(data);
+		while (true)
+		{
+			new_ptr->next = local_ptr;
+			if (m_top.compare_exchange_weak(local_ptr, new_ptr))
+			{
+				m_size.fetch_add(1, std::memory_order_relaxed);
+				break;
+			}
+		}
+	}
+};
+```
+얼핏보면 문제가 없어보이지만 막상 여러개의 쓰레드에서 동시에 사용하다보면 문제가 발생한다.   
+&nbsp;  
+
+밑과 같은 함수를 이용해 테스트를 해보자.  
+```c++
+template <typename T>
+void push_and_pop(T& st, int num)
+{
+	for (int i = 0; i < num; i++)
+		st.push(i);
+	for (int i = 0; i < num; i++)
+		st.pop();
+}
+
+template <typename T>
+void print_stack_performance(T& st, int stack_size = 8000000)
+{
+	clock_t start_time, end_time;
+	double result = 0;
+
+	start_time = clock();
+	std::vector<std::thread> ths;
+	for (int i = 0; i < 8; i++)
+		ths.push_back(std::thread(push_and_pop<T>, std::ref(st), stack_size / 8));
+	for (auto& th : ths)
+		th.join();
+	end_time = clock();
+	result = (double)(end_time - start_time) / 1e3;
+
+	std::cout << "Time Spand: " << result << "s\n";
+	std::cout << "Stack Size: " << st.size() << "\n";
+}
+
+int main()
+{
+	lfstack<int> lock_free_st;
+	std::cout << "Lock free stack test!\n";
+	print_stack_performance(lock_free_st);
+}
+```
+8개의 쓰레드에서 각 1000000개의 자료를 넣었다가 빼는 테스트 코드다.  
+&nbsp;  
+
+
 ```c++
 template <typename T>
 union tagged_ptr {
