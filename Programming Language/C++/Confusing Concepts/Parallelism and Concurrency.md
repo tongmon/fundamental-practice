@@ -1423,7 +1423,27 @@ CAS는 쓰레드에 저장된 로컬 캐시 데이터와 메모리에 저장된 
 쓰레드간 공유되는 메모리 값을 받아와 캐시에 **복사**하여 저장해 놓으면 **복사**된 캐시 값을 어떻게 바꾸던 메모리 값에 영향이 없다는 사실을 적극적으로 이용한다.  
 &nbsp;  
 
-lock-free를 이용한 스택을 대략적으로 구현한다면 밑과 같다.  
+CAS 방식을 C++에서 사용하려면 ```compare_exchange_weak()```, ```compare_exchange_strong()``` 함수를 이용해야 한다.  
+내부적으로 대략 밑과 같이 구현되어 있다.  
+```c++
+template<typename T>
+bool atomic<T>::compare_exchange_strong(T& old, const T& newval)
+{
+    if(*this == old)
+    {
+        *this = newval;
+        return true;
+    }
+    old = *this;
+    return false;
+}
+```
+```compare_exchange_weak()```도 내부적으로 ```compare_exchange_strong()``` 함수를 이용하기에 두 함수는 같다고 보면 된다.  
+단순히 현재 아토믹 변수가 old 값과 같은지 비교하여 같으면 newval로 바꾸고 다르면 old를 현재 아토믹 변수의 값으로 바꾼다.   
+해당 함수는 내부적으로 ```CMPXCHG```라는 어셈블리 명령으로 바뀌어 원자적이니 std::mutex를 이용하지 않고 thread-safe를 보장할 수 있다. (ARM 프로세서는 ```CMPXCHG``` 대신에 ```LL/SC```를 사용한다.)  
+&nbsp;  
+
+그렇다면 ```compare_exchange_weak()```을 이용하여 lock-free 스택을 구현해보자.  
 ```c++
 template <typename T>
 class lfstack
@@ -1549,8 +1569,30 @@ int main()
 }
 ```
 8개의 쓰레드에서 각 1000000개의 자료를 넣었다가 빼는 테스트 코드다.  
+실행해보면 메모리 참조와 관련하여 오류가 발생한다.  
 &nbsp;  
 
+일단 첫번째로 확인할 수 있는 문제는 밑 부분이다.  
+```c++
+std::optional<T> pop()
+{
+	auto local_ptr = m_top.load(std::memory_order_relaxed);
+	while (true)
+	{
+		if (!local_ptr)
+			return std::nullopt;
+		auto local_next = local_ptr->next; // local_ptr을 다른 쓰레드에서 할당 해제한다면...?
+		if (m_top.compare_exchange_weak(local_ptr, local_next))
+		{
+			T ret_val = std::move(local_ptr->data);
+			delete local_ptr;
+			m_size.fetch_sub(1, std::memory_order_relaxed);
+			return ret_val;
+		}
+	}
+}
+```
+&nbsp;  
 
 ```c++
 template <typename T>
