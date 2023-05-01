@@ -1644,8 +1644,13 @@ class lfstack
 
     ~lfstack()
     {
-        while (!empty())
-            pop();
+        Node *ptr = reinterpret_cast<Node *>(m_top.load(std::memory_order_relaxed)), *next;
+        while (ptr)
+        {
+            next = ptr->next;
+            delete ptr;
+            ptr = next;
+        }
     }
 
     size_t size()
@@ -1670,7 +1675,7 @@ class lfstack
         {
             if (!local_ptr.get())
                 return std::nullopt;
-            tagged_ptr<Node> local_next(local_ptr.get()->next, local_ptr.tag); // 해당 라인에서 local_ptr.get() 이 녀석이 nullptr일 가능성이 있음
+            tagged_ptr<Node> local_next(local_ptr.get()->next, local_ptr.tag); 
             if (m_top.compare_exchange_weak(local_ptr.full, local_next.full))
             {
                 T ret_val = std::move(local_ptr.get()->data);
