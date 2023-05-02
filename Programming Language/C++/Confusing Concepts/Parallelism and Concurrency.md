@@ -1345,73 +1345,82 @@ atomic 변수를 읽거나 쓰는 행위는 원자적이기 때문에 따로 Loc
 
 기존의 ```std::stack<>```은 thread-safe하지 않다.  
 일단 스택 자료구조를 std::mutex를 이용해 thread-safe하게 만들어 보자.  
+&nbsp;  
+
+일단 앞으로 등장할 모든 스택은 연결 리스트 형태를 취하며 밑과 같은 노드 구조체를 이용한다.  
+```c++
+template <typename T>
+struct Node
+{
+	T data;
+	Node* next;
+	Node(const T& data, Node* next = nullptr)
+	{
+		this->data = data;
+		this->next = next;
+	}
+};
+```
+특별할 것 없이 데이터와 다음 노드를 가리키는 포인터만 존재한다.  
+
 ```c++
 template <typename T>
 class lstack
 {
-    struct Node
-    {
-        T data;
-        Node *next;
-        Node(const T &data, Node *next = nullptr)
-        {
-            this->data = data;
-            this->next = next;
-        }
-    };
+	std::mutex mut;
+	size_t m_size;
+	Node<T>* m_top;
 
-    std::mutex mut;
-    size_t m_size;
-    Node *m_top;
+public:
+	lstack()
+	{
+		m_top = nullptr;
+		m_size = 0;
+	}
 
-  public:
-    lstack()
-    {
-        m_top = nullptr;
-        m_size = 0;
-    }
+	~lstack()
+	{
+		Node<T>* next;
+		while (m_top)
+		{
+			next = m_top->next;
+			delete m_top;
+			m_top = next;
+		}
+	}
 
-    ~lstack()
-    {
-        while (!empty())
-            pop();
-    }
+	size_t size()
+	{
+		return m_size;
+	}
 
-    size_t size()
-    {
-        return m_size;
-    }
+	bool empty()
+	{
+		return !size();
+	}
 
-    bool empty()
-    {
-        return !size();
-    }
+	const T& top()
+	{
+		return m_top->data;
+	}
 
-    const T &top()
-    {
-        return m_top->data;
-    }
+	Node<T>* pop()
+	{
+		std::unique_lock<std::mutex> ul(mut);
+		if (empty())
+			return nullptr;
+		auto old_top = m_top;
+		m_top = m_top->next;
+		m_size--;
+		return old_top;
+	}
 
-    std::optional<T> pop()
-    {
-        std::unique_lock<std::mutex> ul(mut);
-        if (empty())
-            return std::nullopt;
-        Node *old_top = m_top;
-        m_top = m_top->next;
-        m_size--;
-        ul.unlock();
-        T ret_val = std::move(old_top->data);
-        delete old_top;
-        return ret_val;
-    }
-
-    void push(const T &data)
-    {
-        std::unique_lock<std::mutex> ul(mut);
-        m_top = new Node(data, m_top);
-        m_size++;
-    }
+	void push(const T& data)
+	{
+		std::unique_lock<std::mutex> ul(mut);
+		m_top = new Node<T>(data, m_top);
+		m_size++;
+	}
 };
 ```
 pop()과 push()가 mutex를 사용하여 여러 쓰레드에서 동시에 진행해도 안전하다.  
@@ -1448,18 +1457,7 @@ bool atomic<T>::compare_exchange_strong(T& old, const T& newval)
 template <typename T>
 class lfstack
 {
-	struct Node
-	{
-		T data;
-		Node* next;
-		Node(const T& data, Node* next = nullptr)
-		{
-			this->data = data;
-			this->next = next;
-		}
-	};
-
-	std::atomic<Node*> m_top;
+	std::atomic<Node<T>*> m_top;
 	std::atomic_size_t m_size;
 
 public:
@@ -1471,12 +1469,12 @@ public:
 
 	~lfstack()
 	{
-		Node* ptr = m_top.load(std::memory_order_relaxed), * next;
-		while (ptr)
+		Node<T>* top = m_top.load(std::memory_order_relaxed), * next;
+		while (top)
 		{
-			next = ptr->next;
-			delete ptr;
-			ptr = next;
+			next = top->next;
+			delete top;
+			top = next;
 		}
 	}
 
@@ -1495,27 +1493,25 @@ public:
 		return m_top.load()->data;
 	}
 
-	std::optional<T> pop()
+	Node<T>* pop()
 	{
 		auto local_ptr = m_top.load(std::memory_order_relaxed);
 		while (true)
 		{
 			if (!local_ptr)
-				return std::nullopt;
+				return nullptr;
 			auto local_next = local_ptr->next;
 			if (m_top.compare_exchange_weak(local_ptr, local_next))
 			{
-				T ret_val = std::move(local_ptr->data);
-				delete local_ptr;
 				m_size.fetch_sub(1, std::memory_order_relaxed);
-				return ret_val;
+				return local_ptr;
 			}
 		}
 	}
 
 	void push(const T& data)
 	{
-		Node* local_ptr = m_top.load(std::memory_order_relaxed), * new_ptr = new Node(data);
+		auto local_ptr = m_top.load(std::memory_order_relaxed), new_ptr = new Node<T>(data);
 		while (true)
 		{
 			new_ptr->next = local_ptr;
@@ -1528,30 +1524,31 @@ public:
 	}
 };
 ```
-얼핏보면 문제가 없어보이지만 막상 여러개의 쓰레드에서 동시에 사용하다보면 문제가 발생한다.   
+얼핏보면 문제가 없어보인다.  
 &nbsp;  
 
 밑과 같은 함수를 이용해 테스트를 해보자.  
 ```c++
-template <typename T>
-void push_and_pop(T& st, int num)
+template <typename T, template <typename V> class R>
+void push_and_pop(std::vector<Node<T>*>& poped, R<T>& st, int num)
 {
 	for (int i = 0; i < num; i++)
 		st.push(i);
 	for (int i = 0; i < num; i++)
-		st.pop();
+		poped.push_back(st.pop());
 }
 
-template <typename T>
-void print_stack_performance(T& st, int stack_size = 8000000)
+template <typename T, template <typename V> class R>
+void print_stack_performance(R<T>& st, int stack_size = 8000000)
 {
 	clock_t start_time, end_time;
 	double result = 0;
+	std::vector<Node<T>*> poped[8];
 
 	start_time = clock();
 	std::vector<std::thread> ths;
 	for (int i = 0; i < 8; i++)
-		ths.push_back(std::thread(push_and_pop<T>, std::ref(st), stack_size / 8));
+		ths.push_back(std::thread(push_and_pop<T, R>, std::ref(poped[i]), std::ref(st), stack_size / 8));
 	for (auto& th : ths)
 		th.join();
 	end_time = clock();
@@ -1559,6 +1556,10 @@ void print_stack_performance(T& st, int stack_size = 8000000)
 
 	std::cout << "Time Spand: " << result << "s\n";
 	std::cout << "Stack Size: " << st.size() << "\n";
+
+	for (int i = 0; i < 8; i++)
+		for (const auto& ptr : poped[i])
+			delete ptr;
 }
 
 int main()
@@ -1569,141 +1570,103 @@ int main()
 }
 ```
 8개의 쓰레드에서 각 1000000개의 자료를 스택에 넣었다가 빼는 테스트 코드다.  
-실행해보면 메모리 참조와 관련하여 오류가 발생한다.  
 &nbsp;  
 
-일단 첫번째로 확인할 수 있는 문제는 밑 부분이다.  
-```c++
-std::optional<T> pop()
-{
-	auto local_ptr = m_top.load(std::memory_order_relaxed);
-	while (true)
-	{
-		if (!local_ptr)
-			return std::nullopt;
-		auto local_next = local_ptr->next; // local_ptr을 다른 쓰레드에서 할당 해제한다면...?
-		if (m_top.compare_exchange_weak(local_ptr, local_next))
-		{
-			T ret_val = std::move(local_ptr->data);
-			delete local_ptr;
-			m_size.fetch_sub(1, std::memory_order_relaxed);
-			return ret_val;
-		}
-	}
-}
-```
-상호배제가 보장되지 않기에 ```auto local_next = local_ptr->next;```라인의 작업을 처리하는 도중에 local_ptr을 다른 쓰레드에서 해제할 수도 있다.  
-&nbsp;  
-
-따라서 밑과 같은 꼼수를 통해 이를 해결해야 한다.  
-&nbsp;  
 
 ```c++
 template <typename T>
-union tagged_ptr {
-    struct
-    {
-        std::uint64_t tag : 12, ptr : 52;
-    };
-    std::uint64_t full;
+union tagged_ptr
+{
+	struct
+	{
+		std::uint64_t tag : 12, ptr : 52;
+	};
+	std::uint64_t full;
 
-    tagged_ptr(const std::uint64_t &full)
-    {
-        this->full = full;
-    }
-    tagged_ptr(T *ptr = nullptr, std::uint16_t cnt = 0)
-    {
-        tag = cnt;
-        this->ptr = reinterpret_cast<std::uint64_t>(ptr);
-    }
-    T *get()
-    {
-        return reinterpret_cast<T *>(ptr);
-    }
+	tagged_ptr(const std::uint64_t& full)
+	{
+		this->full = full;
+	}
+	tagged_ptr(T* ptr = nullptr, std::uint16_t cnt = 0)
+	{
+		tag = cnt;
+		this->ptr = reinterpret_cast<std::uint64_t>(ptr);
+	}
+	T* get()
+	{
+		return reinterpret_cast<T*>(ptr);
+	}
 };
 
 template <typename T>
 class lfstack
 {
-    struct Node
-    {
-        T data;
-        Node *next;
-        Node(const T &data, Node *next = nullptr)
-        {
-            this->data = data;
-            this->next = next;
-        }
-    };
+	std::atomic_uint64_t m_top;
+	std::atomic_size_t m_size;
 
-    std::atomic_uint64_t m_top;
-    std::atomic_size_t m_size;
+public:
+	lfstack()
+	{
+		m_top = 0;
+		m_size = 0;
+	}
 
-  public:
-    lfstack()
-    {
-        m_top = 0;
-        m_size = 0;
-    }
+	~lfstack()
+	{
+		Node<T>* top = tagged_ptr<Node<T>>(m_top.load()).get(), * next;
+		while (top)
+		{
+			next = top->next;
+			delete top;
+			top = next;
+		}
+	}
 
-    ~lfstack()
-    {
-        Node *ptr = reinterpret_cast<Node *>(m_top.load(std::memory_order_relaxed)), *next;
-        while (ptr)
-        {
-            next = ptr->next;
-            delete ptr;
-            ptr = next;
-        }
-    }
+	size_t size()
+	{
+		return m_size.load();
+	}
 
-    size_t size()
-    {
-        return m_size.load();
-    }
+	bool empty()
+	{
+		return !size();
+	}
 
-    bool empty()
-    {
-        return !size();
-    }
+	const T& top()
+	{
+		return tagged_ptr<Node<T>>(m_top.load()).get()->data;
+	}
 
-    const T &top()
-    {
-        return tagged_ptr<Node>(m_top.load()).get()->data;
-    }
+	Node<T>* pop()
+	{
+		tagged_ptr<Node<T>> local_ptr(m_top.load(std::memory_order_relaxed));
+		while (true)
+		{
+			if (!local_ptr.get())
+				return nullptr;
+			tagged_ptr<Node<T>> local_next(local_ptr.get()->next, local_ptr.tag);
+			if (m_top.compare_exchange_weak(local_ptr.full, local_next.full))
+			{
+				m_size.fetch_sub(1, std::memory_order_relaxed);
+				return local_ptr.get();
+			}
+		}
+	}
 
-    std::optional<T> pop()
-    {
-        tagged_ptr<Node> local_ptr(m_top.load(std::memory_order_relaxed));
-        while (true)
-        {
-            if (!local_ptr.get())
-                return std::nullopt;
-            tagged_ptr<Node> local_next(local_ptr.get()->next, local_ptr.tag); 
-            if (m_top.compare_exchange_weak(local_ptr.full, local_next.full))
-            {
-                T ret_val = std::move(local_ptr.get()->data);
-                delete local_ptr.get();
-                m_size.fetch_sub(1, std::memory_order_relaxed);
-                return ret_val;
-            }
-        }
-    }
-
-    void push(const T &data)
-    {
-        tagged_ptr<Node> local_ptr(m_top.load(std::memory_order_relaxed)), new_ptr(new Node(data));
-        while (true)
-        {
-            new_ptr.get()->next = local_ptr.get();
-            new_ptr.tag = local_ptr.tag + 1;
-            if (m_top.compare_exchange_weak(local_ptr.full, new_ptr.full))
-            {
-                m_size.fetch_add(1, std::memory_order_relaxed);
-                break;
-            }
-        }
-    }
+	void push(const T& data)
+	{
+		tagged_ptr<Node<T>> local_ptr(m_top.load(std::memory_order_relaxed)), new_ptr(new Node<T>(data));
+		while (true)
+		{
+			new_ptr.get()->next = local_ptr.get();
+			new_ptr.tag = local_ptr.tag + 1;
+			if (m_top.compare_exchange_weak(local_ptr.full, new_ptr.full))
+			{
+				m_size.fetch_add(1, std::memory_order_relaxed);
+				break;
+			}
+		}
+	}
 };
 ```
 
