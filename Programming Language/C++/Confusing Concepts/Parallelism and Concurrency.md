@@ -1568,7 +1568,7 @@ int main()
 	print_stack_performance(lock_free_st);
 }
 ```
-8개의 쓰레드에서 각 1000000개의 자료를 넣었다가 빼는 테스트 코드다.  
+8개의 쓰레드에서 각 1000000개의 자료를 스택에 넣었다가 빼는 테스트 코드다.  
 실행해보면 메모리 참조와 관련하여 오류가 발생한다.  
 &nbsp;  
 
@@ -1592,6 +1592,10 @@ std::optional<T> pop()
 	}
 }
 ```
+상호배제가 보장되지 않기에 ```auto local_next = local_ptr->next;```라인의 작업을 처리하는 도중에 local_ptr을 다른 쓰레드에서 해제할 수도 있다.  
+&nbsp;  
+
+따라서 밑과 같은 꼼수를 통해 이를 해결해야 한다.  
 &nbsp;  
 
 ```c++
@@ -1701,6 +1705,41 @@ class lfstack
         }
     }
 };
+```
+
+```c++
+template <typename T, template <typename INNER> class R>
+void push_and_pop(std::vector<T*>& poped, R<T>& st, int num)
+{
+	for (int i = 0; i < num; i++)
+		st.push(i);
+	for (int i = 0; i < num; i++)
+		poped.push_back(st.pop());
+}
+
+template <typename T, template <typename INNER> class R>
+void print_stack_performance(R<T>& st, int stack_size = 8000000)
+{
+	std::vector<T*> poped;
+
+    clock_t start_time, end_time;
+    double result = 0;
+
+    start_time = clock();
+    std::vector<std::thread> ths;
+    for (int i = 0; i < 8; i++)
+        ths.push_back(std::thread(push_and_pop<T, R>, std::ref(poped), std::ref(st), stack_size / 8));
+    for (auto& th : ths)
+        th.join();
+    end_time = clock();
+    result = (double)(end_time - start_time) / 1e3;
+
+    std::cout << "Time Spand: " << result << "s\n";
+    std::cout << "Stack Size: " << st.size() << "\n";
+
+	for (const auto& ptr : poped)
+		delete ptr;
+}
 ```
 
 CAS -> 현재 쓰레드에 저장된 값과 메인 메모리에 저장된 값을 비교
