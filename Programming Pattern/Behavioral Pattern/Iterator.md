@@ -364,16 +364,9 @@ for (auto &item : family.inorder)
 
 위에서 다루었던 ```operator++()``` 함수들을 보면 코드가 직관적이지 않다.  
 C++20에서 도입된 코루틴을 사용하면 반복자에서 ```++``` 연산자를 재정의할 때 좀 더 직관적이게 코드를 작성할 수 있다.  
-코루틴은 쉽게 말하면 함수 부분 부분을 끊어서 실행하게 해주는 기능이다.  
-함수 진행 흐름이 Start --------------- End 라면 코루틴은 해당 흐름에 체크 포인트를 심어준다.  
-Start --- A --- B --- C --- End 이렇게 흐름에 A, B, C라는 체크 포인트가 심어졌다면 해당 함수를 처음 호출하면 Start --- A 까지 실행되고 끝난다.  
-한 번 더 호출하면 A --- B, 다시 호출하면 B --- C, 그리고 또 호출해보면 C --- End 이렇게 흐름이 진행된다.  
-자세한 설명은 https://en.cppreference.com/w/cpp/language/coroutines 링크를 참고하자.  
+코루틴에 대한 자세한 내용은 [이곳](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#coroutine)을 참고하자.  
+예시에서 쓰일 코루틴의 제너레이터는 [이곳](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#%ED%85%9C%ED%94%8C%EB%A6%BF-%EC%A0%81%EC%9A%A9)에 구현되어 있다.  
 &nbsp;  
 
-그러면 간단한 코루틴 사용법 예시부터 보고 가자.  
 
 
-https://modoocode.com/269
-https://modoocode.com/284
-https://kukuta.tistory.com/222
