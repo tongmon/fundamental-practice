@@ -1362,6 +1362,7 @@ struct Node
 };
 ```
 특별할 것 없이 데이터와 다음 노드를 가리키는 포인터만 존재한다.  
+&nbsp;  
 
 ```c++
 template <typename T>
@@ -1524,7 +1525,8 @@ public:
 	}
 };
 ```
-얼핏보면 문제가 없어보인다.  
+std::mutex를 이용한 것과 큰 차이라면 compare_exchange_weak() 함수 성공 유무를 계속해서 확인하기 위해 while() 문을 이용한다.  
+m_top의 주소와 local_ptr의 주소가 같은 경우에만 m_top을 갱신하기에 thread-safe하다.  
 &nbsp;  
 
 밑과 같은 함수를 이용해 테스트를 해보자.  
@@ -1570,7 +1572,22 @@ int main()
 }
 ```
 8개의 쓰레드에서 각 1000000개의 자료를 스택에 넣었다가 빼는 테스트 코드다.  
+해당 코드를 돌려보면 잘 돌아가는 것 처럼 보인다.  
+하지만 스택이 망가질 수 있는 오류가 존재한다.  
 &nbsp;  
+
+##### ABA 문제  
+
+만약 위의 lock-free 스택에서 밑과 같은 상황이 발생한다면 어떻게 될까?  
+
+1. 현재 lock-free 스택에는 top에서 bottom까지 A, B, C 이러한 순서로 데이터가 담겨져있다.  
+
+2. 쓰레드 1에서 pop 함수를 수행하다가 ```m_top.compare_exchange_weak(local_ptr, local_next)```가 진행되기 직전에 잠시 멈췄다.  
+
+3. 쓰레드 1이 멈춘 사이에 쓰레드 2에서 pop 함수를 두 번 수행하여 현재 lock-free 스택에는 C 데이터만이 담겨져있다.  
+
+4. 쓰레드 2에서 pop된 A, B 데이터를 모두 활용하고 할당 해제한 후 새로운 D 데이터에 대해 push 함수를 수행한다.  
+    특이한 점은 할당 해제된 A의 주소를 삽입된 D가 재활용하여 현재 A와 D의 주소가 같은 상황이다.  
 
 
 ```c++
@@ -1670,41 +1687,6 @@ public:
 };
 ```
 
-```c++
-template <typename T, template <typename INNER> class R>
-void push_and_pop(std::vector<T*>& poped, R<T>& st, int num)
-{
-	for (int i = 0; i < num; i++)
-		st.push(i);
-	for (int i = 0; i < num; i++)
-		poped.push_back(st.pop());
-}
-
-template <typename T, template <typename INNER> class R>
-void print_stack_performance(R<T>& st, int stack_size = 8000000)
-{
-	std::vector<T*> poped;
-
-    clock_t start_time, end_time;
-    double result = 0;
-
-    start_time = clock();
-    std::vector<std::thread> ths;
-    for (int i = 0; i < 8; i++)
-        ths.push_back(std::thread(push_and_pop<T, R>, std::ref(poped), std::ref(st), stack_size / 8));
-    for (auto& th : ths)
-        th.join();
-    end_time = clock();
-    result = (double)(end_time - start_time) / 1e3;
-
-    std::cout << "Time Spand: " << result << "s\n";
-    std::cout << "Stack Size: " << st.size() << "\n";
-
-	for (const auto& ptr : poped)
-		delete ptr;
-}
-```
-
 CAS -> 현재 쓰레드에 저장된 값과 메인 메모리에 저장된 값을 비교
 
 T1
@@ -1743,7 +1725,7 @@ CAS를 시도한다. A'의 pointer 값은 A의 pointer와 같기 때문에 CAS�
 
 &nbsp;  
 
-##### ABA 문제  
+
 
 https://stackoverflow.com/questions/59241894/is-there-anything-like-javas-atomicstampedreference-in-c
 https://stackoverflow.com/questions/40223599/what-is-the-difference-between-stdshared-ptr-and-stdexperimentalatomic-sha
