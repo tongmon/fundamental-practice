@@ -1337,100 +1337,100 @@ void read_y_then_x()
 
 #### Lock-Free 알고리즘  
 
-atomic 변수를 읽거나 쓰는 행위는 원자적이기 때문에 따로 Lock이 필요가 없다.  
-원자적인 어셈블리 영역의 명령을 활용하면 std::mutex를 이용하지 않고 상호 배제를 구현할 수가 있다.  
-이러한 구현 방식을 Lock-Free 알고리즘이라고 부른다.  
+std::mutex를 이용한 방식은 특정 쓰레드가 잠금을 획득하는 동안 다른 쓰레드는 아무것도 못하고 대기만 하게 된다.  
+이러한 특성 때문에 특정 쓰레드는 한번도 사용되지 못하고 대기만 하는 기아현상이 발생할 수 있다.    
+또 특정 쓰레드가 잠금을 획득한 상태로 죽어버리면 다른 쓰레드들은 잠금 획득을 못해 대기만 하여 프로그램이 뻗어버리는 문제도 있다.  
+이러한 문제를 std::atomic을 이용한 lock-free 기법을 통해 해결할 수 있다.  
+단점이라면 구현이 매우 까다롭고 약간의 헛점으로도 문제가 많이 발생하기에 lock-free 기법을 이용한 코드가 thread-safe한지 완벽한 검증이 이루어져야 한다.  
+속도적인 측면에서 볼 때 대부분의 상황에서 lock을 이용한 코드가 lock-free 기법을 이용한 코드보다 좀 더 빠르다.  
 심화 내용이니 이러한 것이 있다 정도만 이해하고 넘어가도 된다.  
+더 자세한 내용을 알고 싶다면 ```C++ Concurrency in Action``` 책을 참고하자.  
 &nbsp;  
 
 기존의 ```std::stack<>```은 thread-safe하지 않다.  
-일단 스택 자료구조를 std::mutex를 이용해 thread-safe하게 만들어 보자.  
+스택 자료구조를 std::mutex를 이용해 만들어보고 그 후에 lock-free 기법을 이용하여 std::mutex를 이용하지 않도록 변형해보자.  
 &nbsp;  
 
-일단 앞으로 등장할 모든 스택은 연결 리스트 형태를 취하며 밑과 같은 노드 구조체를 이용한다.  
+thread-safe한 스택은 연결 리스트 형태를 취한다.  
+따라서 밑과 같은 노드를 이용할 것이다.  
 ```c++
 template <typename T>
 struct Node
 {
-	T data;
-	Node* next;
-	Node(const T& data, Node* next = nullptr)
-	{
-		this->data = data;
-		this->next = next;
-	}
+    std::shared_ptr<T> data;
+    std::shared_ptr<Node> next;
+    Node(const T& data, std::shared_ptr<Node> next = nullptr)
+    {
+        this->data = std::make_shared<T>(data);
+        this->next = next;
+    }
 };
 ```
-특별할 것 없이 데이터와 다음 노드를 가리키는 포인터만 존재한다.  
 &nbsp;  
 
+std::mutex를 이용한 스택은 밑과 같다.  
 ```c++
 template <typename T>
 class lstack
 {
-	std::mutex mut;
-	size_t m_size;
-	Node<T>* m_top;
+    std::mutex mut;
+    size_t m_size;
+    std::shared_ptr<Node<T>> m_top;
 
 public:
-	lstack()
-	{
-		m_top = nullptr;
-		m_size = 0;
-	}
+    lstack()
+    {
+        m_top = nullptr;
+        m_size = 0;
+    }
 
-	~lstack()
-	{
-		Node<T>* next;
-		while (m_top)
-		{
-			next = m_top->next;
-			delete m_top;
-			m_top = next;
-		}
-	}
+    ~lstack()
+    {
+        while (m_top)
+            m_top = m_top->next;
+    }
 
-	size_t size()
-	{
-		return m_size;
-	}
+    size_t size()
+    {
+        return m_size;
+    }
 
-	bool empty()
-	{
-		return !size();
-	}
+    bool empty()
+    {
+        return !size();
+    }
 
-	const T& top()
-	{
-		return m_top->data;
-	}
+    const T& top()
+    {
+        return *m_top.get()->data;
+    }
 
-	Node<T>* pop()
-	{
-		std::unique_lock<std::mutex> ul(mut);
-		if (empty())
-			return nullptr;
-		auto old_top = m_top;
-		m_top = m_top->next;
-		m_size--;
-		return old_top;
-	}
+    std::shared_ptr<T> pop()
+    {
+        std::unique_lock<std::mutex> ul(mut);
+        std::shared_ptr<T> ret;
+        if (empty())
+            return ret;
+        ret = m_top->data;
+        m_top = m_top->next;
+        m_size--;
+        return ret;
+    }
 
-	void push(const T& data)
-	{
-		std::unique_lock<std::mutex> ul(mut);
-		m_top = new Node<T>(data, m_top);
-		m_size++;
-	}
+    void push(const T& data)
+    {
+        std::unique_lock<std::mutex> ul(mut);
+        m_top = std::make_shared<Node<T>>(data, m_top);
+        m_size++;
+    }
 };
 ```
 pop()과 push()가 mutex를 사용하여 여러 쓰레드에서 동시에 진행해도 안전하다.  
 &nbsp;  
 
-위의 mutex 방식 말고 lock-free 알고리즘을 이용한 방식으로 스택을 만들어보자.  
-lock-free 알고리즘 중 가장 널리 알려진 방식은 CAS(Compare and Swap) 방식이다.  
-CAS는 쓰레드에 저장된 로컬 캐시 데이터와 메모리에 저장된 데이터를 비교하여 두 개가 같으면 캐시 데이터를 메모리 데이터로 교체해주는 방식이다.  
-쓰레드간 공유되는 메모리 값을 받아와 캐시에 **복사**하여 저장해 놓으면 **복사**된 캐시 값을 어떻게 바꾸던 메모리 값에 영향이 없다는 사실을 적극적으로 이용한다.  
+위의 lock 방식 말고 lock-free 기법을 이용한 방식으로 스택을 만들어보자.  
+lock-free 기법은 CAS(Compare and Swap)를 활용한다.  
+CAS는 쓰레드에 저장된 로컬 캐시 데이터와 메모리에 저장된 데이터를 비교하여 두 개가 같으면 메모리 데이터를 특정 값으로 교체하는 연산이다.   
 &nbsp;  
 
 CAS 방식을 C++에서 사용하려면 ```compare_exchange_weak()```, ```compare_exchange_strong()``` 함수를 이용해야 한다.  
@@ -1448,10 +1448,14 @@ bool atomic<T>::compare_exchange_strong(T& old, const T& newval)
     return false;
 }
 ```
-```compare_exchange_weak()```도 내부적으로 ```compare_exchange_strong()``` 함수를 이용하기에 두 함수는 같다고 보면 된다.  
-단순히 현재 아토믹 변수가 old 값과 같은지 비교하여 같으면 newval로 바꾸고 다르면 old를 현재 아토믹 변수의 값으로 바꾼다.   
+```compare_exchange_weak()```도 기능자체는 ```compare_exchange_strong()```와 같다.  
+하지만 하드웨어에 따라 비정상적으로 실패할 확률이 있는데 로컬 캐시 데이터와 메모리에 저장된 데이터가 같아도 ```compare_exchange_weak()```는 false를 반환할 수 있다.  
+따라서 ```compare_exchange_weak()```을 이용할 때는 무조건 반복문을 함께 사용해야 한다.  
+구현부를 보면 현재 아토믹 변수가 old 값과 같은지 비교하여 같으면 newval로 바꾸고 다르면 old를 현재 아토믹 변수의 값으로 바꾼다.   
 해당 함수는 내부적으로 ```CMPXCHG```라는 어셈블리 명령으로 바뀌어 원자적이니 std::mutex를 이용하지 않고 thread-safe를 보장할 수 있다. (ARM 프로세서는 ```CMPXCHG``` 대신에 ```LL/SC```를 사용한다.)  
 &nbsp;  
+
+------------------------밑 부터 수정...--------------------------------
 
 그렇다면 ```compare_exchange_weak()```을 이용하여 lock-free 스택을 구현해보자.  
 ```c++
@@ -1531,49 +1535,66 @@ m_top의 주소와 local_ptr의 주소가 같은 경우에만 m_top을 갱신하
 
 밑과 같은 함수를 이용해 테스트를 해보자.  
 ```c++
-template <typename T, template <typename V> class R>
-void push_and_pop(std::vector<Node<T>*>& poped, R<T>& st, int num)
+template <typename T>
+void stack_exchange(T& s1, T& s2, int give, int take, int rep)
 {
-	for (int i = 0; i < num; i++)
-		st.push(i);
-	for (int i = 0; i < num; i++)
-		poped.push_back(st.pop());
+    while (rep--)
+    {
+        for (int i = 0; i < give; i++)
+        {
+            auto poped = s1.pop();
+            if (poped)
+                s2.push(*poped.get());
+        }
+        for (int i = 0; i < take; i++)
+        {
+            auto poped = s2.pop();
+            if (poped)
+                s1.push(*poped.get());
+        }
+    }
 }
 
-template <typename T, template <typename V> class R>
-void print_stack_performance(R<T>& st, int stack_size = 8000000)
+template <typename T>
+void print_stack_performance(T& s1, T& s2, int stack_size = 1000000)
 {
-	clock_t start_time, end_time;
-	double result = 0;
-	std::vector<Node<T>*> poped[8];
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(50, 500);
 
-	start_time = clock();
-	std::vector<std::thread> ths;
-	for (int i = 0; i < 8; i++)
-		ths.push_back(std::thread(push_and_pop<T, R>, std::ref(poped[i]), std::ref(st), stack_size / 8));
-	for (auto& th : ths)
-		th.join();
-	end_time = clock();
-	result = (double)(end_time - start_time) / 1e3;
+    for (int i = 0; i < stack_size / 2; i++)
+        s1.push(i);
+    for (int i = 0; i < stack_size / 2; i++)
+        s2.push(i);
 
-	std::cout << "Time Spand: " << result << "s\n";
-	std::cout << "Stack Size: " << st.size() << "\n";
+    clock_t start_time, end_time;
+    double result = 0;
 
-	for (int i = 0; i < 8; i++)
-		for (const auto& ptr : poped[i])
-			delete ptr;
+    start_time = clock();
+    std::vector<std::thread> ths;
+    for (int i = 0; i < 4; i++)
+    {
+        ths.push_back(std::thread(stack_exchange<T>, std::ref(s1), std::ref(s2), dis(gen), dis(gen), dis(gen)));
+        ths.push_back(std::thread(stack_exchange<T>, std::ref(s2), std::ref(s1), dis(gen), dis(gen), dis(gen)));
+    }
+    for (auto& th : ths)
+        th.join();
+    end_time = clock();
+    result = (double)(end_time - start_time) / 1e3;
+
+    std::cout << "Time Spand: " << result << "s\n";
+    std::cout << "Stack One Size: " << s1.size() << "\n";
+    std::cout << "Stack Two Size: " << s2.size() << "\n";
+    std::cout << "Total Size: " << s1.size() + s2.size() << "\n";
 }
 
 int main()
 {
-	lfstack<int> lock_free_st;
-	std::cout << "Lock free stack test!\n";
-	print_stack_performance(lock_free_st);
+    lfstack<int> st_1, st_2;
+    print_stack_performance(st_1, st_2);
 }
 ```
-8개의 쓰레드에서 각 1000000개의 자료를 스택에 넣었다가 빼는 테스트 코드다.  
-해당 코드를 돌려보면 잘 돌아가는 것 처럼 보인다.  
-하지만 스택이 망가질 수 있는 오류가 존재한다.  
+2개의 스택에 각각 500000개의 원소들을 넣고 8개의 쓰레드에서 원소들을 옮겨 이동하는 테스트 코드이다.  
 &nbsp;  
 
 ##### ABA 문제  
