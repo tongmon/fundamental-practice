@@ -1437,23 +1437,36 @@ CAS 방식을 C++에서 사용하려면 ```compare_exchange_weak()```, ```compar
 내부적으로 대략 밑과 같이 구현되어 있다.  
 ```c++
 template<typename T>
-bool atomic<T>::compare_exchange_strong(T& old, const T& newval)
+bool atomic<T>::compare_exchange_strong(T& old_var, const T& new_val)
 {
-    if(*this == old)
+    if(*this == old_var)
     {
-        *this = newval;
+        *this = new_val;
         return true;
     }
-    old = *this;
+    old_var = *this;
     return false;
 }
 ```
 ```compare_exchange_weak()```도 기능자체는 ```compare_exchange_strong()```와 같다.  
 하지만 하드웨어에 따라 비정상적으로 실패할 확률이 있는데 로컬 캐시 데이터와 메모리에 저장된 데이터가 같아도 ```compare_exchange_weak()```는 false를 반환할 수 있다.  
 따라서 ```compare_exchange_weak()```을 이용할 때는 무조건 반복문을 함께 사용해야 한다.  
-구현부를 보면 현재 아토믹 변수가 old 값과 같은지 비교하여 같으면 newval로 바꾸고 다르면 old를 현재 아토믹 변수의 값으로 바꾼다.   
+구현부를 보면 현재 아토믹 변수가 old_var 값과 같은지 비교하여 같으면 new_val로 바꾸고 다르면 old_var를 현재 아토믹 변수의 값으로 바꾼다.   
 해당 함수는 내부적으로 ```CMPXCHG```라는 어셈블리 명령으로 바뀌어 원자적이니 std::mutex를 이용하지 않고 thread-safe를 보장할 수 있다. (ARM 프로세서는 ```CMPXCHG``` 대신에 ```LL/SC```를 사용한다.)  
 &nbsp;  
+
+- 레퍼런스 카운팅 방식
+
+각 노드에는 내부 카운터, 외부 카운터가 존재
+내부 + 외부 카운터는 노드에 대한 총 참조 횟수임
+외부 카운터는 포인터를 읽을 때마다 증가
+읽기 동작이 완료되면 내부 카운터는 감소
+
+push 함수에서 처음 노드를 넣을 때의 상태는 외부 카운터 -> 1, 내부 카운터 -> 0이다.
+이유는 스택의 top만이 노드를 가리키기에 외부 카운터가 1, 따로 읽기 동작이 수행된 적이 없는 신선한 노드이기에 내부 카운터가 0이다.
+
+
+
 
 ------------------------밑 부터 수정...--------------------------------
 
