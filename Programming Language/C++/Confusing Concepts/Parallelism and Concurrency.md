@@ -1411,7 +1411,7 @@ public:
         std::shared_ptr<T> ret;
         if (empty())
             return ret;
-        ret = m_top->data;
+        ret.swap(m_top->data);
         m_top = m_top->next;
         m_size--;
         return ret;
@@ -1458,7 +1458,7 @@ bool atomic<T>::compare_exchange_strong(T& old_var, const T& new_val)
 - 레퍼런스 카운팅 방식
 
 각 노드에는 내부 카운터, 외부 카운터가 존재
-내부 + 외부 카운터는 노드에 대한 총 참조 횟수임
+내부 + 외부 카운터는 노드에 대한 총 참조 횟수임 -> 이건 좀 이상함
 외부 카운터는 포인터를 읽을 때마다 증가
 읽기 동작이 완료되면 내부 카운터는 감소
 
@@ -1466,7 +1466,115 @@ push 함수에서 처음 노드를 넣을 때의 상태는 외부 카운터 -> 1
 이유는 스택의 top만이 노드를 가리키기에 외부 카운터가 1, 따로 읽기 동작이 수행된 적이 없는 신선한 노드이기에 내부 카운터가 0이다.
 
 
+```c++
+template<typename T>
+struct CountedNode;
 
+template <typename T>
+struct CountedNodePtr
+{
+    std::int32_t external_cnt;
+    CountedNode<T>* ptr;
+};
+
+template<typename T>
+struct CountedNode
+{
+    std::shared_ptr<T> data;
+    std::atomic_int32_t internal_cnt;
+    CountedNodePtr<T> next;
+    CountedNode(const T& data)
+    {
+        this->data = std::make_shared<T>(data);
+        internal_cnt = 0;
+    }
+};
+
+template<typename T>
+class lfstack
+{
+    std::atomic<CountedNodePtr<T>> m_top;
+    std::atomic_size_t m_size;
+
+    void increase_top_cnt(CountedNodePtr<T> &old_top)
+    {
+        CountedNodePtr<T> new_top;
+        do
+        {
+            new_top = old_top;
+            ++new_top.external_cnt;
+        } while (!m_top.compare_exchange_strong(old_top, new_top));
+        old_top.external_cnt = new_top.external_cnt;
+    }
+
+public:
+    lfstack()
+    {
+        m_top = { 0,nullptr };
+        m_size = 0;
+    }
+
+    ~lfstack()
+    {
+        CountedNodePtr<T> top = m_top.load(), next;
+        while (top.ptr)
+        {
+            next = top.ptr->next;
+            delete top.ptr;
+            top = next;
+        }
+    }
+
+    size_t size()
+    {
+        return m_size.load();
+    }
+
+    bool empty()
+    {
+        return !size();
+    }
+
+    const T& top()
+    {
+        return *m_top.load().ptr->data.get();
+    }
+
+    std::shared_ptr<T> pop()
+    {
+        CountedNodePtr<T> old_top = m_top.load();
+        while (true)
+        {
+            increase_top_cnt(old_top);
+            CountedNode<T>* const ptr = old_top.ptr;
+            if (!ptr)
+                return nullptr;
+
+            if (m_top.compare_exchange_strong(old_top, ptr->next))
+            {
+                std::shared_ptr<T> ret = std::move(ptr->data);
+                const std::int32_t ex_cnt_apply_to_in_cnt = old_top.external_cnt - 2;
+                if (ptr->internal_cnt.fetch_add(ex_cnt_apply_to_in_cnt) == -ex_cnt_apply_to_in_cnt)
+                    delete ptr;
+                m_size--;
+                return ret;
+            }
+            else if (ptr->internal_cnt.fetch_sub(1) == 1)
+                delete ptr;
+        }
+    }
+
+    void push(T const& data)
+    {
+        m_size++;
+        CountedNodePtr<T> new_node;
+        new_node.ptr = new CountedNode<T>(data);
+        new_node.external_cnt = 1;
+        new_node.ptr->next = m_top.load(); 
+        while (!m_top.compare_exchange_weak(new_node.ptr->next, new_node));
+    }
+};
+```
 
 ------------------------밑 부터 수정...--------------------------------
 
