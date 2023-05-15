@@ -1077,22 +1077,7 @@ void consumer(std::queue<std::string> &contents, std::mutex &mut, std::condition
 비어있는 큐에서 front() 함수가 호출되어 오류가 발생할 것이다.  
 &nbsp;  
 
-첫번째 해결 방법은 밑과 같이 wait() 보다 늦게 큐의 상태를 체크하는 것이다.  
-```c++
-void consumer(std::queue<std::string> &contents, std::mutex &mut, std::condition_variable &cv, int &completed)
-{
-    // 생략
-    std::unique_lock<std::mutex> lock(mut);
-    cv.wait(lock);
-    if (contents.empty())
-        continue;
-    // 생략
-}
-```
-멋대로 깨어나도 continue로 빈 큐 참조가 방지된다.  
-&nbsp;  
-
-두번째 해결 방법은 wait() 함수에 Callable 조건 함수를 같이 넘기는 것이다.  
+해결 방법은 wait() 함수에 Callable 조건 함수를 같이 넘기는 것이다.  
 ```c++
 void consumer(std::queue<std::string> &contents, std::mutex &mut, std::condition_variable &cv, int &completed)
 {
@@ -1137,9 +1122,9 @@ num -= 17;
 ```c++
 std::atomic<int> num;
 num = num + 17; // 원자적이지 않음
-num.store(num.load() + 17); // 원자적임  
+num.fetch_add(17); // 위 명령을 원자적으로 수행함
 ```
-특정 연산자가 원자적인지 아닌지 헷갈린다면 확실하게 store(), load()를 이용하자.  
+특정 연산자가 원자적인지 아닌지 헷갈린다면 확실하게 store(), load(), fetch_add() 등의 ```std::atomic```에서 공식적으로 제공하는 함수를 이용하자.  
 &nbsp;  
 
 [여기에서](#mutex) 다뤘던 싱글 vs 멀티 쓰레드 예시 코드를 atomic을 사용해 바꿔보자.  
@@ -1187,11 +1172,48 @@ Mutex를 사용한 것보다 빠른 것을 볼 수 있다.
 &nbsp;  
 
 ```std::atomic<T>```에서 T 자리에 올 수 있는 자료형이 그렇게 많지는 않다.  
-T 자료형의 크기가 x64 기준으로 128byte를 넘어가면 내부적으로 std::mutex를 이용하기에 속도가 느려진다. (x86 기준으로 64byte)  
-더 많은 정보는 [이곳에서](https://en.cppreference.com/w/cpp/atomic/atomic) 확인해보자.  
+T 자료형의 크기가 x64 기준으로 128bit를 넘어가면 내부적으로 std::mutex를 이용하기에 속도가 느려진다. (x86 기준으로 64bit)  
+또 클래스, 구조체의 경우 [Object Alignment](#object-alignment)를 따진다.  
 &nbsp;  
 
-CPU마다 원자적인 명령을 내리지 못하는 자료형도 존재하기 때문에 밑과 같이 is_lock_free() 함수를 통해 알아봐야 한다.  
+x64 플랫폼을 기준으로 살펴보자.  
+밑과 같은 구조체가 있다.  
+```c++
+struct A
+{
+    double x;
+    double y;
+}
+```
+크기가 딱 128bit이고 8byte 기준으로 정렬되어 있다.  
+이 녀석은 lock-free하다.  
+&nbsp;  
+
+같은 맥락으로 밑과 같은 녀석도 lock-free하다.  
+```c++
+struct B
+{
+    double x;
+    int y;
+}
+```
+패딩으로 인해 실제 크기가 딱 128bit로 맞춰지기 때문이다.  
+&nbsp;  
+
+그러면 밑과 같은 경우는 어떻게 될까?  
+```c++
+struct C
+{
+    int x;
+    int y;
+    int z;
+}
+```
+4byte 기준으로 정렬되기에 실제 크기는 96bit다.  
+128bit를 충족하지 못하여 lock-free가 아니다.  
+&nbsp;  
+
+위와 같이 구조체의 생김새마다 동작이 달라지고 CPU마다 원자적인 명령을 내리지 못하는 자료형도 존재하기 때문에 밑과 같이 is_lock_free() 함수를 통해 알아봐야 한다.  
 ```c++
 std::atomic<int> num;
 if (num.is_lock_free())
@@ -1207,7 +1229,7 @@ else
 하지만 퍼포먼스가 중요한 부분이라면 이러한 요소를 다시 점검할 필요가 있다.  
 &nbsp;  
 
-[경쟁 상태](#경쟁-상태)는 해결이 되었다지만 [명령어 재배치](#명령어-재배치), [일관성 문제](#캐시-일관성-문제)를 해결하기 위한 방법은 아직 설명하지 않았다.  
+원자적인 특성 덕분에 [경쟁 상태](#경쟁-상태)는 해결이 되었다지만 [명령어 재배치](#명령어-재배치), [일관성 문제](#캐시-일관성-문제)를 해결하기 위한 방법은 아직 설명하지 않았다.  
 std::atomic은 나머지 문제들을 해결할 수 있도록 다양한 옵션을 제공한다.  
 각 옵션들의 특징을 알아보자.  
 &nbsp;  
@@ -1247,7 +1269,7 @@ join() 전에 더하기 연산이 어떤 순서로 수행되던 join() 이후에
 
 memory_order_relexed보다 좀 더 엄격하다.  
 
-memory_order_release가 쓰인 라인 **이전** 명령들은 memory_order_release가 쓰인 라인 이후로 재배치될 수 없다.   
+memory_order_release가 쓰인 라인 **이전** 명령들은 memory_order_release가 쓰인 라인 이후로 재배치될 수 없다.    
 release 기능으로 해당 옵션이 사용된 명령이 수행되면 해당 명령 전에 수행되었던 명령들로 인해 바뀐 캐시 내용들이 공유 메모리에 올라간다.  
 
 반대로 memory_order_acquire가 쓰인 라인 **이후** 명령들은 memory_order_acquire가 쓰인 라인 **이전**으로 재배치될 수 없다.  
@@ -1326,18 +1348,14 @@ void write_y()
 
 void read_x_then_y()
 {
-    while (!x.load(std::memory_order_seq_cst))
-    {
-    }
+    while (!x.load(std::memory_order_seq_cst));
     if (y.load(std::memory_order_seq_cst))
         ++z;
 }
 
 void read_y_then_x()
 {
-    while (!y.load(std::memory_order_seq_cst))
-    {
-    }
+    while (!y.load(std::memory_order_seq_cst));
     if (x.load(std::memory_order_seq_cst))
         ++z;
 }
@@ -1345,7 +1363,32 @@ void read_y_then_x()
 // 동일 구현부 생략
 ```
 절대적인 시간선이 생겨 ```write_x()``` -> ```write_y()```로 진행된다고 할 때 모든 CPU 코어에서 저 순서로 관찰하게 된다.  
-모든 쓰레드에서 동일한 값이 관찰되는 것이 보장되기에 z의 값이 0으로 나올 수 없다.  
+모든 쓰레드에서 동일한 값이 관찰되기에 z의 값이 0으로 나올 수 없다.  
+이렇게 단일 원자 변수의 동기화가 아닌 원자 변수들 사이의 동기화까지 고려하기 위해선 memory_order_seq_cst 옵션을 사용해야 한다.  
+&nbsp;  
+
+#### 원자 연산의 종류  
+
+위에서 거의 다 등장했지만 ```std::atomic```에서 제공하는 연산은 크게 Read, Write, RMW(Read-Modify_Write)로 나뉜다.  
+Read에는 ```load()```가 속한다.  
+Write에는 ```store()```가 속한다.  
+RMW에는 대표적으로 ```compare_exchange_weak()```, ```fetch_add()``` 등이 속한다.  
+이 중 RMW 연산은 매우 유용하다.  
+&nbsp;  
+
+```load()```는 특정 쓰레드에서 원자적으로 값을 읽기는 하지만 쓰레드의 실행 순서는 예측할 수 없기 때문에 읽은 값이 어떻게 튀어나올지 모른다.  
+```if()```문만 사용하여 다루기 힘들고 ```while()```문을 통해 특정 값이 획득될 때까지 기다려줘야 안전하게 사용할 수 있다.  
+그리고 코드 문맥에 따라 memory_order 설정도 잘해줘야 한다.  
+
+```store()```도 특정 쓰레드에서 특정 값을 원자적으로 저장해주기는 하지만 값을 저장했다고 해서 캐시 정보가 바로 메모리로 올라가지 않는다.  
+사용된 memory_order에 따라 저장된 값에 대한 동기화 시점이 결정된다.  
+이 녀석도 마찬가지로 쓰레드의 실행 순서 예측이 불가하기 때문에 언제 어떻게 덮어씌울지 모른다.   
+
+반면 ```fetch_add()```와 같은 RMW 연산은 명확하다.  
+```fetch_add()```는 ```x++```과 같이 특정 값이 더해지기 전의 값을 반환하는 함수다.   
+중요한 것은 해당 반환 값은 고유하기에 각 쓰레드는 각기 다른 반환 값을 획득하는 것이 보장된다.  
+이는 주어진 memory_order가 어떻든 보장된다.   
+이러한 특성으로 인해 ```if()```문과 함께 사용하여 다루기 쉽다.  
 &nbsp;  
 
 #### Lock-Free 알고리즘  
