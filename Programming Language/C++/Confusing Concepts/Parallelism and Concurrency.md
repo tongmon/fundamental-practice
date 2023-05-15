@@ -1216,6 +1216,7 @@ std::atomic은 나머지 문제들을 해결할 수 있도록 다양한 옵션�
 
 제일 느슨하고 속도가 빠른 옵션이다.  
 싱글 쓰레드 관점으로 결과가 동일하게 나온다는 것이 보장된다는 가정하에 해당 옵션이 사용된 명령은 마음대로 배치될 수 있다.  
+즉 [경쟁 상태](#경쟁-상태)만 해결된다.  
 그러면 이 옵션은 어떤 곳에 사용할 수 있을까?  
 ```c++
 void th_func(std::atomic<int> &s)
@@ -1477,6 +1478,17 @@ bool atomic<T>::compare_exchange_strong(T& old_var, const T& new_val)
 push 함수에서 처음 노드를 넣을 때의 상태는 외부 카운터 -> 1, 내부 카운터 -> 0이다.
 이유는 스택의 top만이 노드를 가리키기에 외부 카운터가 1, 따로 읽기 동작이 수행된 적이 없는 신선한 노드이기에 내부 카운터가 0이다.
 
+lock-free 구조에서 memory ordering 적용 이해가 안되는 경우 밑의 링크들이 도움됨
+https://stackoverflow.com/questions/66124020/atomic-operations-and-visibility-in-c -> atomic operations and visibility
+https://stackoverflow.com/questions/66054666/memory-order-relaxed-and-visibility -> atomic operations and visibility 2
+https://stackoverflow.com/questions/59999996/what-is-guaranteed-with-c-stdatomic-at-the-programmer-level -> rmw and atmoic cache co
+https://stackoverflow.com/questions/55079321/atomic-operation-propagation-visibility-atomic-load-vs-atomic-rmw-load -> rmw vs load in atomic
+https://stackoverflow.com/questions/54639439/will-fetch-add-with-relaxed-memory-order-return-unique-values
+https://stackoverflow.com/questions/40649104/fetch-add-with-acq-rel-memory-order
+
+RMW에 사용되는 memory order는 전/후 명령 순서만 관련있지 RMW가 적용되는 원자 변수는 관련이 없다.  
+RMW가 적용되는 원자 변수는 스레드간 변경 순서가 약속되어 있다.  
+
 
 ```c++
 template<typename T>
@@ -1678,9 +1690,17 @@ class lock_free_stack
             }
             else if (ptr->internal_count.fetch_add(-1, std::memory_order_relaxed) == 1)
             {
+                // 스레드 1에서 res.swap(ptr->data);으로 ptr에 대한 정보가 갱신이 되었다.
+                // 스레드 1 캐시에는 ptr과 같은 비원자적 변수에 대한 정보 갱신이 모두 담겨있다.
+                // 하지만 delete ptr;은 internal_count 변수 때문에 스레드 2에서 진행되기로 한다.
+                // 스레드 2 캐시에는 아직 ptr에 대한 정보가 업데이트되지 않은 상태이다.
+                // ptr->data에 대한 정보를 메모리에서 캐시로 받아와 갱신한 뒤에 ptr을 해제해줘야 안전하기 때문에
+                // std::memory_order_acquire를 사용한다.
                 ptr->internal_count.load(std::memory_order_acquire);
                 delete ptr;
             }
+            // internal_count는 RMW 만을 이용해 원자 연산을 하기 때문에 memory_order와 무관하게 delete ptr;은 단 한번만 수행된다.
+            // 즉 fetch_add에서 반환되는 값을 각 쓰레드에서 받아 평가하는데 이 값은 고유하다. (물론 같은 ptr 객체의 internal_count 변수인 경우)
         }
     }
 };
