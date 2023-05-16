@@ -1327,6 +1327,7 @@ std::atomic에 아무런 옵션도 설정하지 않으면 memory_order_seq_cst�
 memory_order_acq_rel, memory_order_release, memory_order_acquire 요 녀석들은 [명령어 재배치 문제](#명령어-재배치)는 해결해주지만 코어간 [캐시 일관성 문제](#캐시-일관성-문제)는 해결해주지 않는다.  
 즉 CPU 코어에 따라 관측이 상대적이라 쓰레드에 따라 특정 변수의 상태가 다를 수 있다.  
 memory_order_seq_cst 옵션을 사용하면 절대적인 시간선이 생겨 모든 CPU의 코어가 같은 상황을 동일한 관점에서 관측하게 된다. (모든 명령에 대한 순차적 일관성이 보장된다.)  
+간단하게 보이는 코드 그대로 동작한다는 것이다.   
 하지만 모든 옵션 중 가장 속도가 느리다. (특히 ARM 프로세서에서 차이가 극명하다.)   
 &nbsp;  
 
@@ -1362,41 +1363,45 @@ void read_y_then_x()
 
 // 동일 구현부 생략
 ```
-절대적인 시간선이 생겨 ```write_x()``` -> ```write_y()```로 진행된다고 할 때 모든 CPU 코어에서 저 순서로 관찰하게 된다.  
+절대적인 시간선이 생겨 ```write_x()``` -> ```write_y()```로 진행된다고 하면 모든 CPU 코어에서 저 순서로 관찰하게 된다.  
+즉 특정 쓰레드에서 ```x: false, y: true```로 관찰되었으면 다른 모든 쓰레드에서도 x, y 값이 동일하다는 것이 보장된다.  
 모든 쓰레드에서 동일한 값이 관찰되기에 z의 값이 0으로 나올 수 없다.  
-이렇게 단일 원자 변수의 동기화가 아닌 원자 변수들 사이의 동기화까지 고려하기 위해선 memory_order_seq_cst 옵션을 사용해야 한다.  
+단일 원자 변수 기준의 읽기, 쓰기 순서가 아니라 전역적인 읽기, 쓰기 순서를 강제하고 싶다면 memory_order_seq_cst 옵션을 사용하면 된다.  
 &nbsp;  
 
-#### 원자 연산의 종류  
+#### 원자 연산의 특성   
 
 위에서 거의 다 등장했지만 ```std::atomic```에서 제공하는 연산은 크게 Read, Write, RMW(Read-Modify_Write)로 나뉜다.  
 Read에는 ```load()```가 속한다.  
 Write에는 ```store()```가 속한다.  
 RMW에는 대표적으로 ```compare_exchange_weak()```, ```fetch_add()``` 등이 속한다.  
-이 중 RMW 연산은 매우 유용하다.  
+이 중 RMW 연산은 Read 시점에 항상 갱신된 최신 값을 획득한다는 점에서 매우 유용하다.  
 &nbsp;  
 
 ```load()```는 특정 쓰레드에서 원자적으로 값을 읽기는 하지만 쓰레드의 실행 순서는 예측할 수 없기 때문에 읽은 값이 어떻게 튀어나올지 모른다.  
-```if()```문만 사용하여 다루기 힘들고 ```while()```문을 통해 특정 값이 획득될 때까지 기다려줘야 안전하게 사용할 수 있다.  
-그리고 코드 문맥에 따라 memory_order 설정도 잘해줘야 한다.  
+또 캐시에 해당 값이 이미 있는 상태라면 메모리에서 읽어오지 않고 캐시에서 읽어올 수도 있기에 최신 갱신된 값을 항상 획득한다는 보장도 없다.  
+그래서 ```if()```문만 사용하여 다루기 힘들고 ```while()```문을 통해 특정 값이 획득될 때까지 기다려줘야 안전하게 사용할 수 있다.  
+물론 코드 문맥에 따라 memory_order 설정도 잘해줘야 한다.  
 
-```store()```도 특정 쓰레드에서 특정 값을 원자적으로 저장해주기는 하지만 값을 저장했다고 해서 캐시 정보가 바로 메모리로 올라가지 않는다.  
-사용된 memory_order에 따라 저장된 값에 대한 동기화 시점이 결정된다.  
-이 녀석도 마찬가지로 쓰레드의 실행 순서 예측이 불가하기 때문에 언제 어떻게 덮어씌울지 모른다.   
+```store()```도 특정 쓰레드에서 특정 값을 원자적으로 저장해주기는 하지만 값을 저장했다고 해서 캐시 정보가 바로 메모리로 올라가지 않을뿐만 아니라 쓰레드의 실행 관측 순서를 예측할 수 없기에 언제 어떻게 값을 덮어씌울지 모른다.  
+그래서 적절한 memory_order를 넘겨 동기화 시점을 확실히 해줘야 한다.  
 
 반면 ```fetch_add()```와 같은 RMW 연산은 명확하다.  
 ```fetch_add()```는 ```x++```과 같이 특정 값이 더해지기 전의 값을 반환하는 함수다.   
 중요한 것은 해당 반환 값은 고유하기에 각 쓰레드는 각기 다른 반환 값을 획득하는 것이 보장된다.  
 이는 주어진 memory_order가 어떻든 보장된다.   
+RMW 연산에서 사용되는 memory_order는 해당 원자 연산을 제외한 주변의 연산들 순서에 영향을 미치기 위해서 사용한다.  
 이러한 특성으로 인해 ```if()```문과 함께 사용하여 다루기 쉽다.  
 &nbsp;  
 
 #### Lock-Free 알고리즘  
 
+지금까지 ```std::atomic```을 다룬 이유는 결국 lock-free 기법을 이용하기 위함이다.  
 std::mutex를 이용한 방식은 특정 쓰레드가 잠금을 획득하는 동안 다른 쓰레드는 아무것도 못하고 대기만 하게 된다.  
 이러한 특성 때문에 특정 쓰레드는 한번도 사용되지 못하고 대기만 하는 기아현상이 발생할 수 있다.    
 또 특정 쓰레드가 잠금을 획득한 상태로 죽어버리면 다른 쓰레드들은 잠금 획득을 못해 대기만 하여 프로그램이 뻗어버리는 문제도 있다.  
 이러한 문제를 std::atomic을 이용한 lock-free 기법을 통해 해결할 수 있다.  
+
 단점이라면 구현이 매우 까다롭고 약간의 헛점으로도 문제가 많이 발생하기에 lock-free 기법을 이용한 코드가 thread-safe한지 완벽한 검증이 이루어져야 한다.  
 속도적인 측면에서 볼 때 대부분의 상황에서 lock을 이용한 코드가 lock-free 기법을 이용한 코드보다 좀 더 빠르다.  
 심화 내용이니 이러한 것이 있다 정도만 이해하고 넘어가도 된다.  
@@ -1489,7 +1494,7 @@ lock-free 기법은 CAS(Compare and Swap)를 활용한다.
 CAS는 쓰레드에 저장된 로컬 캐시 데이터와 메모리에 저장된 데이터를 비교하여 두 개가 같으면 메모리 데이터를 특정 값으로 교체하는 연산이다.   
 &nbsp;  
 
-CAS 방식을 C++에서 사용하려면 ```compare_exchange_weak()```, ```compare_exchange_strong()``` 함수를 이용해야 한다.  
+CAS 방식을 C++에서 사용하려면 RMW 연산인 ```compare_exchange_weak()```, ```compare_exchange_strong()``` 함수를 이용해야 한다.  
 내부적으로 대략 밑과 같이 구현되어 있다.  
 ```c++
 template<typename T>
@@ -1511,28 +1516,8 @@ bool atomic<T>::compare_exchange_strong(T& old_var, const T& new_val)
 해당 함수는 내부적으로 ```CMPXCHG```라는 어셈블리 명령으로 바뀌어 원자적이니 std::mutex를 이용하지 않고 thread-safe를 보장할 수 있다. (ARM 프로세서는 ```CMPXCHG``` 대신에 ```LL/SC```를 사용한다.)  
 &nbsp;  
 
-- 레퍼런스 카운팅 방식
-
-각 노드에는 내부 카운터, 외부 카운터가 존재
-내부 + 외부 카운터는 노드에 대한 총 참조 횟수임 -> 이건 좀 이상함
-외부 카운터는 포인터를 읽을 때마다 증가
-읽기 동작이 완료되면 내부 카운터는 감소
-
-push 함수에서 처음 노드를 넣을 때의 상태는 외부 카운터 -> 1, 내부 카운터 -> 0이다.
-이유는 스택의 top만이 노드를 가리키기에 외부 카운터가 1, 따로 읽기 동작이 수행된 적이 없는 신선한 노드이기에 내부 카운터가 0이다.
-
-lock-free 구조에서 memory ordering 적용 이해가 안되는 경우 밑의 링크들이 도움됨
-https://stackoverflow.com/questions/66124020/atomic-operations-and-visibility-in-c -> atomic operations and visibility
-https://stackoverflow.com/questions/66054666/memory-order-relaxed-and-visibility -> atomic operations and visibility 2
-https://stackoverflow.com/questions/59999996/what-is-guaranteed-with-c-stdatomic-at-the-programmer-level -> rmw and atmoic cache co
-https://stackoverflow.com/questions/55079321/atomic-operation-propagation-visibility-atomic-load-vs-atomic-rmw-load -> rmw vs load in atomic
-https://stackoverflow.com/questions/54639439/will-fetch-add-with-relaxed-memory-order-return-unique-values
-https://stackoverflow.com/questions/40649104/fetch-add-with-acq-rel-memory-order
-
-RMW에 사용되는 memory order는 전/후 명령 순서만 관련있지 RMW가 적용되는 원자 변수는 관련이 없다.  
-RMW가 적용되는 원자 변수는 스레드간 변경 순서가 약속되어 있다.  
-
-
+lock-free 스택을 구현하는 방식에는 위험 포인터, 해제 미루기, 레퍼런스 카운팅 등 여러가지가 있지만 제일 널리 쓰이는 레퍼런스 카운팅 방식만 다루겠다.  
+일단 밑과 같은 노드를 이용한다.  
 ```c++
 template<typename T>
 struct CountedNode;
@@ -1556,14 +1541,23 @@ struct CountedNode
         internal_cnt = 0;
     }
 };
+```
+방식 이름처럼 노드 내부에 참조 개수가 존재한다.  
+특이한 점은 노드 포인터에도 외부 참조 개수가 존재한다는 것이다.  
+이는 실제 구현부를 보면 이해가 가겠지만 미리 설명하자면 여러 쓰레드가 같은 노드에 대한 포인터를 동시에 역참조할 수 있다.  
+이 상태에서 특정 스레드가 노드 포인터를 해제하게 되면 포인터 다른 쓰레드들은 해제된 포인터에 대해 역참조를 하고 있는 상태가 되기 때문에 위험하다.  
+따라서 노드 자체에 존재하는 내부 참조 카운터말고 노드 포인터와 함께 외부 참조 카운터가 존재하게 된다.  
+&nbsp;  
 
+스택 구현부는 밑과 같다.  
+```c++
 template<typename T>
 class lfstack
 {
     std::atomic<CountedNodePtr<T>> m_top;
     std::atomic_size_t m_size;
 
-    void increase_top_cnt(CountedNodePtr<T> &old_top)
+    void increase_top_cnt(CountedNodePtr<T> &old_top) // ②
     {
         CountedNodePtr<T> new_top;
         do
@@ -1617,541 +1611,93 @@ public:
             if (!ptr)
                 return nullptr;
 
-            if (m_top.compare_exchange_strong(old_top, ptr->next))
+            if (m_top.compare_exchange_strong(old_top, ptr->next)) // ③
             {
                 std::shared_ptr<T> ret = std::move(ptr->data);
                 const std::int32_t ex_cnt_apply_to_in_cnt = old_top.external_cnt - 2;
                 if (ptr->internal_cnt.fetch_add(ex_cnt_apply_to_in_cnt) == -ex_cnt_apply_to_in_cnt)
                     delete ptr;
-                m_size--;
+                m_size.fetch_sub(1);
                 return ret;
             }
-            else if (ptr->internal_cnt.fetch_sub(1) == 1)
+            else if (ptr->internal_cnt.fetch_sub(1) == 1)  // ④
                 delete ptr;
         }
     }
 
-    void push(T const& data)
+    void push(T const& data) // ①
     {
-        m_size++;
+        m_size.fetch_add(1);
         CountedNodePtr<T> new_node;
         new_node.ptr = new CountedNode<T>(data);
         new_node.external_cnt = 1;
-        new_node.ptr->next = m_top.load(); 
+        new_node.ptr->next = m_top.load();
         while (!m_top.compare_exchange_weak(new_node.ptr->next, new_node));
     }
 };
 ```
+일단 m_top, m_size는 원자 변수이다.  
+m_top에 이용된 구조체는 크기가 알맞기에 lock-free하다.  
+주석에 매겨진 순서대로 분석해보자.  
 
-------------------------밑 부터 수정...--------------------------------
+일단 ①부터 보자.  
+```push```하게 되는 노드는 m_top에서 참조할 것이기에 외부 참조 카운터가 1이다. (내부 카운터는 pop을 할 때 이용하기에 0으로 놔둔다.)   
+lock이 없이 여러 개의 쓰레드가 동시에 push를 하려고 덤비기 때문에 이곳에서 CAS 함수인 compare_exchange_weak를 활용하는 것을 볼 수 있다.  
+제일 최신의 ```new_node.ptr->next``` 변수(즉 로컬 m_top 변수)를 가진 쓰레드만이 원자적인 m_top을 교체할 수 있다.  
 
+②는 참조 카운터 증가 함수이다.  
+pop에서 로컬 변수로 노드 포인터를 이용하기에 참조 개수를 증가시켜야 하기에 해당 함수를 사용한다.  
+해당 함수도 제일 최신 m_top 변수에 외부 참조 카운터의 변경을 적용해야 하기에 CAS 함수를 이용한다.  
+
+③에서는 ```increase_top_cnt()```와 ③ 사이 로직들을 수행할 때 다른 쓰레드에서 m_top을 변경했을 수 있기에 old_top이 지금도 최신인지 확인하기 위해 CAS 함수를 사용한다.  
+old_top이 최신인 것이 확인되면 m_top은 pop된 걸로 간주되어 ```ptr->next```로 변경된다.  
+그리고 old_top의 데이터가 옮겨지며 내부 참조 카운터에 외부 참조 카운터 값이 적용된다.  
+이때 m_top이 pop되어 1이 깎이고 pop() 함수에서 로컬로 참조하고 있던 old_top도 참조를 해제할 것이기에 1이 깎여 총 2를 추가적으로 깎아 외부 참조 카운터를 적용하게 된다.  
+여기서 외부 참조를 적용한 내부 참조 카운터 값이 0이면 그대로 노드를 해제하면 된다.  
+아니라면 다른 쓰레드에서 해제해줘야 한다.  
+
+④에서는 내부 참조 카운터를 획득하여 하나를 뺀다.  
+하나를 뺀 값이 0이 된다면 ③에서 노드 해제를 안했다는 것이기에 ④를 수행한 쓰레드에서 노드를 해제해준다.  
+&nbsp;  
+
+지금 lfstack을 보면 memory_order가 memory_order_seq_cst로 설정되어 최적화가 하나도 안되어 있다.  
+최적화를 해보자.  
 ```c++
-#include <atomic>
-#include <memory>
-
-template <typename T>
-class lock_free_stack
-{
-  private:
-    struct node;
-    struct counted_node_ptr
-    {
-        int external_count;
-        node *ptr;
-    };
-    struct node
-    {
-        std::shared_ptr<T> data;
-        std::atomic<int> internal_count;
-        counted_node_ptr next;
-        node(T const &data_)
-            : data(std::make_shared<T>(data_)),
-              internal_count(0)
-        {
-        }
-    };
-    std::atomic<counted_node_ptr> head;
-    void increase_head_count(counted_node_ptr &old_counter)
-    {
-        counted_node_ptr new_counter;
-        do
-        {
-            new_counter = old_counter;
-            ++new_counter.external_count;
-        } while (!head.compare_exchange_strong(old_counter, new_counter,
-                                               std::memory_order_acquire,
-                                               std::memory_order_relaxed));
-        old_counter.external_count = new_counter.external_count;
-    }
-
-  public:
-    ~lock_free_stack()
-    {
-        while (pop())
-            ;
-    }
-    void push(T const &data)
-    {
-        counted_node_ptr new_node;
-        new_node.ptr = new node(data);
-        new_node.external_count = 1;
-        new_node.ptr->next = head.load(std::memory_order_relaxed);
-        while (!head.compare_exchange_weak(new_node.ptr->next, new_node,
-                                           std::memory_order_release,
-                                           std::memory_order_relaxed))
-            ;
-    }
-    std::shared_ptr<T> pop()
-    {
-        // head는 push의 release, pop의 acquire로 동기화를 increase_head_count서 진행하기에 이곳에서는 relaxed로 설정
-        counted_node_ptr old_head = head.load(std::memory_order_relaxed);
-        for (;;)
-        {
-            increase_head_count(old_head); // 여기서 old_head는 head와 같은 값이 됨
-            node *const ptr = old_head.ptr;
-            if (!ptr)
-            {
-                return std::shared_ptr<T>();
-            }
-            // old_head, ptr 값이 보장되있어서 std::memory_order_relaxed 해도 노상관
-            if (head.compare_exchange_strong(old_head, ptr->next,
-                                             std::memory_order_relaxed,
-                                             std::memory_order_relaxed))
-            {
-                std::shared_ptr<T> res;
-                res.swap(ptr->data);
-                int const count_increase = old_head.external_count - 2;
-
-                // 첫빠따로 external_count를 internal_count에 적용함
-                // 명령어 재배치로 swap 전에 internal_count를 빼버리면
-                // else if문에 있는 delete문을 다른 쓰레드에서 먼저 수행할 수 있기에 memory_order_release로 swap이 먼저 수행되도록 함
-                if (ptr->internal_count.fetch_add(count_increase, std::memory_order_release) == -count_increase)
-                {
-                    delete ptr;
-                }
-                return res;
-            }
-            else if (ptr->internal_count.fetch_add(-1, std::memory_order_relaxed) == 1)
-            {
-                // 스레드 1에서 res.swap(ptr->data);으로 ptr에 대한 정보가 갱신이 되었다.
-                // 스레드 1 캐시에는 ptr과 같은 비원자적 변수에 대한 정보 갱신이 모두 담겨있다.
-                // 하지만 delete ptr;은 internal_count 변수 때문에 스레드 2에서 진행되기로 한다.
-                // 스레드 2 캐시에는 아직 ptr에 대한 정보가 업데이트되지 않은 상태이다.
-                // ptr->data에 대한 정보를 메모리에서 캐시로 받아와 갱신한 뒤에 ptr을 해제해줘야 안전하기 때문에
-                // std::memory_order_acquire를 사용한다.
-                ptr->internal_count.load(std::memory_order_acquire);
-                delete ptr;
-            }
-            // internal_count는 RMW 만을 이용해 원자 연산을 하기 때문에 memory_order와 무관하게 delete ptr;은 단 한번만 수행된다.
-            // 즉 fetch_add에서 반환되는 값을 각 쓰레드에서 받아 평가하는데 이 값은 고유하다. (물론 같은 ptr 객체의 internal_count 변수인 경우)
-        }
-    }
-};
-```
-
-그렇다면 ```compare_exchange_weak()```을 이용하여 lock-free 스택을 구현해보자.  
-```c++
-template <typename T>
+template<typename T>
 class lfstack
 {
-	std::atomic<Node<T>*> m_top;
-	std::atomic_size_t m_size;
-
-public:
-	lfstack()
-	{
-		m_top.store(nullptr);
-		m_size = 0;
-	}
-
-	~lfstack()
-	{
-		Node<T>* top = m_top.load(std::memory_order_relaxed), * next;
-		while (top)
-		{
-			next = top->next;
-			delete top;
-			top = next;
-		}
-	}
-
-	size_t size()
-	{
-		return m_size.load();
-	}
-
-	bool empty()
-	{
-		return !size();
-	}
-
-	const T& top()
-	{
-		return m_top.load()->data;
-	}
-
-	Node<T>* pop()
-	{
-		auto local_ptr = m_top.load(std::memory_order_relaxed);
-		while (true)
-		{
-			if (!local_ptr)
-				return nullptr;
-			auto local_next = local_ptr->next;
-			if (m_top.compare_exchange_weak(local_ptr, local_next))
-			{
-				m_size.fetch_sub(1, std::memory_order_relaxed);
-				return local_ptr;
-			}
-		}
-	}
-
-	void push(const T& data)
-	{
-		auto local_ptr = m_top.load(std::memory_order_relaxed), new_ptr = new Node<T>(data);
-		while (true)
-		{
-			new_ptr->next = local_ptr;
-			if (m_top.compare_exchange_weak(local_ptr, new_ptr))
-			{
-				m_size.fetch_add(1, std::memory_order_relaxed);
-				break;
-			}
-		}
-	}
-};
-```
-std::mutex를 이용한 것과 큰 차이라면 compare_exchange_weak() 함수 성공 유무를 계속해서 확인하기 위해 while() 문을 이용한다.  
-m_top의 주소와 local_ptr의 주소가 같은 경우에만 m_top을 갱신하기에 thread-safe하다.  
-&nbsp;  
-
-밑과 같은 함수를 이용해 테스트를 해보자.  
-```c++
-template <typename T>
-void stack_exchange(T& s1, T& s2, int give, int take, int rep)
-{
-    while (rep--)
-    {
-        for (int i = 0; i < give; i++)
-        {
-            auto poped = s1.pop();
-            if (poped)
-                s2.push(*poped.get());
-        }
-        for (int i = 0; i < take; i++)
-        {
-            auto poped = s2.pop();
-            if (poped)
-                s1.push(*poped.get());
-        }
-    }
-}
-
-template <typename T>
-void print_stack_performance(T& s1, T& s2, int stack_size = 1000000)
-{
-    std::random_device rd;
-    std::mt19937 gen(rd());
-    std::uniform_int_distribution<int> dis(50, 500);
-
-    for (int i = 0; i < stack_size / 2; i++)
-        s1.push(i);
-    for (int i = 0; i < stack_size / 2; i++)
-        s2.push(i);
-
-    clock_t start_time, end_time;
-    double result = 0;
-
-    start_time = clock();
-    std::vector<std::thread> ths;
-    for (int i = 0; i < 4; i++)
-    {
-        ths.push_back(std::thread(stack_exchange<T>, std::ref(s1), std::ref(s2), dis(gen), dis(gen), dis(gen)));
-        ths.push_back(std::thread(stack_exchange<T>, std::ref(s2), std::ref(s1), dis(gen), dis(gen), dis(gen)));
-    }
-    for (auto& th : ths)
-        th.join();
-    end_time = clock();
-    result = (double)(end_time - start_time) / 1e3;
-
-    std::cout << "Time Spand: " << result << "s\n";
-    std::cout << "Stack One Size: " << s1.size() << "\n";
-    std::cout << "Stack Two Size: " << s2.size() << "\n";
-    std::cout << "Total Size: " << s1.size() + s2.size() << "\n";
-}
-
-int main()
-{
-    lfstack<int> st_1, st_2;
-    print_stack_performance(st_1, st_2);
-}
-```
-2개의 스택에 각각 500000개의 원소들을 넣고 8개의 쓰레드에서 원소들을 옮겨 이동하는 테스트 코드이다.  
-&nbsp;  
-
-##### ABA 문제  
-
-만약 위의 lock-free 스택에서 밑과 같은 상황이 발생한다면 어떻게 될까?  
-
-1. 현재 lock-free 스택에는 top에서 bottom까지 A, B, C 이러한 순서로 데이터가 담겨져있다.  
-
-2. 쓰레드 1에서 pop 함수를 수행하다가 ```m_top.compare_exchange_weak(local_ptr, local_next)```가 진행되기 직전에 잠시 멈췄다.  
-
-3. 쓰레드 1이 멈춘 사이에 쓰레드 2에서 pop 함수를 두 번 수행하여 현재 lock-free 스택에는 C 데이터만이 담겨져있다.  
-
-4. 쓰레드 2에서 pop된 A, B 데이터를 모두 활용하고 할당 해제한 후 새로운 D 데이터에 대해 push 함수를 수행한다.  
-    특이한 점은 할당 해제된 A의 주소를 삽입된 D가 재활용하여 현재 A와 D의 주소가 같은 상황이다.  
-
-
-```c++
-template <typename T>
-union tagged_ptr
-{
-	struct
-	{
-		std::uint64_t tag : 12, ptr : 52;
-	};
-	std::uint64_t full;
-
-	tagged_ptr(const std::uint64_t& full)
-	{
-		this->full = full;
-	}
-	tagged_ptr(T* ptr = nullptr, std::uint16_t cnt = 0)
-	{
-		tag = cnt;
-		this->ptr = reinterpret_cast<std::uint64_t>(ptr);
-	}
-	T* get()
-	{
-		return reinterpret_cast<T*>(ptr);
-	}
-};
-
-template <typename T>
-class lfstack
-{
-	std::atomic_uint64_t m_top;
-	std::atomic_size_t m_size;
-
-public:
-	lfstack()
-	{
-		m_top = 0;
-		m_size = 0;
-	}
-
-	~lfstack()
-	{
-		Node<T>* top = tagged_ptr<Node<T>>(m_top.load()).get(), * next;
-		while (top)
-		{
-			next = top->next;
-			delete top;
-			top = next;
-		}
-	}
-
-	size_t size()
-	{
-		return m_size.load();
-	}
-
-	bool empty()
-	{
-		return !size();
-	}
-
-	const T& top()
-	{
-		return tagged_ptr<Node<T>>(m_top.load()).get()->data;
-	}
-
-	Node<T>* pop()
-	{
-		tagged_ptr<Node<T>> local_ptr(m_top.load(std::memory_order_relaxed));
-		while (true)
-		{
-			if (!local_ptr.get())
-				return nullptr;
-			tagged_ptr<Node<T>> local_next(local_ptr.get()->next, local_ptr.tag);
-			if (m_top.compare_exchange_weak(local_ptr.full, local_next.full))
-			{
-				m_size.fetch_sub(1, std::memory_order_relaxed);
-				return local_ptr.get();
-			}
-		}
-	}
-
-	void push(const T& data)
-	{
-		tagged_ptr<Node<T>> local_ptr(m_top.load(std::memory_order_relaxed)), new_ptr(new Node<T>(data));
-		while (true)
-		{
-			new_ptr.get()->next = local_ptr.get();
-			new_ptr.tag = local_ptr.tag + 1;
-			if (m_top.compare_exchange_weak(local_ptr.full, new_ptr.full))
-			{
-				m_size.fetch_add(1, std::memory_order_relaxed);
-				break;
-			}
-		}
-	}
-};
-```
-
-https://lumian2015.github.io/lockFreeProgramming/aba-problem.html
-https://dockdocklife.tistory.com/entry/Lock-free-stack-3?category=985040
-http://15418.courses.cs.cmu.edu/spring2013/article/46
-
-스레드 0은 팝을 시작하고 "A"를 맨 위에 표시한 다음 "B"를 표시합니다.
-스레드 1은 팝을 시작하고 완료하여 "A"를 반환합니다.
-스레드 1이 "D" 푸시를 시작하고 완료합니다.
-스레드 1은 "A"를 스택에 다시 밀어넣고 완료합니다.
-스레드 0은 "A"가 맨 위에 있는 것을 확인하고 "A"를 반환하여 새 맨 위를 "B"로 설정합니다.
-노드 D가 손실됩니다.
-
-강의에서 살펴본 것처럼, 잠금 없는 데이터 구조는 겉으로 보이는 이점에도 불구하고 반드시 더 나은 성능을 보여주지는 않습니다. 특히 대기열이 있는 경우 성능이 나빠집니다. CAS 연산이 성공하기 전에 여러 번 실패하는 경우, 스핀 락과 유사하게 많은 추가 대기 작업을 수행하게 됩니다. 이러한 이유로 강의 슬라이드에 예시만 삽입한 것에서도 알 수 있듯이 경합이 높을수록 잠금 없는 연산에 유리하지 않습니다. 또한 링크된 목록에서 세분화된 잠금이 반드시 pthread 뮤텍스 잠금보다 성능이 더 좋은 것은 아니라는 점도 흥미롭습니다. 이러한 경우 잠금을 획득/해제하는 오버헤드가 프로세서 수가 적거나 많을 때 너무 커집니다.
-
-
-CAS -> 현재 쓰레드에 저장된 값과 메인 메모리에 저장된 값을 비교
-
-T1
-pop을 시도하다가 CAS를 하기 직전에 쓰레드가 멈추었다. 현재 local head에는 A의 pointer가, local next에는 B의 pointer가 들어가 있다.
-T2
-pop을 두 번 시도하여 A와 B를 꺼내오는 것을 완료하였다. A, B에 할당된 메모리는 free되었고, OS에 반환은 되지 않았다. 새로운 A'을 stack에 넣는데, 이때 A에 할당됐던 메모리를 재사용하여 push를 성공했다. stack에는 A'(head), C가 들어가 있는 상황이다.
-T1
-CAS를 시도한다. A'의 pointer 값은 A의 pointer와 같기 때문에 CAS는 성공하고 이미 pop되었고 메모리까지 free된 B의 pointer가 head에 저장된다. 실제로 stack에는 C만 있어야 하고, head도 C여야 하지만, stack의 head에는 C의 pointer가 아닌 B의 pointer가 저장되어 있다.
-
-1. 프로세스 P1이 일부 공유 메모리 위치에서 값 A를 읽습니다, 
-
-2. P1이 선점되어 프로세스 P2가 실행될 수 있습니다. 
-
-3. P2가 공유 메모리 위치에 값 B를 씁니다. 
-
-4. P2가 공유 메모리 위치에 값 A를 씁니다. 
-
-5. P2가 선점되어 프로세스 P1이 실행될 수 있습니다, 
-
-6. P1이 공유 메모리 위치에서 값 A를 읽습니다, 
-
-7. P1은 공유 메모리 값이 변경되지 않았다고 판단하고 계속 진행합니다.
-
-
-이는 '락이 없는 원자 유형을 사용하는 것이 락이 있는 원자 유형을 사용하는 것보다 더 나은 선택이 되는 경우는 없다'는 것을 의미하나요? (주로 사용 편의성보다는 성능 측면에서) 
-
-위 언급은 일반적으로 맞지 않습니다.
-
-실행 준비가 완료된 코어 2개와 스레드 3개가 있다고 가정해 보겠습니다. 스레드 A와 B가 동일한 컬렉션에 액세스하고 있어 경합이 심하고, 스레드 C는 완전히 다른 데이터에 액세스하고 있어 경합을 최소화한다고 가정해 보겠습니다.
-
-스레드 A와 B가 잠금을 사용하는 경우, 스레드 중 하나는 빠르게 스케줄이 해제되고 스레드 C는 하나의 코어에서 실행됩니다. 이렇게 하면 A와 B 중 어느 스레드가 스케줄링되든 경합이 거의 없이 실행될 수 있습니다.
-
-반면, 잠금 없는 컬렉션에서는 스케줄러가 스레드 A 또는 B의 스케줄을 해제할 기회가 전혀 없습니다. 따라서 스레드 A와 B가 전체 타임슬라이스에서 동시에 실행되어 L2 캐시 간에 동일한 캐시 라인을 계속 핑퐁할 가능성이 완전히 있습니다.
-
-일반적으로 잠금은 잠금이 없는 코드보다 더 효율적입니다. 이것이 바로 스레드 코드에서 잠금이 훨씬 더 자주 사용되는 이유입니다. 그러나 일반적으로 std::원자형은 이와 같은 컨텍스트에서 사용되지 않습니다. 잠금이 더 효율적이라고 생각할 만한 이유가 있는 상황에서 std::원자 형을 사용하는 것은 실수일 가능성이 높습니다.
-
-&nbsp;  
-
-
-
-https://stackoverflow.com/questions/59241894/is-there-anything-like-javas-atomicstampedreference-in-c
-https://stackoverflow.com/questions/40223599/what-is-the-difference-between-stdshared-ptr-and-stdexperimentalatomic-sha
-https://popcorntree.tistory.com/39
-https://stackoverflow.com/questions/33489611/how-can-i-prevent-undefined-behavior-and-the-aba-issue-in-this-lock-free-stack-f
-https://en.wikipedia.org/wiki/ABA_problem
-
-&nbsp;  
-
-
-```c++
-struct S
-{
-    unsigned int b : 2, c : 2;
-};
-
-union Union_Test {
-    struct
-    {
-        long long m_nABA : 4, m_pNode : 60;
-    };
-    long long m_n64;
-};
-
-int main()
-{
-    S s = {2, 1};
-    ++s.b;
-    printf("%d\n", s.b);
-    ++s.b;
-    printf("%d\n", s.b);
-
-    ++s.c;
-    printf("%d\n", s.c);
-    ++s.c;
-    printf("%d\n", s.c);
-    ++s.c;
-    printf("%d\n", s.c);
-
-    Union_Test t;
-    t.m_n64;
-    t.m_nABA;
-    t.m_pNode;
-}
-```
-&nbsp;  
-
-```c++
-template <typename T>
-union tagged_ptr {
-    struct
-    {
-        std::uint64_t tag : 12, ptr : 52;
-    };
-    std::uint64_t full;
-
-    tagged_ptr(const std::uint64_t &full)
-    {
-        this->full = full;
-    }
-    tagged_ptr(T *ptr = nullptr, std::uint16_t cnt = 0)
-    {
-        tag = cnt;
-        this->ptr = reinterpret_cast<std::uint64_t>(ptr);
-    }
-    T *get()
-    {
-        return reinterpret_cast<T *>(ptr);
-    }
-};
-
-template <typename T>
-class lfstack
-{
-    struct Node
-    {
-        T data;
-        Node *next;
-        Node(const T &data, Node *next = nullptr)
-        {
-            this->data = data;
-            this->next = next;
-        }
-    };
-
-    std::atomic_uint64_t m_top;
+    std::atomic<CountedNodePtr<T>> m_top;
     std::atomic_size_t m_size;
 
-  public:
+    void increase_top_cnt(CountedNodePtr<T> &old_top)
+    {
+        CountedNodePtr<T> new_top;
+        do
+        {
+            new_top = old_top;
+            ++new_top.external_cnt;
+        } while (!m_top.compare_exchange_strong(old_top, new_top,
+                 std::memory_order_acquire,
+                 std::memory_order_relaxed)); // ④
+        old_top.external_cnt = new_top.external_cnt;
+    }
+
+public:
     lfstack()
     {
-        m_top = 0;
+        m_top = { 0,nullptr };
         m_size = 0;
     }
 
     ~lfstack()
     {
-        while (!empty())
-            pop();
+        CountedNodePtr<T> top = m_top.load(), next;
+        while (top.ptr)
+        {
+            next = top.ptr->next;
+            delete top.ptr;
+            top = next;
+        }
     }
 
     size_t size()
@@ -2164,160 +1710,117 @@ class lfstack
         return !size();
     }
 
-    const T &top()
+    const T& top()
     {
-        return tagged_ptr<Node>(m_top.load()).get()->data;
+        return *m_top.load().ptr->data.get();
     }
 
-    std::optional<T> pop()
+    std::shared_ptr<T> pop()
     {
-        tagged_ptr<Node> local_ptr(m_top.load(std::memory_order_relaxed));
+        CountedNodePtr<T> old_top = m_top.load(std::memory_order_relaxed); // ⑤
         while (true)
         {
-            if (!local_ptr.get())
-                return std::nullopt;
-            tagged_ptr<Node> local_next(local_ptr.get()->next, local_ptr.tag); // 해당 라인에서 local_ptr.get() 이 녀석이 nullptr일 가능성이 있음
-            if (m_top.compare_exchange_weak(local_ptr.full, local_next.full))
+            increase_top_cnt(old_top);
+            CountedNode<T>* const ptr = old_top.ptr;
+            if (!ptr)
+                return nullptr;
+
+            if (m_top.compare_exchange_strong(old_top, ptr->next,
+                std::memory_order_relaxed,
+                std::memory_order_relaxed)) // ⑥
             {
-                T ret_val = std::move(local_ptr.get()->data);
-                delete local_ptr.get();
-                m_size.fetch_sub(1, std::memory_order_relaxed);
-                return ret_val;
+                std::shared_ptr<T> ret = std::move(ptr->data);
+                const std::int32_t ex_cnt_apply_to_in_cnt = old_top.external_cnt - 2;
+                if (ptr->internal_cnt.fetch_add(ex_cnt_apply_to_in_cnt, std::memory_order_release) == -ex_cnt_apply_to_in_cnt) // ⑦
+                    delete ptr;
+                m_size.fetch_sub(1, std::memory_order_relaxed); // ⑧
+                return ret;
+            }
+            else if (ptr->internal_cnt.fetch_sub(1, std::memory_order_relaxed) == 1) // ⑨
+            {
+                ptr->internal_cnt.load(std::memory_order_acquire); // ⑩
+                delete ptr;
             }
         }
     }
 
-    void push(const T &data)
+    void push(T const& data)
     {
-        tagged_ptr<Node> local_ptr(m_top.load(std::memory_order_relaxed)), new_ptr(new Node(data));
-        while (true)
-        {
-            new_ptr.get()->next = local_ptr.get();
-            new_ptr.tag = local_ptr.tag + 1;
-            if (m_top.compare_exchange_weak(local_ptr.full, new_ptr.full))
-            {
-                m_size.fetch_add(1, std::memory_order_relaxed);
-                break;
-            }
-        }
+        m_size.fetch_add(1, std::memory_order_relaxed); // ①
+        CountedNodePtr<T> new_node;
+        new_node.ptr = new CountedNode<T>(data);
+        new_node.external_cnt = 1;
+        new_node.ptr->next = m_top.load(std::memory_order_relaxed); // ②
+        while (!m_top.compare_exchange_weak(new_node.ptr->next, new_node, 
+               std::memory_order_release,
+               std::memory_order_relaxed)); // ③
     }
 };
-
-template <typename T>
-class lstack
-{
-    struct Node
-    {
-        T data;
-        Node *next;
-        Node(const T &data, Node *next = nullptr)
-        {
-            this->data = data;
-            this->next = next;
-        }
-    };
-
-    std::mutex mut;
-    size_t m_size;
-    Node *m_top;
-
-  public:
-    lstack()
-    {
-        m_top = nullptr;
-        m_size = 0;
-    }
-
-    ~lstack()
-    {
-        while (!empty())
-            pop();
-    }
-
-    size_t size()
-    {
-        return m_size;
-    }
-
-    bool empty()
-    {
-        return !size();
-    }
-
-    const T &top()
-    {
-        return m_top->data;
-    }
-
-    std::optional<T> pop()
-    {
-        std::unique_lock<std::mutex> ul(mut);
-        if (empty())
-            return std::nullopt;
-        Node *old_top = m_top;
-        m_top = m_top->next;
-        m_size--;
-        ul.unlock();
-        T ret_val = std::move(old_top->data);
-        delete old_top;
-        return ret_val;
-    }
-
-    void push(const T &data)
-    {
-        std::unique_lock<std::mutex> ul(mut);
-        m_top = new Node(data, m_top);
-        m_size++;
-    }
-};
-
-template <typename T>
-void push_and_pop(T &st, int num)
-{
-    for (int i = 0; i < num; i++)
-        st.push(i);
-    for (int i = 0; i < num; i++)
-        st.pop();
-}
-
-template <typename T>
-void print_stack_performance(T &st, int stack_size = 8000000)
-{
-    clock_t start_time, end_time;
-    double result = 0;
-
-    start_time = clock();
-    std::vector<std::thread> ths;
-    for (int i = 0; i < 8; i++)
-        ths.push_back(std::thread(push_and_pop<T>, std::ref(st), stack_size / 8));
-    for (auto &th : ths)
-        th.join();
-    end_time = clock();
-    result = (double)(end_time - start_time) / 1e3;
-
-    std::cout << "Time Spand: " << result << "s\n";
-    std::cout << "Stack Size: " << st.size() << "\n";
-}
-
-int main()
-{
-    lstack<int> lock_st;
-    std::cout << "Mutex base stack\n";
-    print_stack_performance(lock_st);
-
-    lfstack<int> lock_free_st;
-    std::cout << "\nTagged pointer base lock free stack\n";
-    print_stack_performance(lock_free_st);
-}
 ```
+각 memory_order들은 그냥 정해진 것이 아니고 합당한 이유가 존재한다.  
 
-atomic_compare_exchange_strong -> lock free가 아님, 내부적으로 mutex 사용
-```atomic<shared_ptr>``` -> lock free로 구현됨 c++20 부터 지원
-compare_exchange_weak -> 내부적으로 cmpxchg 어셈블리로 치환
+①을 보면 m_size는 결과적으로 순서는 중요하지 않고 증가, 감소만 되면 되기에 memory_order_relaxed를 이용한다.  
 
-x86은 cmpxchg가 64 bit cas까지 지원
-x64는 cmpxchg가 128 bit cas까지 지원
-arm, powerpc등은 다른 명령어를 통해 cas를 지원
+②에서 m_top을 원자적 읽기로 획득하고 있는데 이는 compare_exchange_weak 함수 이전에만 발생하면 된다.  
+
+③에서 compare_exchange_weak가 성공하면 memory_order_release, 실패하면 memory_order_relaxed로 설정하고 있다.  
+실패하면 어짜피 m_top은 교체되지 않기에 push() 함수 내부의 명령 순서가 중요하지 않다.  
+하지만 성공하면 m_top이 바뀌기에 new_node 설정이 모두 끝난 뒤에 compare_exchange_weak가 수행되어야 하여 memory_order_release로 설정했다.  
+
+④에서 compare_exchange_strong가 실패하면 명령어 순서가 의미없다.  
+하지만 성공하면 최신 메모리 정보도 캐시에 갱신해줘야 하고 pop() 함수 내부의 명령어들이 멋대로 compare_exchange_strong 전으로 역류하여 수행되는 것을 막아야 하기에 memory_order_acquire 옵션이 설정된다.  
+이러면 old_top 변수에 대한 무결성도 보장된다.  
+
+⑤에서 m_top을 어떻게 읽어오던 increase_top_cnt()에서 최신 m_top을 획득하기 때문에 상관없다.  
+
+⑥에서 compare_exchange_strong은 실패하던 성공하던 명령어 순서는 의미없다.  
+이미 increase_top_cnt()에서 동기화에 대한 로직은 모두 수행했다.  
+
+⑦에서 fetch_add를 평가할 때는 ptr을 해제하는 로직으로 이어지기에 조심해야 한다.  
+ret에 데이터에 ```ptr->data```가 옮겨졌다는 것을 다른 쓰레드들에게 알리기에 위해 memory_order_release가 사용되어야 한다.  
+
+⑧에서 m_size의 값은 어디든 상관없이 감소만 되면 된다.  
+
+⑨에서 fetch_sub에서 반환되는 값은 memory_order 상관없이 쓰레드마다 고유하기에 memory_order_relaxed로 수행해도 상관없다.  
+
+⑩에서 ptr을 해제하기 전에 캐시 데이터를 memory_order_acquire를 이용하여 최신으로 갱신하고 가야한다.  
+다른 쓰레드에서 ```std::move(ptr->data)```가 수행된 내용이 ```delete ptr```을 수행하는 쓰레드의 캐시에 갱신되지 않았을 수가 있기 때문이다.  
+
+설명을 보면 알겠지만 lock-free 구조를 이용하는 것은 굉장히 어렵다.  
+lock-free 구조를 구현하기 전에 꼭 사용해야 하는지 생각해보자.  
+&nbsp;  
+
+#### ABA 문제  
+
+lock-free 구조를 설계할 때는 ABA 문제를 고려해야 한다.  
+위에서 구현한 레퍼런스 카운팅 방식의 lfstack은 포인터와 참조 카운터를 함께 사용하기에 ABA 문제가 해결되어 있다.  
+
+ABA 문제는 포인터만을 이용하여 CAS 함수를 이용할 때 발생한다.  
+왜냐하면 시스템에서 할당 해제된 포인터를 재사용하기 때문이다.  
+
+1. 현재 lock-free 스택에는 top에서 bottom까지 A, B, C 이러한 순서로 데이터가 담겨져있다.  
+
+2. 쓰레드 1에서 pop 함수를 수행하다가 ```top.compare_exchange_weak(local_A, next)```가 진행되기 직전에 잠시 멈췄다.  
+    next는 A의 다음 노드인 B를 가리키고 있다.  
+
+3. 쓰레드 1이 멈춘 사이에 쓰레드 2에서 pop 함수를 두 번 수행하여 현재 lock-free 스택에는 C 데이터만이 담겨져있다.  
+
+4. 쓰레드 2에서 pop된 A, B 데이터를 모두 활용하고 할당 해제한 후 새로운 D 데이터에 대해 push 함수를 수행한다.  
+    특이한 점은 할당 해제된 A의 주소를 삽입된 D가 재활용하여 현재 A와 D의 주소가 같은 상황이다. 
+
+5. 멈췄던 쓰레드 1이 진행되면서 ```top.compare_exchange_weak(local_A, next)```가 D를 가리키고 있던 top과 local_A의 주소가 같다고 판단되어 수행된다.  
+    top은 해제된 B 데이터를 가리키고 있는 next 포인터로 교체된다.  
+
+이렇게 lock-free 스택은 사용불가 상태가 되어버린다.  
+이를 해결하기 위해 위에서 언급한 위험 포인터, 해제 미루기, 레퍼런스 카운팅 등의 방식이 등장한 것이다.  
+&nbsp;  
+
+#### std::atomic 이해를 위한 링크  
+
+[Atomic operations and Memory Visibility](https://stackoverflow.com/questions/66054666/memory-order-relaxed-and-visibility)   
+[RMW with Memory Order](https://stackoverflow.com/questions/40649104/fetch-add-with-acq-rel-memory-order)  
+[ABA Problem](https://en.wikipedia.org/wiki/ABA_problem)  
+[std::memory_order_seq_cst vs std::memory_order_acq_rel](https://stackoverflow.com/questions/12340773/how-do-memory-order-seq-cst-and-memory-order-acq-rel-differ)  
 &nbsp;  
 
 ## Task  
