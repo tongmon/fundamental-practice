@@ -2516,29 +2516,71 @@ int main()
 padding 부분은 컴파일러가 최적화를 위해서 임의로 채운 용량이다.  
 &nbsp;  
 
+밑과 같이 ch와 num 변수의 자리만 바꿔보자.  
 ```c++
 struct Object
+{
+    char ch;
+    int num;
+    bool boolean;
+};
+```
+크기가 어떻게 나올 것 같은가?  
+답은 12byte다.  
+4byte 정렬인 것은 기존과 동일하다.  
+&nbsp;  
+
+다만 저장 순서에 따라 크기가 바뀔 뿐이다.  
+```
+------------------------------------------------------------------------------------
+| ch [1 byte] | padding [3 byte] | int [4 byte] | bool [1 byte] | padding [3 byte] |
+------------------------------------------------------------------------------------
+```
+이렇게 멤버 변수의 위치만 바뀌어도 구조체 용량이 달라진다.  
+&nbsp;  
+
+그렇다면 밑의 경우는 어떻게 될까?  
+```c++
+struct Child
 {
     int num;
     char ch;
     bool boolean;
 };
 
-struct Test
+struct Parent
 {
-    int test;
-    Object a;
+    int id;
+    Child a;
 };
-
-int main()
-{
-    std::cout << sizeof(Test) << "byte\n";
-    std::cout << alignof(Test);
-    return 0;
-}
 ```
-위에서 alignof(Object)는 4, sizeof(Object)는 8, alignof(Test)는 4, sizeof(Test)는 12
-alignof(Test)가 4인 이유는 Test의 멤버 변수를 자료형 크기를 비교하는데 멤버 변수 Object a;의 alignof()가 4이기에 int test;의 4와 비교해서 alignof(Test)는 4가 된다.  
+Child는 제일 큰 크기인 int의 4byte로 정렬되어 총 8byte의 크기가 된다.  
+Parent는 그러면 8byte로 정렬되어 16byte 크기가 될 것 같지만 아니다.  
+Parent는 Child의 4byte 정렬 기준을 승계받아 동일하게 4byte로 정렬되어 12byte의 크기가 된다.  
+&nbsp;  
+
+Parent 클래스가 밑과 같이 변경된다면 어떻게 될까?  
+```c++
+struct Parent
+{
+    double id;
+    Child a;
+};
+```
+당연하게도 double의 8byte 정렬 기준이 Child의 정렬 기준보다 더 크기에 Parent 크기는 16byte가 된다.  
+&nbsp;  
+
+정렬 방식을 사용자 임의로 바꾸고 싶다면 alignas() 키워드를 이용하면 된다.  
+```c++
+struct alignas(8) Parent
+{
+    int id;
+    Child a;
+};
+```
+이렇게 하면 Parent는 기존의 4byte 정렬이 아닌 ```alignas()```로 주어진 8byte 정렬을 이용하여 크기가 16byte가 된다.  
+멀티 쓰레딩을 이용할 때 인자로 구조체를 주고 받는다면 False Sharing을 방지하기 위해 Object Alignment를 꼭 생각해보자.  
+&nbsp;  
 
 # Coroutine  
 
