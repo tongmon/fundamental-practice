@@ -84,8 +84,7 @@ int main()
 }
 ```
 위 예시에서 a, b, c, foo()는 lvalue이다.  
-```"hello world"```와 같은 문자열 [literal](https://www.geeksforgeeks.org/literals-in-c-cpp-with-examples/)도 lvalue이다.  
-이들의 값을 가리키는 주소를 다른 곳으로 보내버릴 수 없다.  
+이외에도 전위 증감 연산자 ```++a```, ```"hello world"```와 같은 문자열 [literal](https://www.geeksforgeeks.org/literals-in-c-cpp-with-examples/) 등 많은 것들이 lvalue이다.  
 lvalue는 보통 좌측에 위치하고 ```&``` 연산자를 통해 주소 값을 획득할 수 있다.  
 ```&```를 통해 주소 값을 획득하는 특징은 lvalue에만 적용되기에 어떤 값이 어떤 분류에 속하는지 헷갈린다면 ```&```를 붙여보자.  
 &nbsp;  
@@ -94,11 +93,13 @@ lvalue는 보통 좌측에 위치하고 ```&``` 연산자를 통해 주소 값�
 
 식별자를 가지면서 이동할 수 있는 값들이다.  
 expire의 x에서 따온 이름이기에 만료되어 가는 값이라고도 한다.  
-프로그래머가 직접 사용할 수는 없고 컴파일러가 사용한다.  
+어짜피 만료 예정이기에 해당 값에 대해 앵간한 행동은 다 할 수 있다.
+
+https://stackoverflow.com/questions/45317763/xvalues-vs-prvalues-what-does-identity-property-add
 ```c++
-std::string get_empty_name()
+std::string&& get_empty_name()
 {
-    return std::string();
+    return something;
 }
 
 int main()
@@ -114,17 +115,21 @@ int main()
 ### prvalue  
 
 pure right value의 줄임말이다.  
-식별자가 없는데 이동할 수 있는 값이다.  
-```x++```와 같은 후위 증감 연산자의 반환 값, ```"hello world"```와 같은 문자열 [literal](https://www.geeksforgeeks.org/literals-in-c-cpp-with-examples/)을 제외한 모든 [literal](https://www.geeksforgeeks.org/literals-in-c-cpp-with-examples/)은 prvalue이다.  
+식별자가 없고 이동할 수 있는 값이다.  
+식이 사용될 때 컴파일러가 즉시 만들고 쓰인 후 즉시 소멸되는 임시 변수들이다. (물론 상수 참조로 수명 연장을 할 순 있다.)   
+대표적으로 ```"hello world"```와 같은 문자열 [literal](https://www.geeksforgeeks.org/literals-in-c-cpp-with-examples/)을 제외한 모든 [literal](https://www.geeksforgeeks.org/literals-in-c-cpp-with-examples/)은 prvalue이다.  
 ```c++
 int a = 10;
-bool b = true;
-char c = 'c';
-float d = 1.384;
+char b = 'c';
+
+int add(int c, int d)
+{
+    return c + d;
+}
 ```
-위에서 등장한 ```10, true, 'c', 1.384```는 모두 prvalue이다.  
-```a < b```의 결과로 얻어지는 bool 값도 literal이기에 prvalue이다.  
-literal이기에 따로 주소가 없다.  
+위에서 등장한 10, 'c' 값은 prvalue이다.  
+add()와 같이 참조가 아닌 함수의 반환 값도 prvalue이다.  
+```a < b```, ```a++```의 결과로 얻어지는 값들도 prvalue이다.  
 &nbsp;  
 
 ### glvalue  
