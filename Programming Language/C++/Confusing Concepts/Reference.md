@@ -60,14 +60,14 @@ Object 구조체의 크기가 커질수록 복사보다 이동이 더 빠르게 
 
 C++11 이후에는 우측값 참조가 도입되면서 값이 다양하게 분류된다.  
 lvalue, xvalue, prvalue, glvalue, rvalue, 그외 이렇게 6개로 나뉜다.  
-밑에서 계속 등장할 단어인 식별자는 ```자신의 개인적인 공간을 가지고 있는 녀석``` 정도로 생각하면 된다.  
+밑에서 계속 등장할 단어인 식별자는 ```자기만의 개인적인 공간을 가지고 있는 녀석``` 정도로 생각하면 된다.  
 &nbsp;  
 
 ### lvalue  
 
 left value, 좌측값이다.  
 식별자를 가지면서 이동할 수 없는 값들이다.  
-즉 자기 소유의 주소를 가지고 있고 그 주소에 상주하며 가만히 있는거라고 생각하면 된다.  
+즉 자기 소유의 주소를 가지고 있고 그 주소에 상주하며 바꾸려하지 않는 값이라고 보면 된다.  
 ```c++
 int a = 1;
 
@@ -93,13 +93,11 @@ lvalue는 보통 좌측에 위치하고 ```&``` 연산자를 통해 주소 값�
 
 식별자를 가지면서 이동할 수 있는 값들이다.  
 expire의 x에서 따온 이름이기에 만료되어 가는 값이라고도 한다.  
-어짜피 만료 예정이기에 해당 값에 대해 앵간한 행동은 다 할 수 있다.
-
-https://stackoverflow.com/questions/45317763/xvalues-vs-prvalues-what-does-identity-property-add
+미래에 만료될 것이 확정되어 있기 때문에 xvalue를  추후에 설명할 우측값 참조를 이용해 생명 연장을 시켜주거나 이동시켜 다른 곳에서 저장하게 만들지 않으면 xvalue는 사라진다.  
 ```c++
-std::string&& get_empty_name()
+std::string &&get_hello_world()
 {
-    return something;
+    return std::move("hello world");
 }
 
 int main()
@@ -116,7 +114,7 @@ int main()
 
 pure right value의 줄임말이다.  
 식별자가 없고 이동할 수 있는 값이다.  
-식이 사용될 때 컴파일러가 즉시 만들고 쓰인 후 즉시 소멸되는 임시 변수들이다. (물론 상수 참조로 수명 연장을 할 순 있다.)   
+식이 사용될 때 컴파일러가 즉시 만들고 쓰인 후 즉시 소멸되는 임시 변수들이다. (물론 참조로 수명 연장을 할 순 있다.)   
 대표적으로 ```"hello world"```와 같은 문자열 [literal](https://www.geeksforgeeks.org/literals-in-c-cpp-with-examples/)을 제외한 모든 [literal](https://www.geeksforgeeks.org/literals-in-c-cpp-with-examples/)은 prvalue이다.  
 ```c++
 int a = 10;
@@ -136,6 +134,8 @@ add()와 같이 참조가 아닌 함수의 반환 값도 prvalue이다.
 
 xvalue 혹은 lvalue를 칭한다.  
 식별자가 있는 값이다.  
+
+### rvalue  
 
 
 
