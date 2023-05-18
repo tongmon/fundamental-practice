@@ -116,7 +116,7 @@ add()와 같이 참조가 아닌 함수의 반환 값도 prvalue이다.
 expire의 x에서 따온 이름이기에 만료되어 가는 값이라고도 한다.  
 만료되면 쓸 수 없기에 해당 값이 사라지기 전에 ```가로채기``` 위해 이용된다.  
 대표적으로 **우측값 참조**를 반환하는 함수의 반환 값, **우측값 참조**로 형변환되는 표현식이 이에 해당된다.  
-[우측값 참조]()에 대한 설명을 보면 이해가 더 쉬울 것이다.  
+[우측값 참조](#rvalue-참조)에 대한 설명을 보면 이해가 더 쉬울 것이다.  
 ```c++
 std::move("hello world");
 
@@ -136,7 +136,8 @@ std::string copied_str = lvalue_str;
 
 // 이동되어 org_str은 만료됨.  
 std::string moved_str = static_cast<std::string &&>(org_str);
-// std::string moved_str = std::move(lvalue_str);
+// 혹은
+std::string moved_str = std::move(lvalue_str);
 ```
 우측값 참조인 lvalue_str 변수로 org_str를 받았다해도 이동, 복사 아무것도 발생하지 않는다.  
 그냥 ```std::string &lvalue_str = org_str```와 동일한 효과이다.  
@@ -172,6 +173,18 @@ num을 제외한 ```10```, ```std::move(num)```, ```100 - num```는 모두 rvalu
 &nbsp;  
 
 ## lvalue 참조  
+
+그냥 별명이다.  
+```c++
+int a = 1;
+int &b = a; 
+const int &c = b;
+```
+b는 그냥 a와 일심동체다.  
+c도 b와 같지만 수정을 못할 뿐이다.  
+중요한 점은 a, b, c 모두 lvalue이기에 좌측값 참조가 가능한 것이다.  
+```int &d = 10``` 이런 표현은 10은 prvalue이기 때문에 불가능하다.  
+참조는 그냥 포인터와 비슷하게 동작하기에 복사가 발생하지 않는다.  
 
 ## rvalue 참조  
 
