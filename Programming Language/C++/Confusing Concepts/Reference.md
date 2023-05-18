@@ -61,6 +61,7 @@ Object 구조체의 크기가 커질수록 복사보다 이동이 더 빠르게 
 C++11 이후에는 우측값 참조가 도입되면서 값이 다양하게 분류된다.  
 lvalue, xvalue, prvalue, glvalue, rvalue, 그외 이렇게 6개로 나뉜다.  
 밑에서 계속 등장할 단어인 식별자는 ```자기만의 개인적인 공간을 가지고 있는 녀석``` 정도로 생각하면 된다.  
+주의할 점은 ```int &&```, ```int &```, ```int *```, ```int```는 모두 타입이지 값이 아니다. (혼동하지 말자)  
 &nbsp;  
 
 ### lvalue  
@@ -89,32 +90,11 @@ lvalue는 보통 좌측에 위치하고 ```&``` 연산자를 통해 주소 값�
 ```&```를 통해 주소 값을 획득하는 특징은 lvalue에만 적용되기에 어떤 값이 어떤 분류에 속하는지 헷갈린다면 ```&```를 붙여보자.  
 &nbsp;  
 
-### xvalue  
-
-식별자를 가지면서 이동할 수 있는 값들이다.  
-expire의 x에서 따온 이름이기에 만료되어 가는 값이라고도 한다.  
-미래에 만료될 것이 확정되어 있기 때문에 xvalue를  추후에 설명할 우측값 참조를 이용해 생명 연장을 시켜주거나 이동시켜 다른 곳에서 저장하게 만들지 않으면 xvalue는 사라진다.  
-```c++
-std::string &&get_hello_world()
-{
-    return std::move("hello world");
-}
-
-int main()
-{
-    get_empty_name();
-}
-```
-위 예시에서 ```get_empty_name();```이 수행된 이후 ```std::string()``` 객체가 저장되어 있던 주소를 확인해보면 해당 값이 아직 남아있을 수도 있고 사라졌을 수도 있다.  
-이렇게 특정 라인이 ```;```으로 마무리되어 끝날 때 값이 만료되어 간다면 xvalue이다.  
-추후에 등장할 ```std::move()``` 함수의 반환 값도 위와 같은 이유로 xvalue이다.  
-&nbsp;  
-
 ### prvalue  
 
 pure right value의 줄임말이다.  
 식별자가 없고 이동할 수 있는 값이다.  
-식이 사용될 때 컴파일러가 즉시 만들고 쓰인 후 즉시 소멸되는 임시 변수들이다. (물론 참조로 수명 연장을 할 순 있다.)   
+표현식이 사용될 때 컴파일러가 즉시 만들고 쓰인 후 표현식이 끝나면 즉시 소멸되는 임시 변수들이다. (물론 참조로 수명 연장을 할 순 있다.)   
 대표적으로 ```"hello world"```와 같은 문자열 [literal](https://www.geeksforgeeks.org/literals-in-c-cpp-with-examples/)을 제외한 모든 [literal](https://www.geeksforgeeks.org/literals-in-c-cpp-with-examples/)은 prvalue이다.  
 ```c++
 int a = 10;
@@ -130,23 +110,70 @@ add()와 같이 참조가 아닌 함수의 반환 값도 prvalue이다.
 ```a < b```, ```a++```의 결과로 얻어지는 값들도 prvalue이다.  
 &nbsp;  
 
+### xvalue  
+
+식별자를 가지면서 이동할 수 있는 값들이다.  
+expire의 x에서 따온 이름이기에 만료되어 가는 값이라고도 한다.  
+만료되면 쓸 수 없기에 해당 값이 사라지기 전에 ```가로채기``` 위해 이용된다.  
+대표적으로 **우측값 참조**를 반환하는 함수의 반환 값, **우측값 참조**로 형변환되는 표현식이 이에 해당된다.  
+[우측값 참조]()에 대한 설명을 보면 이해가 더 쉬울 것이다.  
+```c++
+std::move("hello world");
+
+char x = 'c';
+char &&y = static_cast<char &&>(x);
+```
+```std::move()```는 우측값 참조를 반환하는 대표적인 함수다.  
+**우측값 참조**로 형변환한 ```static_cast<char &&>(x)```는 xvalue이다.  
+
+중요한 것은 xvalue가 이동이 가능한 시점은 바로 그 표현식이 사용되는 시점이다.  
+```c++
+std::string org_str = "hello world";
+std::string &&lvalue_str = static_cast<std::string &&>(org_str);
+
+// 이동이 안되고 복사됨.
+std::string copied_str = lvalue_str;
+
+// 이동되어 org_str은 만료됨.  
+std::string moved_str = static_cast<std::string &&>(org_str);
+// std::string moved_str = std::move(lvalue_str);
+```
+우측값 참조인 lvalue_str 변수로 org_str를 받았다해도 이동, 복사 아무것도 발생하지 않는다.  
+그냥 ```std::string &lvalue_str = org_str```와 동일한 효과이다.  
+lvalue_str은 그저 org_str의 주소를 개인공간으로 가지는 lvalue이다.  
+따라서 이동을 시키려면 xvalue를 바로 이용하거나 ```std::move()``` 함수를 이용해 lvalue를 xvalue로 변환해야 한다.  
+&nbsp;  
+
 ### glvalue  
 
-xvalue 혹은 lvalue를 칭한다.  
+generalized left value의 줄임말이다.  
+xvalue 혹은 lvalue를 칭한다. (즉 prvalue를 제외한 모든 값이다.)  
 식별자가 있는 값이다.  
+식별자가 있기에 표현식이 종료되어도 수명이 유지된다.  
+```c++
+int i = 0; // i -> lvalue, 0 -> prvalue
+int *ptr = &i; // *ptr -> lvalue
+std::move(i); // xvalue
+```
+위에서 prvalue인 ```0```을 제외하고 ```i```, ```*ptr```, ```std::move(i)```는 모두 glvalue이다.  
+&nbsp;  
 
 ### rvalue  
 
+right value, 우측 값이다.  
+xvalue 혹은 prvalue를 칭한다. (즉 lvalue를 제외한 모든 값이다.)  
+이동할 수 있는 모든 값이라고 보면 된다.  
+```c++
+int num = 10;
+std::move(num);
+100 - num;
+```
+num을 제외한 ```10```, ```std::move(num)```, ```100 - num```는 모두 rvalue이다.  
+&nbsp;  
 
+## lvalue 참조  
 
+## rvalue 참조  
 
+## universal 참조  
 
-
-
-
-
-lvalue 참조
-rvalue 참조
-보편 참조
-
-https://dydtjr1128.github.io/cpp/2019/06/10/Cpp-values.html
