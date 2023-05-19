@@ -391,5 +391,13 @@ void set_object(T &&var)
 기존에 자료형이 확정되어 있던 ```int &&``` 요런 녀석들과 다르게 ```T &&```는 rvalue가 오던 lvalue가 오던 모두 받아들인다.   
 
 이에 해당하는 [템플릿 타입 추론](https://en.cppreference.com/w/cpp/language/template_argument_deduction)은 밑과 같다.  
-var가 lvalue로 호출되면 ```T &&```는 ```T &```가 된다.  
-var가 rvalue로 호출되면 ```T &&```은 그대로 ```T &&```를 유지한다.  
+var가 lvalue로 호출되면 T는 ```T &```가 된다. (결과적으로 ```T &&&```가 된다.)  
+var가 rvalue로 호출되면 T은 그냥 T로 유지한다. (결과적으로 ```T &&```가 된다.)  
+
+```T &&&```가 가능한 자료형인가?  
+C++11부터 참조 겹침 규칙이 생겼기에 가능하다.  
+
+
+
+http://egloos.zum.com/sweeper/v/3149089
+
