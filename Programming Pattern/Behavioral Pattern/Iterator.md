@@ -374,11 +374,11 @@ C++20에서 도입된 코루틴을 사용하면 반복자에서 ```++``` 연산�
 template <typename T>
 struct BinaryTree
 {
-    Node<T> &preorder(Node<T> *node)
+    Node<T> *preorder(Node<T> *node)
     {
         if (!node)
-            return;
-        return *node;
+            return nullptr;
+        return node;
         preorder(node->left);
         preorder(node->right);
     }
@@ -394,13 +394,18 @@ struct BinaryTree
 template <typename T>
 struct BinaryTree
 {
-    Node<T> &preorder(Node<T> *node)
+    // 생략
+
+    task<Node<T> *> preorder(Node<T> *node)
     {
         if (!node)
-            return;
-        return *node;
-        preorder(node->left);
-        preorder(node->right);
+            co_return nullptr;
+
+        co_yield node;
+        for (auto ptr : preorder(node->left))
+            co_yield ptr;
+        for (auto ptr : preorder(node->right))
+            co_yield ptr;
     }
 }
 ```
