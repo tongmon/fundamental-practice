@@ -127,24 +127,8 @@ char &&y = static_cast<char &&>(x);
 ```
 ```std::move()```는 우측값 참조를 반환하는 대표적인 함수다.  
 **우측값 참조**로 형변환한 ```static_cast<char &&>(x)```는 xvalue이다.  
-
-중요한 것은 xvalue가 이동이 가능한 시점은 바로 그 표현식이 사용되는 시점이다.  
-```c++
-std::string org_str = "hello world";
-std::string &&lvalue_str = static_cast<std::string &&>(org_str);
-
-// 이동이 안되고 복사됨.
-std::string copied_str = lvalue_str;
-
-// 이동되어 org_str은 만료됨.  
-std::string moved_str = static_cast<std::string &&>(org_str);
-// 혹은
-std::string moved_str = std::move(lvalue_str);
-```
-우측값 참조인 lvalue_str 변수로 org_str를 받았다해도 이동, 복사 아무것도 발생하지 않는다.  
-그냥 ```std::string &lvalue_str = org_str```와 동일한 효과이다.  
-lvalue_str은 그저 org_str의 주소를 개인공간으로 가지는 lvalue이다.  
-따라서 이동을 시키려면 xvalue를 바로 이용하거나 ```std::move()``` 함수를 이용해 lvalue를 xvalue로 변환해야 한다.  
+혼동하지 말아야 할 것은 ```static_cast<char &&>(x)```가 xvalue라는 것이지 y는 lvalue이다.  
+따라서 y는 이동하지 못한다.  
 &nbsp;  
 
 ### glvalue  
@@ -187,7 +171,7 @@ b는 그냥 a와 일심동체다.
 c도 b와 같지만 수정을 못할 뿐이다.  
 중요한 점은 a, b, c 모두 lvalue이기에 좌측값 참조가 가능한 것이다.  
 ```int &e = 10``` 이런 표현은 10이 prvalue이기 때문에 불가능하다.  
-const lvalue 참조를 이용하면 rvalue 변수도 참조가 가능하다.  
+const lvalue 참조를 이용하면 lvalue뿐만 아니라 rvalue 변수도 참조가 가능하다.  
 참조는 포인터와 비슷하게 동작하기에 복사가 발생하지 않는다.  
 &nbsp;  
 
@@ -218,6 +202,7 @@ void set_x(Object &&val)
 따라서 val를 x에 할당하면 복사가 발생한다.  
 
 이동을 수행하고 싶다면 밑과 같이 ```std::move()``` 함수를 이용하면 된다.  
+물론 이동과 관련된 함수가 구현되지 않았다면 복사가 수행된다.  
 ```c++
 void set_x(Object &&val)
 {
@@ -353,25 +338,21 @@ int main()
     set_object(Object(1, "hello")); // ②
 }
 ```
-①은 어떻게 진행될까?  
-T는 ```Object``` 자료형으로 바뀌고 ```Object var = a```를 수행하면서 ```Object(const Object &obj)```를 통해 복사 생성이 이루어진다.  
-그 후 ```obj = var```를 진행할 때 ```Object &operator=(const Object &other)```가 사용되어 복사 대입이 수행된다.  
-복사가 총 두 번으로 최악이다.  
-
-②와 같이 rvalue로 넘기면 어떻게 될까?  
-T는 ```const Object&```로 바뀌고 ```const Object& var = a```를 수행하면서 참조가 발생한다.  
-그 후 ```obj = var```를 진행할 때 ```Object &operator=(const Object &other)```가 사용되어 복사 대입이 수행된다.  
-복사가 한 번 발생한다.  
+①, ② 모두 T가 Object로 추론된다.  
+따라서 이동이 아닌 복사만 발생한다.  
+lvalue, rvalue 상관없이 함수 인자의 형태가 ```T var```이기에 무조건 Object로 추론된다.  
+이러한 규칙을 **템플릿 타입 추론**이라고 한다.  
 &nbsp;  
 
 ## universal 참조  
 
-위에서 봤듯이 템플릿 인자는 특정 규칙을 기반으로 추론된다.  
-해당 규칙은 [여기](https://en.cppreference.com/w/cpp/language/template_argument_deduction)에 설명되어 있다. (**템플릿 타입 추론**이라고 한다.)  
-템플릿과 우측 값 참조가 같이 사용되면 구현부를 비약적으로 줄일 수 있는 시너지가 생기는데 이를 **보편 참조**라고 한다.  
+위에서 알 수 있듯이 템플릿 인자는 특정 규칙을 기반으로 추론된다.  
+해당 규칙은 [여기](https://en.cppreference.com/w/cpp/language/template_argument_deduction)에 설명되어 있다.  
+템플릿과 우측값 참조가 같이 사용되면 각종 장점이 발생하는데 이를 **보편 참조**라고 한다.  
+**템플릿 타입 추론**은 **보편 참조**에서 중요한 역할을 한다.  
 
 **보편 참조**를 설명하기 전에 일단 위에서 다뤘던 예시에 대해 좀 더 생각해보자.  
-①과 같이 복사가 두 번이나 발생하는 나쁜 방식은 버리고 rvalue, lvalue를 각각 처리하기 위해 Object 클래스를 구성하던 것과 같이 구현할 수 있다.    
+복사만 발생하는 것을 방지하기 위해 Object 클래스를 구성하던 방식을 따라해 밑과 같이 구현할 수 있다.  
 ```c++
 template <typename T>
 void set_object(const T &var)
@@ -388,10 +369,29 @@ void set_object(T &&var)
 하지만 이 상태에서 ```set_object()```를 호출해보면 인자가 rvalue던 lvalue던 ```void set_object(T &&var)``` 이 녀석만 호출되는 것을 볼 수 있다.  
 따라서 복사를 하고 싶어도 이동만 발생하기에 문제다.  
 이는 템플릿과 우측값 참조 기호가 같이 사용되어 **보편 참조**가 되고 있기 때문이다.  
-기존에 자료형이 확정되어 있던 ```int &&``` 요런 녀석들과 다르게 ```T &&```는 rvalue가 오던 lvalue가 오던 모두 받아들인다.   
+기존에 자료형이 확정되어 있던 ```int &&``` 요런 녀석들과 다르게 ```T &&```는 rvalue가 오던 lvalue가 오던 모두 받아들인다.    
+
+그렇다면 ```void set_object(const T &var)```만 사용하자니 rvalue를 통해 이동을 수행할 수 없고, ```void set_object(T &&var)```를 사용하자니 함수 내부에서 사용되는 var는 결국 lvalue이기에 복사, 이동 중 한가지 선택이 강제된다.  
+set_object()가 올바르게 구현된다면 ```set_object(A)```면 복사가 수행되고, ```set_object(Object(1, "hello"))```면 이동이 수행되어야 한다.  
 &nbsp;  
 
-그렇다면 T의 자료형에 따라 var의 타입 형태는 어떻게 추론이 될까?  
+### 완벽한 전달  
+
+템플릿에서 판단한 값 분류를 완벽하게 전달해주는 함수가 ```std::forward()```이다.  
+```<utility>```를 포함하여 사용가능하다.  
+
+```std::forward()```를 이해하기 위해서는 먼저 보편 참조가 정확히 어떻게 작동하는지 알아야 한다.  
+```void set_object(T &&var)``` 템플릿 함수는 rvalue, lvalue에 따라 T가 다음과 같이 치환된다.  
+
+- rvalue  
+    ```void set_object(Object(1, "hello"))``` 사용시 ```void set_object(Object &&var)```로 치환  
+    즉 T는 ```T```로 변환 (```Object``` 자료형)  
+
+- lvalue  
+    ```void set_object(A)``` 사용시 ```void set_object(Object & &&var)```로 치환  
+    즉 T는 ```T &```로 변환 (```Object &``` 자료형)   
+
+lvalue에서 눈치를 챘겠지만 ```Object & &&``` 이게 가능한 자료형인가?  
 ```c++
 int &&&a = 3; // 이런 문법은 불가능하다.  
 
@@ -406,39 +406,124 @@ using ref_type_02 = int &;
 ref_type_02 &d = a;
 ref_type_02 &&e = a;
 ```
-C++에서 참조를 한번에 연달아 ```&&&&&...``` 이렇게 달 수는 없다.  
+C++11에서 레퍼런스 겹침 규칙이라는 것이 생겼다.  
+물론 바로 그냥 ```&&&&&...``` 이렇게 참조 기호를 달 수는 없다.  
 하지만 사용자 지정 타입을 이용하면 위 예시에서 보이듯이 가능해진다.  
-참조가 연달아 붙게 되어도 결국에는 ```&```, ```&&``` 둘 중 하나로 해석된다.  
+
 ```&```가 1, ```&&```가 0이고 or 연산을 한다고 보면 된다.  
 위 예시에서 ```b```는 ref_type_01이 ```int &&```로 치환되어 최종적으로 ```int && &``` 자료형이 되었다. (```&``` 사이 띄어쓰기 구분 중요하다.)  
 그러면 ```0 | 1```은 1이니 ```b```의 자료형 ```ref_type_01 &```은 ```int &```가 된다.  
 하나만 더 해보면 ```d```는 ```ref_type_02 &``` -> ```int & &``` -> ```1 | 1``` -> 1 -> ```int &```가 된다.  
+
+이를 토대로 판단해보면 ```void set_object(Object & &&var)```는 ```void set_object(Object &var)```와 같다.  
 &nbsp;  
 
-T에 따라 var의 타입이 어떻게 해석되는지 알았지만, 어짜피 set_object() 함수 내부에서 var가 쓰이면 lvalue로 쓰일 수 밖에 없을 것이다.  
-이를 해결해주는 녀석이 ```std::forward()``` 함수다.  
-```std::forward()```는 판단된 ```T &&```의 값 분류를 그대로 사용할 수 있도록 해준다.  
+좀 헷갈릴 수 있는 것은 타입 자체에 참조가 붙어있는 경우다.  
+```c++
+Object &a = ref_obj;
+Object &&b = Object(1, "hello");
+
+// 밑의 경우는 어떻게 되는가?  
+set_object(a);
+set_object(b);
+```
+복잡하게 생각할 것 없이 a, b는 lvalue이기에 결국 ```set_object(a)```, ```set_object(b)``` 모두 ```void set_object(Object &var)```로 추론된 함수를 이용하게 된다.   
+따라서 T도 ```Object &```다.  
+&nbsp;  
+
+var의 자료형이 어떻게 추론되는지는 알았지만 set_object() 함수 내부에서 쓰인 var가 lvalue라는 사실은 여전하다.  
+var를 ```std::forward()```와 함께 사용한다면 값 분류 형태를 그대로 유지할 수 있다.  
 ```c++
 template <typename T>
-void set_object(T &&var)
+void set_object(T&& var)
 {
-    obj = std::forward(var);
+    obj = std::forward<T>(var);
 }
 ```
-위의 set_object() 함수 하나로 lvalue와 rvalue를 모두 처리할 수 있다.  
+T의 추론과 연관지어 ```std::move(var)```를 할지 그냥 ```var```를 할지 결정하기 때문에 ```std::forward()```의 템플릿 인자는 생략할 수 없다.  
+위 함수 하나로 rvalue인 경우 이동, lvalue인 경우 복사를 모두 수행할 수 있다.  
+&nbsp;  
 
-```set_object(Object(1, "hello"));```가 호출되었다면 ```T &&```는 ```Object &&```이고 우측값 참조다.  
-이 경우 ```std::forward(var)```가 수행되면 var가 rvalue로 이용된다.  
+이동, 복사를 값 분류에 따라 유동적으로 수행할 수 있다는 장점말고도 보편 참조는 구현부를 줄여준다.  
+```c++
+void some_func(const Object& a, const Object& b)
+{
+    copied_01 = a;
+    copied_02 = b;
+}
 
-```set_object(A);```가 호출되었다면 ```T &&```는 ```Object &```이고 좌측값 참조다.  
-이러면 var가 lvalue로 사용된다.  
+void some_func(Object&& a, const Object& b)
+{
+    moved = std::move(a);
+    copied = b;
+}
 
-즉 컴파일러가 알아서 함수에 우측값을 주면 **이동**시키고 좌측값을 주면 **복사**한다.  
+void some_func(const Object& a, Object&& b)
+{
+    copied = a;
+    moved = std::move(b);
+}
+
+void some_func(Object&& a, Object&& b)
+{
+    moved_01 = std::move(a);
+    moved_02 = std::move(b);
+}
+```
+위와 같이 인자가 2개인 함수만 봐도 구현을 4개해야 모든 경우의 lvalue, rvalue를 대처할 수 있다.  
+인자가 3개라면... 8개나 구현해야 된다.  
+
+반면 보편 참조와 std::foward()를 이용하면 단 하나의 구현으로 끝난다.  
+```c++
+template <typename T>
+void some_func(T&& a, T&& b)
+{
+    copied_or_moved_01 = std::foward<T>(a);
+    copied_or_moved_02 = std::foward<T>(b);
+}
+```
 &nbsp;  
 
 ### 주의점  
 
+밑의 경우는 보편 참조가 아니다.  
+```c++
+template <typename T>
+void func(std::vector<T>&& vec)
+{
+    // something...
+}
+```
+```T &&```를 추론하는 것이지 ```std::vector<T> &&```를 추론하는 것이 아니다.  
+반드시 보편 참조의 인자 형태는 ```T &&```여야 한다.  
+&nbsp;  
 
+밑의 경우도 헷갈린다.  
+```c++
+template <typename T>
+struct Array
+{
+    // 생략...
 
-http://egloos.zum.com/sweeper/v/3149089
+    void add(T &&var)
+    {
+    }
+};
+```
+이 경우 인자 형태가 ```T &&```라고 해도 보편 참조가 아니다.  
+Array를 선언할 때 이미 T의 추론이 끝났기 때문이다.  
+
+add() 함수에 보편 참조를 적용하려면 밑과 같이 템플릿을 또 써줘야 한다.  
+```c++
+template <typename T>
+struct Array
+{
+    // 생략
+
+    template <typename R>
+    void add(R &&var)
+    {
+    }
+};
+```
 
