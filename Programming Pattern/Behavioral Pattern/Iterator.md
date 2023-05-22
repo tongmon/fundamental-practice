@@ -368,5 +368,39 @@ C++20에서 도입된 코루틴을 사용하면 반복자에서 ```++``` 연산�
 예시에서 쓰일 코루틴의 제너레이터는 [이곳](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#%ED%85%9C%ED%94%8C%EB%A6%BF-%EC%A0%81%EC%9A%A9)에 구현되어 있다.  
 &nbsp;  
 
+사실 트리 순회 로직은 위에서 구현한 것처럼 반복문으로 접근하는 것보다 재귀로 접근하는 것이 더 직관적이다.  
+예를 들어 전위 순회는 밑과 같이 표현할 수 있다.  
+```c++
+template <typename T>
+struct BinaryTree
+{
+    Node<T> &preorder(Node<T> *node)
+    {
+        if (!node)
+            return;
+        return *node;
+        preorder(node->left);
+        preorder(node->right);
+    }
+}
+```
+문제는 함수에 중단점이 없다.  
+함수 인자에 같은 값이 주어지면 반환 값도 계속 같을 뿐이다.  
+이러면 훑고 지나가는 노드를 스택에 저장해놓고 참조하면서 함수 인자를 바꿔줘야 하는데 이러면 반복문으로 접근하는 방식과 다를 것이 없다.  
+&nbsp;  
 
-
+코루틴을 이용해 함수 인자에 같은 값이 주어져도 호출할 때마다 반환 값이 달라지는 함수를 구현해보자.  
+```c++
+template <typename T>
+struct BinaryTree
+{
+    Node<T> &preorder(Node<T> *node)
+    {
+        if (!node)
+            return;
+        return *node;
+        preorder(node->left);
+        preorder(node->right);
+    }
+}
+```
