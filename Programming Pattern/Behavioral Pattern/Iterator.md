@@ -363,7 +363,7 @@ for (auto &item : family.inorder)
 ## 코루틴을 이용한 순회  
 
 위에서 다루었던 ```operator++()``` 함수들을 보면 코드가 직관적이지 않다.  
-C++20에서 도입된 코루틴을 사용하면 반복자에서 ```++``` 연산자를 재정의할 때 좀 더 직관적이게 코드를 작성할 수 있다.  
+C++20에서 도입된 코루틴을 사용하면 반복자의 복잡한 코드를 직관적으로 바꿀 수 있다.  
 코루틴에 대한 자세한 내용은 [이곳](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#coroutine)을 참고하자.  
 예시에서 쓰일 코루틴의 제너레이터는 [이곳](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#%ED%85%9C%ED%94%8C%EB%A6%BF-%EC%A0%81%EC%9A%A9)에 구현되어 있다.  
 &nbsp;  
@@ -396,16 +396,35 @@ struct BinaryTree
 {
     // 생략
 
-    task<Node<T> *> preorder(Node<T> *node)
+    task<Node<T>*> preorder(Node<T>* node)
     {
-        if (!node)
-            co_return nullptr;
-
-        co_yield node;
-        for (auto ptr : preorder(node->left))
-            co_yield ptr;
-        for (auto ptr : preorder(node->right))
-            co_yield ptr;
+        if (node)
+        {
+            co_yield node; 
+            for (auto ptr : preorder(node->left))
+                co_yield ptr;
+            for (auto ptr : preorder(node->right))
+                co_yield ptr;
+        }
+        co_return nullptr;
     }
 }
 ```
+함수가 호출될 때마다 어디까지 반환했는지 기억하고 있기에 재귀함수를 이용하여 순차적으로 노드들을 반환할 수 있다.  
+유의할 점은 반환형이 포인터라는 것이다.  
+구현된 코루틴 제너레이터 ```task<T>```가 포인터, 값 반환을 위주로 구현이 되었기에 참조형 반환은 지원이 안된다.  
+참조형 반환을 원한다면 ```task<T>``` 클래스 내부에 ```promise_child```를 따로 만들어줘야 한다.  
+&nbsp;  
+
+밑과 같이 활용할 수 있다.  
+```c++
+for (auto ptr : family.preorder(family.root))
+    std::cout << ptr->value << "\n";
+```
+구현부도 직관적이고 활용도 편하다.  
+
+## 요약  
+
+1. 반복자를 직접 구현하면 여러 클래스 객체를 순회할 때 편해진다.  
+
+2. 코루틴을 사용하면 복잡한 반복자의 구현부를 직관적으로 바꿀 수 있다.  

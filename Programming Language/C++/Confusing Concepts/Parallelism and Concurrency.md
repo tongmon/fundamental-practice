@@ -3299,7 +3299,7 @@ class task
 
     iterator begin()
     {
-        if (!resume())
+        if (!resume() || done()) // co_return만 있는 함수를 위해 operator++() 수행을 방지해야 함
             return {nullptr};
         return {handle()};
     }
