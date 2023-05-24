@@ -233,7 +233,7 @@ game은 플레이어의 레벨을 지켜보다가 레벨 3에 도달하는 시�
 Player와 NPC는 서로 직접 소통하지 않는다.  
 &nbsp;  
 
-## Boost.Signals2  
+### Boost.Signals2  
 
 이렇게 함수 객체를 이용해 이벤트를 처리하는 구조는 Boost.Signals2를 이용해 개선이 가능하다.  
 ```c++

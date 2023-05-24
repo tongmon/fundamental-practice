@@ -266,8 +266,8 @@ public:
         if (!std::atomic_load(&singleton))
         {
             std::lock_guard<std::mutex> lock(mut);
-            if (!std::atomic_load(&singleton))
-                std::atomic_store(&singleton, std::shared_ptr<Singleton>(new Singleton(), Deleter{}));
+            if (!singleton)
+                singleton = std::shared_ptr<Singleton>(new Singleton(), Deleter{});
         }
         return *singleton;
     }
@@ -308,13 +308,13 @@ class Singleton
 public:
     static Singleton &get()
     {
-        if (!singleton.load())
+        if (!singleton.load(std::memory_order_acquire))
         {
             std::lock_guard<std::mutex> lock(mut);
-            if (!singleton.load())
-                singleton.store(std::shared_ptr<Singleton>(new Singleton(), Deleter{}));
+            if (!singleton.load(std::memory_order_relaxed))
+                singleton.store(std::shared_ptr<Singleton>(new Singleton(), Deleter{}), std::memory_order_release);
         }
-        return *singleton.load();
+        return *singleton.load(std::memory_order_relaxed);
     }
 
     Singleton(Singleton const &) = delete;
@@ -324,7 +324,7 @@ public:
 };
 ```
 C++17 이하에서 작동하는 피닉스 싱글턴 코드를 기준으로 설명하겠다.  
-구현이 어려워보이는 이유는 thread-safe하게 만들기 위해 atomic과 mutex를 사용했기 때문이다.  
+구현이 어려워보이는 이유는 thread-safe하게 만들기 위해 [atomic](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#atomic)과 [mutex](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#mutex)를 사용했기 때문이다.  
 그런 부분들을 제외하고 중요한 점은 Deleter에서 singleton 포인터를 nullptr로 만들어 주는 ```singleton.reset()```이 추가되었다는 점이다.  
 이 때문에 singleton 객체가 해제되었는지를 nullptr 유무를 통해 확인할 수 있다.  
 get() 함수가 호출될 때 처음 객체를 생성하거나 객체가 소멸된 상태라면 singleton이 nullptr이기 때문에 동적 할당으로 객체가 새로 생성된다.  
@@ -373,8 +373,8 @@ public:
         if (!std::atomic_load(&singleton))
         {
             std::lock_guard<std::mutex> lock(mut);
-            if (!std::atomic_load(&singleton))
-                std::atomic_store(&singleton, std::shared_ptr<T>(new T(), Deleter{}));
+            if (!singleton)
+                singleton = std::shared_ptr<T>(new T(), Deleter{});
         }
         return *singleton;
     }
@@ -413,8 +413,8 @@ public:                                                                         
         if (!std::atomic_load(&singleton))                                                   \
         {                                                                                    \
             std::lock_guard<std::mutex> lock(mut);                                           \
-            if (!std::atomic_load(&singleton))                                               \
-                std::atomic_store(&singleton, std::shared_ptr<type>(new type(), Deleter{})); \
+            if (!singleton)                                                                  \
+                singleton = std::shared_ptr<type>(new type(), Deleter{}));                   \
         }                                                                                    \
         return *singleton;                                                                   \
     }                                                                                        \
@@ -452,7 +452,7 @@ public:
 };
 ```
 DELARE_SINGLETON 매크로를 클래스 내부에 선언해주면 된다.  
-확장성이나 유연성 모두 템플릿 싱글턴이 우세하기 때문에 왠만하면 매그로를 활용하기 보다는 상속을 이용한 템플릿 싱글턴을 사용하자.  
+확장성이나 유연성 모두 템플릿 싱글턴이 우세하기 때문에 왠만하면 매크로를 활용하기 보다는 상속을 이용한 템플릿 싱글턴을 사용하자.  
 &nbsp;  
 
 ## 싱글턴 단위 테스트  
