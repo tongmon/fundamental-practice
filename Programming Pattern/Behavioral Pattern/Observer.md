@@ -274,7 +274,24 @@ std::mutex를 이용하기 싫다면 외부 라이브러리를 이용해 thread-
 
 ### 재진입 문제  
 
-std::mutex는 deadlock이 발생할 수 있다는 문제가 있다.  
-다음과 같은 상황을 생각해보자.  
-
+std::mutex는 잘못사용하면 deadlock이 발생할 수 있다.  
+7살이 넘어가면 장난감 선물을 완전히 받지 못하도록 이벤트가 스스로 자기 자신을 제거하는 상황을 생각해보자.  
+```c++
+struct ToyGiftedQualificationObserver : public Observer<Person>
+{
+    void field_changed(Person &source, const std::string &field_name)
+    {
+        if (field_name == "age")
+        {
+            if (source.age <= 7)
+                std::cout << "Happy BirthDay~, Get this toy gift for you!\n";
+            else
+            {
+                std::cout << "Ah... You are too old to get this toy gift!\n";
+                source.unsubscribe(this);
+            }
+        }
+    }
+};
+```
 
