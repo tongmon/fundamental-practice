@@ -135,7 +135,7 @@ observer에 이벤트를 추가하기만 하면 된다.
 ```c++
 void unsubscribe(Observer<T> *f)
 {
-    observer.erase(remove(observer.begin(), observer.end()), observer.end());
+    observer.erase(std::remove(observer.begin(), observer.end(), f), observer.end());
 }
 ```
 remove()는 지울 원소를 실제로 제거하지 않고 앞 원소를 땡겨 덮어씌우는 방식이므로 erase()와 함께 사용하여 제거해준다.  
@@ -275,7 +275,7 @@ std::mutex를 이용하기 싫다면 외부 라이브러리를 이용해 thread-
 ### 재진입 문제  
 
 std::mutex는 잘못사용하면 deadlock이 발생할 수 있다.  
-7살이 넘어가면 장난감 선물을 완전히 받지 못하도록 이벤트가 스스로 자기 자신을 제거하는 상황을 생각해보자.  
+이벤트가 스스로 자기 자신을 제거하는 상황을 생각해보자.  
 ```c++
 struct ToyGiftedQualificationObserver : public Observer<Person>
 {
@@ -294,4 +294,120 @@ struct ToyGiftedQualificationObserver : public Observer<Person>
     }
 };
 ```
+나이가 7살이 넘으면 ```source.unsubscribe(this)```로 자신을 이벤트 리스트에서 삭제한다.  
+
+밑과 같은 상황을 생각해보자.  
+```c++
+Person p;
+
+ToyGiftedQualificationObserver tgqo;
+p.subscribe(&tgqo);
+
+p.set_age(16);
+```
+set_age() 함수부터 호출 순서를 따져보자.  
+```set_age() -> notify() -> field_changed() -> unsubscribe()``` 순으로 진행된다.  
+문제는 notify()에서 lock을 했는데 unsubscribe()에서 lock을 또 수행하여 deadlock 현상이 발생한다.  
+&nbsp;  
+
+해당 문제를 해결하기 위한 가장 간단한 방법은 std::recursive_mutex를 이용하는 것이다.  
+```c++
+template <typename T>
+class Observable
+{
+    // 동일 구현부 생략  
+
+    std::recursive_mutex mut;
+
+  public:
+    void notify(T &source, const std::string &field_name)
+    {
+        std::unique_lock<std::recursive_mutex> ul{mut};
+        // 생략
+    }
+    void subscribe(Observer<T> *f)
+    {
+        std::unique_lock<std::recursive_mutex> ul{mut};
+        // 생략
+    }
+    void unsubscribe(Observer<T> *f)
+    {
+        std::unique_lock<std::recursive_mutex> ul{mut};
+        // 생략
+    }
+};
+```
+단지 std::mutex를 std::recursive_mutex로 교체해주면 된다.  
+단점이라면 std::recursive_mutex가 동시성의 관점에서 그닥 좋은 방식이 아니라 많은 개발자가 기피한다는 것이다.  
+특정 쓰레드가 lock의 소유를 오래 할수록 멀티 쓰레드의 장점은 사라지기 마련이다.  
+ToyGiftedQualificationObserver 이벤트 예시처럼 하나의 쓰레드가 한 번에 lock을 두 번 이상 수행하는 것은 바람직하지 않다.  
+
+복사를 하여 처리하는 방식도 있다.  
+```c++
+void notify(T &source, const std::string &field_name)
+{
+    mut.lock();
+    std::vector<Observer<T> *> copied{observer};
+    mut.unlock();
+
+    for (auto ptr : copied)
+        ptr->field_changed(source, name);
+}
+```
+notify()에서 observer 내용을 복사한 후 lock을 바로 해제하기에 field_changed()에서 호출하는 unsubscribe() 함수에서 다시 lock을 획득할 수 있다.  
+&nbsp;  
+
+## 개선점  
+
+관찰자 패턴도 다양한 상황에 따라 모습이 천차만별이다.  
+밑과 같은 상황들이 추가적으로 고려될 수 있다.  
+
+1. 같은 관찰자가 두 번 추가되는 경우 어떻게 다룰 것인가? 또 삭제는 어떻게 할 것인가?  
+
+2. std::vector가 아닌 std::set이나 std::unordered_set을 이용하면 어떤 차이가 생길까?  
+
+3. 관찰자들 사이에 우선 순위가 있는 경우 어떻게 고려해야 하는가?  
+
+당연하겠지만 모든 상황에서 이상적인 패턴은 없다.  
+몇 개의 장점을 취하면 몇 개의 단점이 따라오기 마련이다.  
+&nbsp;  
+
+## Boost.Signals2 적용  
+
+관찰자 패턴을 이용할 때 도움을 주는 라이브러리 중 가장 널리 알려진 Boost.Signals2를 이용해보자.  
+
+먼저 Observable은 밑과 같이 생겼다.  
+```c++
+template <typename T>
+struct Observable
+{  
+    boost::signals2::signal<void(T &, const std::string &)> notify;
+};
+```
+Callable로 접근할 것이기에 Observer 구조체는 추가적으로 만들지 않는다.  
+Person 클래스의 구조는 위 Observable 클래스를 상속한 것 말고는 모두 동일하다.  
+
+활용은 밑과 같이 가능하다.  
+```c++
+Person p;
+
+auto bo = [](Person &source, const std::string &field_name) -> void {
+    if (field_name == "age")
+    {
+        if (source.age == 16)
+            std::cout << "16th BirthDay Happen! Happy BirthDay~\n";
+    }
+};
+
+auto conn = p.notify.connect(bo);
+
+p.set_age(16);
+
+conn.disconnect(); // 더 이상 bo 이벤트가 필요없다면 해제
+```
+활용 방식에 큰 차이는 없다.  
+다만 Boost.Signals2은 thread-safe 하기에 다중 쓰레드 처리를 위한 추가적인 노력을 덜 수 있다.  
+&nbsp;  
+
+## 요약    
 
