@@ -43,12 +43,53 @@ front-end, back-end는 서로 맞물려 돌아가야 하기에 혼용해서 설�
 
 ### SubState  
 
+자식 상태.
+그냥 상태 만들듯이 만들면 됨.
+
 &nbsp;  
 
 ### Base State  
+
+상태에서 특정 base class를 상속할 수 있음
+특정 클래스의 함수를 계속해서 이용하게 되는 경우 코드량을 줄이기 위해 사용됨
+또 상태에서 visitor 함수를 호출하기 위해 사용되기도 함
 
 &nbsp;  
 
 ### 상태 생성자  
 
+상태 생성자를 만들어 특정 인자를 넘겨 미리 생성해둘수 있음
 
+### Flag   
+
+Orthogonal State인 경우 AND로 검사 가능
+
+&nbsp;  
+
+### Orthogonal State  
+
+CAPS LOCK과 Insert 각 키가 눌릴 때의 상태는 서로에게 영향을 주지 않는다.  
+이렇게 동시 상태가 존재하는 경우 사용하게 됨.
+위의 경우 조합이기에 총 4가지 상태가 있을 수 있음
+
+&nbsp;  
+
+### Deffered State  
+
+현재 상태와 상관 없는 이벤트를 요청하면 큐에 담고있다가 deffered 상태 풀리면 바로 처리하는 기능
+
+&nbsp;  
+
+### History  
+
+ShallowHistory는 특정 이벤트 발생시에만 substate가 어디서 끊겼는지 기억해서 거기서 재개
+AlwaysHistroy는 어떤 이벤트가 발생하던 substate가 어디서 끊겼는지 기억해서 거기서 재개
+
+&nbsp;  
+
+### Internal transition  
+
+내부 상태.
+기본 상태와 다른 점이라면 전이될 목표 상태가 따로 없음
+기본 상태보다 내부 상태 호출이 우선순위임.
+목표가 없기에 일부 action, guard만 수행하기에 유용함.
