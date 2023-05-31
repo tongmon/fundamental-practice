@@ -500,7 +500,7 @@ rebuild:
 	dot -Tpng build/graph.dot -o graph.png
 	cmake --build build
 ```
-위와 같은 내용의 Makefile이 있다면 터미널에서 단지 make rebuild 명령만 수행해도 CMake가 세팅되고 재빌드가 수행된다.
+위와 같은 내용의 Makefile이 있다면 터미널에서 단지 make rebuild 명령만 수행해도 CMake가 세팅되고 재빌드가 수행된다.  
 &nbsp;  
 
 ## CMake에서 install 명령 활용하기  
