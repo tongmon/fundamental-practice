@@ -33,54 +33,34 @@ front-end는 상태 구조체를 정의하는 부분이고 back-end는 구현된
 front-end, back-end는 서로 맞물려 돌아가야 하기에 혼용해서 설명하겠다.  
 &nbsp;  
 
-### 음악 플레이어 예시  
+### CD Player 예시  
 
 아주 기초적인 MSM 예시를 보자.  
 먼저 UML은 밑과 같이 생겼다.  
 ```mermaid
 ---
-title : 블랙잭 게임 진행
+title : CD Player UML
 ---
 
 flowchart TD
 
-    subgraph INIT[플레이어들 생성]
-        A[이름 입력] --> B[플레이어 생성]
-    end
-
-    INIT --> PlayerDraw
-
-    subgraph PlayerDraw[플레이어들 카드뽑기]
-        C[카드 뽑기] --> Input
-
-        Input[카드 뽑기 유무 입력 y,n] --> y
-        y[카드를 뽑는다] --> |HIT| Player        
-        Player[플레이어] --> isBust
-
-        isBust[버스트인가?] --> |YES| END
-        isBust --> |NO| Input
-
-        Input --> n
-        n --> |카드를 뽑지 않는다 STAND| END
-    end    
-
-    PlayerDraw --> DealerDraw
-
-    subgraph DealerDraw[딜러 카드뽑기]
-        Dealer[딜러] --> isUnder16[카드 합이 16 이하인가]
-
-        isUnder16 --> |YES| draw --> isUnder16
-        isUnder16 --> |NO| ENDDelar
-    end
-
-    DealerDraw --> Result
-
-    subgraph Result[결과 출력하기]
-        OutputDealr[딜러 결과 출력] --> OutputPlayers
-        OutputPlayers[플레이어들 결과 출력] --> OutputResult
-        OutputResult[최종 수익 출력]
-    end
+    Z[Init] --> A(Empty)
+    A -->|Event: open_close\nAction: open_drawer\nGuard: none| B(Open)
+    B -->|Event: open_close\nAction: close_drawer\nGuard: none| A
+    C(Paused) -->|Event: open_close\nAction: stop_and_open\nGuard: none| B
+    D(Playing) -->|Event: pause\nAction: pause_playback\nGuard: none| C
+    D -->|Event: open_close\nAction: stop_and_open\nGuard: none| B
+    C -->|Event: end_pause\nAction: ResumePlayback\nGuard: AlwaysReturnTrue| D
+    E(Stopped) -->|Event: stop\nAction: stopped_again\nGuard: none| E
+    E -->|Event: open_close\nAction: open_drawer\nGuard: none| B
+    E -->|Event: play\nAction: start_playback\nGuard: none| D
+    C -->|Event: stop\nAction: stop_playback\nGuard: none| E
+    A -->|Event: cd_detected\nAction: store_cd_info\nGuard: good_disk_format| E
+    A -->|Event: cd_detected\nAction: store_cd_info\nGuard: auto_start| D
+    D -->|Event: stop\nAction: stop_playback\nGuard: none| E
 ```
+UML을 잘 보면 Empty에서 발생되는 cd_detected 이벤트로만 Playing, Stopped 두 개로 이어지는데 이러면 충돌이 날 수 있다.
+이러한 충돌을 방지하려고 auto_start라는 Guard가 Empty에서 Playing으로 연결되는 cd_detected 이벤트를 비활성화한다.  
 &nbsp;  
 
 위 UML 관계가 정의된 코드는 밑과 같다.  
@@ -428,6 +408,7 @@ int main()
     return 0;
 }
 ```
+코드가 굉장히 많지만 주석을 읽어보면 어떤 일을 하는지 알 수 있다.  
 &nbsp;  
 
 ### SubState  
