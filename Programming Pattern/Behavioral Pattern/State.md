@@ -442,12 +442,89 @@ int main()
 코드가 굉장히 많지만 주석을 읽어보면 어떤 일을 하는지 알 수 있다.  
 &nbsp;  
 
+상태의 개수가 10개가 넘어가면 밑과 같이 매크로를 수정해줘야 한다.  
+```c++
+#define FUSION_MAX_VECTOR_SIZE 20 // 기본 값은 10
+```
+헤더가 선언되기 전에 추가해야 한다.  
+&nbsp;  
+
+상태 테이블에 정의된 관계 개수의 제한은 20이기에 매크로를 수정해줘야 한다.  
+```c++
+#define BOOST_MPL_CFG_NO_PREPROCESSED_HEADERS
+#define BOOST_MPL_LIMIT_VECTOR_SIZE 30 // 기본 값은 20
+#define BOOST_MPL_LIMIT_MAP_SIZE 30 // 기본 값은 20 
+```
+주의할 점은 50개를 초과하여 매크로를 수정할 수는 없다.  
+당연히 이 녀석도 헤더가 선언되기 전에 추가해야 한다.  
+&nbsp;  
+
+#### Deffered State  
+
+만약 위의 FSM의 Empty 상태에서 pause 이벤트가 발생한다면 어떻게 될까?  
+처리할 수 있는 상태 전이가 없어서 no_transition() 함수가 수행될 것이다.  
+
+하지만 상태 이벤트의 지연 처리가 필요할 때가 있다.  
+Empty 상태에서 pause 이벤트가 발생해도 no_transition() 함수가 수행되며 이벤트가 기각되지 않고 이벤트 큐에 저장했다가 FSM의 상태가 pause 이벤트를 처리할 수 있을 때 그 이벤트를 처리하는 Deffered State 기능을 Boost MSM은 제공한다.  
+
+[CD Player 코드](#cd-player-예시)에서 상태를 살짝 바꿔보자.  
+```c++
+struct Empty : public boost::msm::front::state<>
+{
+    // play 이벤트가 Empty 상태에 도착해도 처리하지 않고 이벤트 큐에 저장만 해둠
+    using deferred_events = mpl::vector<play, stop>;
+
+    template <class Event, class FSM>
+    void on_entry(Event const &, FSM &)
+    {
+        std::cout << "entering: Empty" << std::endl;
+    }
+    template <class Event, class FSM>
+    void on_exit(Event const &, FSM &)
+    {
+        std::cout << "leaving: Empty" << std::endl;
+    }
+};
+```
+deferred_events가 정의되면 Empty 상태에서 play, stop 이벤트가 도착해도 이벤트 큐에 추가할 뿐 처리하지 않는다.  
+상황을 보면 이해가 쉽다.  
+``` 
+Empty --> play [아무 반응 없음, 이벤트 큐에 play 추가]
+Empty --> cd_detected [바로 처리됨] --> Stopped
+Stopped --> play [이벤트 큐에 있던 이벤트를 이 시점에 처리] --> Playing
+```
+Stopped에 도착을 하면 이벤트 큐에 들어있는 잔여 이벤트를 수행하기에 자동으로 Playing 상태로 넘어간다.  
+&nbsp;  
+
+문제는 아래와 같은 상태이다.  
+```
+Empty --> play [아무 반응 없음, 이벤트 큐에 play 추가]
+Empty --> open_close [바로 처리됨] --> Open
+Open --> play [이벤트 큐에 있던 이벤트를 이 시점에 처리] --> [no_transition() 함수 호출]
+```
+위와 같은 상황을 방지하려면 Open 상태 구조체에도 deferred_events를 추가해줘야 한다.  
+&nbsp;  
+
+이렇게 일일이 deferred_events를 각 상태마다 적어주기 귀찮다면 activate_deferred_events 기능을 이용하면 된다.  
+해당 기능은 FSM에 직접 입력한다.  
+```c++
+struct player_ : public boost::msm::front::state_machine_def<player_>
+{
+    using activate_deferred_events = int;
+
+    // 구현부 생략
+};
+```
+activate_deferred_events가 위와 같이 정의되면 player_ FSM에 존재하는 모든 상태는 처리할 수 없는 이벤트가 도착하면 no_transition() 함수를 실행하지 않고 이벤트 큐에 넣어버린다.  
+&nbsp;  
+
 ### SubState  
 
 특정 상태 내부에 또 다른 자식 상태(SubState)들이 존재할 수 있다.  
 예를 들어 아픈 상태라면 감기, 독감, 골절 등 내부적으로 상태가 또 나뉠 수가 있다.  
 
 CD Player 예시를 SubState가 있는 예시로 바꿔보자.  
+Guard는 모두 PrintState이기에 생략한다.  
 ```mermaid
 ---
 title : CD Player With SubState UML
@@ -456,28 +533,27 @@ title : CD Player With SubState UML
 flowchart TD
 
     Init[Init] --> Empty(Empty)
-    Empty -->|Event: open_close\nAction: open_drawer\nGuard: none| Open(Open)
-    Open -->|Event: open_close\nAction: close_drawer\nGuard: none| Empty
-    Paused(Paused) -->|Event: open_close\nAction: stop_and_open\nGuard: none| Open
-    Playing -->|Event: pause\nAction: pause_playback\nGuard: none| Paused
+    Empty -->|Event: open_close\nAction: OpenDrawer| Open(Open)
+    Open -->|Event: open_close\nAction: CloseDrawer| Empty
+    Paused(Paused) -->|Event: open_close\nAction: StopAndOpen| Open
+    Playing -->|Event: pause\nAction: PausePlayBack| Paused
 
     subgraph Playing[Playing]
         SubInit[Init] --> Song1(Song1)
-        Song1 -->|Event: next_song\nAction: start_next_song\nGuard: none| Song2(Song2)
-        Song2 -->|Event: next_song\nAction: start_next_song\nGuard: none| Song3(Song3)
-        Song3 -->|Event: previous_song\nAction: start_prev_song\nGuard: none| Song2
-        Song2 -->|Event: previous_song\nAction: start_prev_song\nGuard: none| Song1
+        Song1 -->|Event: next_song\nAction: StartNextSong| Song2(Song2)
+        Song2 -->|Event: next_song\nAction: StartNextSong| Song3(Song3)
+        Song3 -->|Event: previous_song\nAction: StartPreviousSong| Song2
+        Song2 -->|Event: previous_song\nAction: StartPreviousSong| Song1
     end
 
-    Playing -->|Event: open_close\nAction: stop_and_open\nGuard: none| Open
-    Paused -->|Event: end_pause\nAction: ResumePlayback\nGuard: AlwaysReturnTrue| Playing
-    Stopped(Stopped) -->|Event: stop\nAction: stopped_again\nGuard: none| Stopped
-    Stopped -->|Event: open_close\nAction: open_drawer\nGuard: none| Open
-    Stopped -->|Event: play\nAction: start_playback\nGuard: none| Playing
-    Paused -->|Event: stop\nAction: stop_playback\nGuard: none| Stopped
-    Empty -->|Event: cd_detected\nAction: store_cd_info\nGuard: good_disk_format| Stopped
-    Empty -->|Event: cd_detected\nAction: store_cd_info\nGuard: auto_start| Playing
-    Playing -->|Event: stop\nAction: stop_playback\nGuard: none| Stopped
+    Playing -->|Event: open_close\nAction: StopAndOpen| Open
+    Paused -->|Event: end_pause\nAction: ResumePlayback| Playing
+    Stopped(Stopped) -->|Event: stop\nAction: StoppedAgain| Stopped
+    Stopped -->|Event: open_close\nAction: OpenDrawer| Open
+    Stopped -->|Event: play\nAction: StartPlayback| Playing
+    Paused -->|Event: stop\nAction: StopPlayBack| Stopped
+    Empty -->|Event: cd_detected\nAction: StoreCdInfo| Stopped
+    Playing -->|Event: stop\nAction: StopPlayBack| Stopped
 ```
 CD Player는 Playing 상태 내부에 다양한 SubState가 추가되어 이제 음악을 넘기면서 들을 수가 있다.  
 &nbsp;  
@@ -530,6 +606,20 @@ struct previous_song
 {
 };
 
+// 상태 출력용 Guard
+struct PrintState
+{
+    template <class Fsm, class Evt, class SourceState, class TargetState>
+    bool operator()(Evt const &event, Fsm &fsm, SourceState &src, TargetState &trg)
+    {
+        std::cout << "Current State Index: " << fsm.current_state()[0] << "\n";
+        std::cout << "Source: " << typeid(src).name() << " --- "
+                  << "Event: " << typeid(event).name() << " ---> "
+                  << "Target: " << typeid(trg).name() << "\n";
+        return true;
+    }
+};
+
 struct player_ : public msm::front::state_machine_def<player_>
 {
     template <class Event, class FSM>
@@ -569,7 +659,6 @@ struct player_ : public msm::front::state_machine_def<player_>
             std::cout << "leaving: Open" << std::endl;
         }
     };
-
     struct Stopped : public msm::front::state<>
     {
         template <class Event, class FSM>
@@ -583,10 +672,6 @@ struct player_ : public msm::front::state_machine_def<player_>
             std::cout << "leaving: Stopped" << std::endl;
         }
     };
-
-    // the player state machine contains a state which is himself a state machine
-    // as you see, no need to declare it anywhere so Playing can be developed separately
-    // by another team in another module. For simplicity I just declare it inside player
 
     // SubState를 포함하는 Playing 상태를 정의한다.
     // FSM을 정의할 때와 같이 msm::front::state_machine_def<자기 자신>를 상속하면 된다.
@@ -671,13 +756,13 @@ struct player_ : public msm::front::state_machine_def<player_>
         };
 
         // Transition table for Playing
-        struct transition_table : mpl::vector4<
+        struct transition_table : mpl::vector<
                                       //      Start     Event         Next      Action               Guard
                                       //    +---------+-------------+---------+---------------------+----------------------+
-                                      msm::front::Row<Song1, next_song, Song2, StartNextSong>,
-                                      msm::front::Row<Song2, previous_song, Song1, StartPreviousSong>,
-                                      msm::front::Row<Song2, next_song, Song3, StartNextSong>,
-                                      msm::front::Row<Song3, previous_song, Song2, StartPreviousSong>
+                                      msm::front::Row<Song1, next_song, Song2, StartNextSong, PrintState>,
+                                      msm::front::Row<Song2, previous_song, Song1, StartPreviousSong, PrintState>,
+                                      msm::front::Row<Song2, next_song, Song3, StartNextSong, PrintState>,
+                                      msm::front::Row<Song3, previous_song, Song2, StartPreviousSong, PrintState>
                                       //    +---------+-------------+---------+---------------------+----------------------+
                                       >
         {
@@ -695,7 +780,6 @@ struct player_ : public msm::front::state_machine_def<player_>
     // SubState 사용을 용이하게 만들기 위해 이름 줄이기
     using Playing = msm::back::state_machine<Playing_>;
 
-    // state not defining any entry or exit
     struct Paused : public msm::front::state<>
     {
     };
@@ -704,65 +788,93 @@ struct player_ : public msm::front::state_machine_def<player_>
     using initial_state = Empty;
 
     // Action 정의
-    void start_playback(play const &)
+    struct StartPlayback
     {
-        std::cout << "player::start_playback\n";
-    }
-    void open_drawer(open_close const &)
+        template <class Fsm, class Evt, class SourceState, class TargetState>
+        void operator()(Evt const &, Fsm &fsm, SourceState &src, TargetState &)
+        {
+            std::cout << "player::StartPlayback\n";
+        }
+    };
+    struct OpenDrawer
     {
-        std::cout << "player::open_drawer\n";
-    }
-    void close_drawer(open_close const &)
+        template <class Fsm, class Evt, class SourceState, class TargetState>
+        void operator()(Evt const &, Fsm &fsm, SourceState &src, TargetState &)
+        {
+            std::cout << "player::OpenDrawer\n";
+        }
+    };
+    struct CloseDrawer
     {
-        std::cout << "player::close_drawer\n";
-    }
-    void store_cd_info(cd_detected const &cd)
+        template <class Fsm, class Evt, class SourceState, class TargetState>
+        void operator()(Evt const &, Fsm &fsm, SourceState &src, TargetState &)
+        {
+            std::cout << "player::CloseDrawer\n";
+        }
+    };
+    struct StoreCdInfo
     {
-        std::cout << "player::store_cd_info\n";
-    }
-    void stop_playback(stop const &)
+        template <class Fsm, class Evt, class SourceState, class TargetState>
+        void operator()(Evt const &, Fsm &fsm, SourceState &src, TargetState &)
+        {
+            std::cout << "player::StoreCdInfo\n";
+        }
+    };
+    struct StopPlayBack
     {
-        std::cout << "player::stop_playback\n";
-    }
-    void pause_playback(pause const &)
+        template <class Fsm, class Evt, class SourceState, class TargetState>
+        void operator()(Evt const &, Fsm &fsm, SourceState &src, TargetState &)
+        {
+            std::cout << "player::StopPlayBack\n";
+        }
+    };
+    struct PausePlayBack
     {
-        std::cout << "player::pause_playback\n";
-    }
-    void resume_playback(end_pause const &)
+        template <class Fsm, class Evt, class SourceState, class TargetState>
+        void operator()(Evt const &, Fsm &fsm, SourceState &src, TargetState &)
+        {
+            std::cout << "player::PausePlayBack\n";
+        }
+    };
+    struct ResumePlayBack
     {
-        std::cout << "player::resume_playback\n";
-    }
-    void stop_and_open(open_close const &)
+        template <class Fsm, class Evt, class SourceState, class TargetState>
+        void operator()(Evt const &, Fsm &fsm, SourceState &src, TargetState &)
+        {
+            std::cout << "player::ResumePlayBack\n";
+        }
+    };
+    struct StopAndOpen
     {
-        std::cout << "player::stop_and_open\n";
-    }
-    void stopped_again(stop const &)
+        template <class Fsm, class Evt, class SourceState, class TargetState>
+        void operator()(Evt const &, Fsm &fsm, SourceState &src, TargetState &)
+        {
+            std::cout << "player::StopAndOpen\n";
+        }
+    };
+    struct StoppedAgain
     {
-        std::cout << "player::stopped_again\n";
-    }
+        template <class Fsm, class Evt, class SourceState, class TargetState>
+        void operator()(Evt const &, Fsm &fsm, SourceState &src, TargetState &)
+        {
+            std::cout << "player::StoppedAgain\n";
+        }
+    };
 
     // 상태 관계 정의 테이블
     struct transition_table : mpl::vector<
-                                  //      Start     Event         Next      Action               Guard
-                                  //    +---------+-------------+---------+---------------------+----------------------+
-                                  a_row<Stopped, play, Playing, &player_::start_playback>,
-                                  a_row<Stopped, open_close, Open, &player_::open_drawer>,
-                                  a_row<Stopped, stop, Stopped, &player_::stopped_again>,
-                                  //    +---------+-------------+---------+---------------------+----------------------+
-                                  a_row<Open, open_close, Empty, &player_::close_drawer>,
-                                  //    +---------+-------------+---------+---------------------+----------------------+
-                                  a_row<Empty, open_close, Open, &player_::open_drawer>,
-                                  a_row<Empty, cd_detected, Stopped, &player_::store_cd_info>,
-                                  //    +---------+-------------+---------+---------------------+----------------------+
-                                  a_row<Playing, stop, Stopped, &player_::stop_playback>,
-                                  a_row<Playing, pause, Paused, &player_::pause_playback>,
-                                  a_row<Playing, open_close, Open, &player_::stop_and_open>,
-                                  //    +---------+-------------+---------+---------------------+----------------------+
-                                  a_row<Paused, end_pause, Playing, &player_::resume_playback>,
-                                  a_row<Paused, stop, Stopped, &player_::stop_playback>,
-                                  a_row<Paused, open_close, Open, &player_::stop_and_open>
-                                  //    +---------+-------------+---------+---------------------+----------------------+
-                                  >
+                                  msm::front::Row<Stopped, play, Playing, StartPlayback, PrintState>,
+                                  msm::front::Row<Stopped, open_close, Open, OpenDrawer, PrintState>,
+                                  msm::front::Row<Stopped, stop, Stopped, StoppedAgain, PrintState>,
+                                  msm::front::Row<Open, open_close, Empty, CloseDrawer, PrintState>,
+                                  msm::front::Row<Empty, open_close, Open, OpenDrawer, PrintState>,
+                                  msm::front::Row<Empty, cd_detected, Stopped, StoreCdInfo, PrintState>,
+                                  msm::front::Row<Playing, stop, Stopped, StopPlayBack, PrintState>,
+                                  msm::front::Row<Playing, pause, Paused, PausePlayBack, PrintState>,
+                                  msm::front::Row<Playing, open_close, Open, StopAndOpen, PrintState>,
+                                  msm::front::Row<Paused, end_pause, Playing, ResumePlayBack, PrintState>,
+                                  msm::front::Row<Paused, stop, Stopped, StopPlayBack, PrintState>,
+                                  msm::front::Row<Paused, open_close, Open, StopAndOpen, PrintState>>
     {
     };
 
@@ -776,13 +888,6 @@ struct player_ : public msm::front::state_machine_def<player_>
 
 using player = msm::back::state_machine<player_>;
 
-static char const *const state_names[] = {"Stopped", "Open", "Empty", "Playing", "Paused"};
-
-void pstate(player const &p)
-{
-    std::cout << " -> " << state_names[p.current_state()[0]] << std::endl;
-}
-
 int main()
 {
     player p;
@@ -790,44 +895,35 @@ int main()
     p.start();
 
     p.process_event(open_close());
-    pstate(p);
 
     p.process_event(open_close());
-    pstate(p);
 
     p.process_event(cd_detected("louie, louie"));
+
     p.process_event(play());
 
     // 현재 Playing 상태에 도달했다.
     // 바로 pause 이벤트로 탈출할 수도 있지만 SubState를 실행해보자.
     // Playing을 진입하면서 첫 번째 곡이 활성화된다.
     p.process_event(next_song());
-    pstate(p);
 
     // 두 번째 곡이 활성화
     p.process_event(next_song());
-    pstate(p);
 
     // 세 번째 곡이 활성화
     p.process_event(previous_song());
-    pstate(p);
 
     // 두 번째 곡이 활성화되어 있는 상태에서 pause 이벤트로 Playing 상태 탈출
     p.process_event(pause());
-    pstate(p);
 
     // 현재 pause 상태
     p.process_event(end_pause());
-    pstate(p);
 
     p.process_event(pause());
-    pstate(p);
 
     p.process_event(stop());
-    pstate(p);
 
     p.process_event(stop());
-    pstate(p);
 
     p.process_event(play());
 
@@ -842,6 +938,62 @@ int main()
     return 0;
 }
 ```
+SubState를 담고 있는 상태도 내부 FSM이기에 크게 다르지 않다.  
+&nbsp;  
+
+### Orthogonal Zone  
+
+Caps Lock과 Insert 키가 눌릴 때의 상태는 서로에게 영향을 주지 않는다.  
+따라서 이러한 경우 이 둘의 조합을 따져야 한다.  
+```None```, ```Caps Lock```, ```Insert```, ```Caps Lock + Insert``` 이렇게 4개의 상태가 존재한다.  
+
+지금까지 배운 정보로 UML을 만들어 본다면 밑과 같다.  
+```mermaid
+---
+title : Caps Lock and Insert Key UML
+---
+
+flowchart TD
+
+    Init[Init] --> None(None)
+    None <--> CapsLock(Caps Lock)
+    CapsLock <--> Insert(Insert)
+    Insert <--> None
+    None <--> CapsLockInsert(Caps Lock + Insert)
+    CapsLockInsert <--> Insert
+    CapsLockInsert <--> CapsLock
+```
+4개의 상태를 표현할 뿐인데 12개의 이벤트가 필요하다.  
+&nbsp;  
+
+하지만 동시 상태 영역(Orthogonal Zone)을 이용하면 깔끔해진다.  
+```mermaid
+---
+title : Orthogonal Zone UML
+---
+
+flowchart TD
+
+    subgraph CapsLockInsert[Caps Lock and Insert]
+        subgraph Zone1[Zone A]
+            Zone1Init[Init] --> CapsLockOff(Caps Lock Off)
+            CapsLockOn(Caps Lock On) <--> CapsLockOff
+        end
+
+        subgraph Zone2[Zone B]
+            Zone2Init[Init] --> InsertOff(Insert Off)
+            InsertOn(Insert On) <--> InsertOff
+        end
+    end
+```
+FSM이 동시 상태를 가질 수 있기에 4개의 이벤트로 서로 다른 4개의 상태를 표현할 수 있다.  
+&nbsp;  
+
+#### Flag   
+
+Orthogonal State인 경우 AND로 검사 가능
+
+&nbsp;  
 
 ### Base State  
 
@@ -855,23 +1007,6 @@ int main()
 
 상태 생성자를 만들어 특정 인자를 넘겨 미리 생성해둘수 있음
 
-### Flag   
-
-Orthogonal State인 경우 AND로 검사 가능
-
-&nbsp;  
-
-### Orthogonal State  
-
-CAPS LOCK과 Insert 각 키가 눌릴 때의 상태는 서로에게 영향을 주지 않는다.  
-이렇게 동시 상태가 존재하는 경우 사용하게 됨.
-위의 경우 조합이기에 총 4가지 상태가 있을 수 있음
-
-&nbsp;  
-
-### Deffered State  
-
-현재 상태와 상관 없는 이벤트를 요청하면 큐에 담고있다가 deffered 상태 풀리면 바로 처리하는 기능
 
 &nbsp;  
 
