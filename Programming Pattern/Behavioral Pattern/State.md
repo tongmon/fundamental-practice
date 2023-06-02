@@ -457,6 +457,19 @@ int main()
 ```
 주의할 점은 50개를 초과하여 매크로를 수정할 수는 없다.  
 당연히 이 녀석도 헤더가 선언되기 전에 추가해야 한다.  
+
+상태 테이블에 50개가 넘어가는 관계를 정의해야 한다면 Boost의 mp11 라이브러리를 사용해야 한다.  
+mp11의 mp_list는 템플릿 인자 개수에 제한이 없다.  
+```c++
+// 최대 50개까지 관계 설정 가능
+struct transition_table : boost::mpl::vector<boost::msm::front::Row<SourceState, Event, TargetState>>
+{
+};
+
+// 관계 설정 개수 무제한
+using transition_table = boost::mp11::mp_list<boost::msm::front::Row<SourceState, Event, TargetState>>;
+```
+mp_list를 사용하는 방식이 비교적 최신이다.  
 &nbsp;  
 
 #### Deffered State  
