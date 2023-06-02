@@ -1189,6 +1189,228 @@ Key_On라는 flag 구조체 하나로 ```모든 버튼이 꺼진 상태```, ```�
 flag_list는 mpl::vector 자료형이기에 ```mpl::vector<flag_1, flag_2 ...>``` 이렇게 한번에 복수의 flag를 설정할 수도 있다.  
 &nbsp;  
 
+### Internal transition  
+
+Boost MSM에는 내부적인 상태 전이가 존재한다.  
+기본 상태 전이와 큰 차이점으로는 전이될 목표 상태가 따로 없다는 것이다.  
+그리고 상태 내부적으로 발생되는 전이기에 on_entry(), on_exit() 함수도 수행되지 않는다.  
+자신의 상태를 유지하면서 특정 Action을 반복적으로 수행하고 싶은 경우 사용하게 된다.  
+
+게임의 특정 상황을 예시로 들어보자.  
+캐릭터는 독에 중독된 상태, 마비 상태 둘 중 하나가 될 수 있다.  
+UML로 표현하면 밑과 같다.  
+```mermaid
+---
+title : Debuff State UML
+---
+
+flowchart TD
+
+    subgraph Poisoned[Poisoned]
+        PoisonedInternalState(Internal State) --> |Event: alert_poisoned\nAction: poisone_tick| PoisonedInternalState
+    end
+
+    subgraph Paralysis[Paralysis]
+        ParalysisInternalState(Internal State) --> |Event: be_cured\nAction: paralysis_tick\nGuard: paralysis_guard| ParalysisInternalState
+    end
+
+    Init[Init] --> None(None)
+    None -->|Event: get_poisoned| Poisoned
+    None -->|Event: get_paralysis| Paralysis
+    Poisoned -->|Event: be_cured| None
+    Paralysis -->|Event: be_cured| None
+
+```
+poisone_tick, paralysis_tick 등의 특정 액션을 수행하기 위해 내부 상태 전이를 따로 정의하였다.  
+
+코드 적용법은 밑과 같다.  
+```c++
+// back-end header
+#include <boost/msm/back/state_machine.hpp>
+
+// front-end header
+#include <boost/msm/front/state_machine_def.hpp>
+
+// funtor row type header
+#include <boost/msm/front/functor_row.hpp>
+
+namespace msm = boost::msm;
+namespace mpl = boost::mpl;
+
+// 이벤트 정의
+struct alert_poisoned
+{
+};
+struct get_poisoned
+{
+};
+struct get_paralysis
+{
+};
+struct be_cured
+{
+    bool is_paralysis;
+    be_cured(bool ps = false)
+        : is_paralysis{ps}
+    {
+    }
+};
+
+struct DebuffStatus : public msm::front::state_machine_def<DebuffStatus>
+{
+    template <class Event, class FSM>
+    void on_entry(Event const &, FSM &)
+    {
+        std::cout << "entering: DebuffStatus" << std::endl;
+    }
+    template <class Event, class FSM>
+    void on_exit(Event const &, FSM &)
+    {
+        std::cout << "leaving: DebuffStatus" << std::endl;
+    }
+
+    // 상태 정의
+    struct None : public msm::front::state<>
+    {
+        template <class Event, class FSM>
+        void on_entry(Event const &, FSM &)
+        {
+            std::cout << "entering: None" << std::endl;
+        }
+        template <class Event, class FSM>
+        void on_exit(Event const &, FSM &)
+        {
+            std::cout << "leaving: None" << std::endl;
+        }
+    };
+    struct Poisoned : public msm::front::state<>
+    {
+        template <class Event, class FSM>
+        void on_entry(Event const &, FSM &)
+        {
+            std::cout << "entering: Poisoned" << std::endl;
+        }
+        template <class Event, class FSM>
+        void on_exit(Event const &, FSM &)
+        {
+            std::cout << "leaving: Poisoned" << std::endl;
+        }
+
+        struct poisone_tick
+        {
+            template <class EVT, class FSM, class SourceState, class TargetState>
+            void operator()(EVT const &, FSM &, SourceState &, TargetState &)
+            {
+                std::cout << "You are poisoned!" << std::endl;
+            }
+        };
+
+        // 내부 상태 전이 테이블 정의
+        // Funtor를 이용하는 방식이 훨씬 간단하니 함수를 이용하는 방식은 생략한다.
+        // msm::front::Internal<Event, Action, Guard> 순으로 적어주면 된다.
+        // Action이나 Guard가 빠져야 한다면 Row와 같은 방식으로 msm::front::none을 적거나 인자를 생략해주면 된다.
+        struct internal_transition_table : mpl::vector<
+                                               msm::front::Internal<alert_poisoned, poisone_tick>>
+        {
+        };
+    };
+    struct Paralysis : public msm::front::state<>
+    {
+        template <class Event, class FSM>
+        void on_entry(Event const &, FSM &)
+        {
+            std::cout << "entering: Paralysis" << std::endl;
+        }
+        template <class Event, class FSM>
+        void on_exit(Event const &, FSM &)
+        {
+            std::cout << "leaving: Paralysis" << std::endl;
+        }
+
+        struct paralysis_tick
+        {
+            template <class EVT, class FSM, class SourceState, class TargetState>
+            void operator()(EVT const &, FSM &, SourceState &, TargetState &)
+            {
+                std::cout << "You are paralysis!" << std::endl;
+            }
+        };
+        struct paralysis_guard
+        {
+            template <class EVT, class FSM, class SourceState, class TargetState>
+            bool operator()(EVT const &evt, FSM &, SourceState &, TargetState &)
+            {
+                if (evt.is_paralysis)
+                    std::cout << "You can't go back to None State!\n";
+                return evt.is_paralysis;
+            }
+        };
+        struct internal_transition_table : mpl::vector<
+                                               msm::front::Internal<be_cured, paralysis_tick, paralysis_guard>>
+        {
+        };
+    };
+
+    // 시작 상태 정의
+    using initial_state = mpl::vector<None>;
+
+    struct transition_table : mpl::vector<
+                                  msm::front::Row<None, get_poisoned, Poisoned>,
+                                  msm::front::Row<None, get_paralysis, Paralysis>,
+                                  msm::front::Row<Poisoned, be_cured, None>,
+                                  msm::front::Row<Paralysis, be_cured, None>>
+    {
+    };
+
+    template <class FSM, class Event>
+    void no_transition(Event const &e, FSM &, int state)
+    {
+        std::cout << "no transition from state " << state
+                  << " on event " << typeid(e).name() << std::endl;
+    }
+};
+
+using DebuffState = msm::back::state_machine<DebuffStatus>;
+
+int main()
+{
+    DebuffState df;
+
+    df.start();
+
+    // 중독 상태 돌입
+    df.process_event(get_poisoned());
+
+    // on_entry(), on_exit()는 수행되지 않고 poisone_tick 액션만 수행됨
+    df.process_event(alert_poisoned());
+    df.process_event(alert_poisoned());
+
+    // 중독 상태 탈출
+    df.process_event(be_cured());
+
+    // 마비 상태 돌입
+    df.process_event(get_paralysis());
+
+    // 마비 상태 탈출 시도...는 실패한다.
+    // internal transition은 기본 transition보다 우위이다.
+    // paralysis_guard의 반환 값은 true이기에 paralysis_guard만 수행된다.
+    df.process_event(be_cured(true));
+
+    // 요번에는 마비 상태에서 탈출한다.
+    // paralysis_guard의 반환 값이 false이기에 internal transition은 막히고 기본 상태 전이가 수행된다.
+    df.process_event(be_cured(false));
+
+    df.stop();
+
+    return 0;
+}
+```
+대부분의 설명은 주석에 적혀있다.  
+중요한 부분은 내부 상태 전이가 기본 상태 전이보다 우위라는 것이다.  
+Funtor를 이용한 internal_transition_table 정의 방식이 워낙 편하기에 함수를 이용한 internal_transition_table 정의 방식은 생략한다.  
+궁금하다면 [이곳](https://www.boost.org/doc/libs/1_82_0/libs/msm/doc/HTML/ch03s02.html#internal-transitions)을 참고하자.  
+&nbsp;  
+
 ### Base State  
 
 상태에서 특정 base class를 상속할 수 있음
@@ -1211,19 +1433,6 @@ AlwaysHistroy는 어떤 이벤트가 발생하던 substate가 어디서 끊겼�
 
 &nbsp;  
 
-### Internal transition  
-
-내부 상태.
-기본 상태와 다른 점이라면 전이될 목표 상태가 따로 없음
-기본 상태보다 내부 상태 호출이 우선순위임.
-목표가 없기에 일부 action, guard만 수행하기에 유용함.
-
-기본 상태, 내부 상태가 트리거되는 이벤트가 동일하면 밑과 같이 작동함
-
-1. 내부 상태의 가드 함수가 false를 반환 -> 기본 상태를 시도
-2. 내부 상태의 가드 함수가 true를 반환 -> 내부 상태에 액션이 있다면 수행하고 그 후 자기 자신의 상태변화 없이 종료
-
-row2를 이용해서 상태 내부에 있는 함수를 가드나 액션에 사용가능
 
 ### 가짜 진입, 가짜 종료점, 직접 진입  
 
