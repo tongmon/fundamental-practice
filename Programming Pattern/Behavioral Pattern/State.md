@@ -989,10 +989,204 @@ flowchart TD
 FSM이 동시 상태를 가질 수 있기에 4개의 이벤트로 서로 다른 4개의 상태를 표현할 수 있다.  
 &nbsp;  
 
+위 UML을 코드에 적용해보자.  
+```c++
+// back-end header
+#include <boost/msm/back/state_machine.hpp>
+
+// front-end header
+#include <boost/msm/front/state_machine_def.hpp>
+
+// funtor row type header
+#include <boost/msm/front/functor_row.hpp>
+
+namespace msm = boost::msm;
+namespace mpl = boost::mpl;
+
+// 이벤트 정의
+struct caps_lock_on
+{
+};
+struct caps_lock_off
+{
+};
+struct insert_on
+{
+};
+struct insert_off
+{
+};
+
+// 상태 출력용 Guard
+struct PrintState
+{
+    template <class Fsm, class Evt, class SourceState, class TargetState>
+    bool operator()(Evt const &event, Fsm &fsm, SourceState &src, TargetState &trg)
+    {
+        for (size_t i = 0; i < Fsm::nr_regions::value; i++)
+            std::cout << "Zone " << i << " State Index: " << fsm.current_state()[i] << "\n";
+
+        std::cout << "Source: " << typeid(src).name() << " --- "
+                  << "Event: " << typeid(event).name() << " ---> "
+                  << "Target: " << typeid(trg).name() << "\n";
+        return true;
+    }
+};
+
+struct KeyBoardFsm : public msm::front::state_machine_def<KeyBoardFsm>
+{
+    template <class Event, class FSM>
+    void on_entry(Event const &, FSM &)
+    {
+        std::cout << "entering: KeyBoardFsm" << std::endl;
+    }
+    template <class Event, class FSM>
+    void on_exit(Event const &, FSM &)
+    {
+        std::cout << "leaving: KeyBoardFsm" << std::endl;
+    }
+
+    // 상태 정의
+    struct CapsLockOff : public msm::front::state<>
+    {
+    };
+    struct CapsLockOn : public msm::front::state<>
+    {
+    };
+    struct InsertOff : public msm::front::state<>
+    {
+    };
+    struct InsertOn : public msm::front::state<>
+    {
+    };
+
+    // Guard 정의
+
+    // Orthogonal Zone 시작 상태 정의
+    using initial_state = mpl::vector<CapsLockOff, InsertOff>;
+
+    struct transition_table : mpl::vector<
+                                  msm::front::Row<CapsLockOff, caps_lock_on, CapsLockOn, msm::front::none, PrintState>,
+                                  msm::front::Row<CapsLockOn, caps_lock_off, CapsLockOff, msm::front::none, PrintState>,
+                                  msm::front::Row<InsertOff, insert_on, InsertOn, msm::front::none, PrintState>,
+                                  msm::front::Row<InsertOn, insert_off, InsertOff, msm::front::none, PrintState>>
+    {
+    };
+
+    template <class FSM, class Event>
+    void no_transition(Event const &e, FSM &, int state)
+    {
+        std::cout << "no transition from state " << state
+                  << " on event " << typeid(e).name() << std::endl;
+    }
+};
+
+using KeyBoardState = msm::back::state_machine<KeyBoardFsm>;
+
+int main()
+{
+    KeyBoardState ks;
+
+    ks.start();
+
+    ks.process_event(caps_lock_on()); // Caps Lock
+
+    ks.process_event(insert_on()); // Caps Lock + Insert
+
+    ks.process_event(caps_lock_off()); // Insert
+
+    ks.process_event(insert_off()); // None
+
+    ks.stop();
+
+    return 0;
+}
+```
+initial_state의 선언부가 달라졌다.  
+```mpl::vector<CapsLockOff, InsertOff>```처럼 시작 상태를 여러개 지정해주면 된다.  
+
+또 하나 볼 것은 current_state() 함수다.  
+전에 current_state()가 배열을 반환한다고 했는데 이유는 위 예시처럼 Zone이 여럿인 경우가 있기 때문이다.  
+```current_state()[0]```은 initial_state에서 첫 번째로 위치한 CapsLockOff 상태가 속해있는 Zone의 현재 상태를 나타낸다.  
+```current_state()[1]```은 InsertOff 상태가 속해있는 Zone의 현재 상태를 의미한다.  
+상태 인덱스는 상태 전이 테이블을 보면 CapsLockOff : 0, CapsLockOn : 1, InsertOff : 2, InsertOn : 3 으로 지정된 것을 알 수 있다.  
+&nbsp;  
+
 #### Flag   
 
-Orthogonal State인 경우 AND로 검사 가능
+current_state()를 이용해서 현재 FSM의 상태를 확인하는 것은 직관적이지도 않고 한계가 명확하다.  
+따라서 Boost MSM은 Flag 기능을 제공한다.  
+위의 [Caps Lock, Insert 예제](#orthogonal-zone)에 Flag를 추가해보자.  
+```c++
+// 동일 구현부 생략
 
+// flag 구조체 정의
+struct Key_On
+{
+};
+
+struct KeyBoardFsm : public msm::front::state_machine_def<KeyBoardFsm>
+{
+    // 동일 구현부 생략
+
+    struct CapsLockOff : public msm::front::state<>
+    {
+    };
+    struct CapsLockOn : public msm::front::state<>
+    {
+        // 해당 상태에 도달해야만 플래그가 켜진다.
+        using flag_list = mpl::vector<Key_On>;
+    };
+    struct InsertOff : public msm::front::state<>
+    {
+    };
+    struct InsertOn : public msm::front::state<>
+    {
+        using flag_list = mpl::vector<Key_On>;
+    };
+};
+
+// 동일 구현부 생략
+
+int main()
+{
+    KeyBoardState ks;
+
+    ks.start();
+
+    ks.process_event(caps_lock_on());
+
+    // is_flag_active의 기본 옵션은 OR 연산이다.
+    // 하나의 키만 켜져도 플래그 값은 true이다.
+    if (ks.is_flag_active<Key_On>())
+        std::cout << "At least one key turned on\n";
+
+    // AND 옵션을 주면 Insert 키는 켜지지 않았기에 false가 반환된다.
+    if (ks.is_flag_active<Key_On, KeyBoardState::Flag_AND>())
+        std::cout << "All key turned on\n";
+
+    ks.process_event(insert_on());
+
+    // Insert 키가 켜지면 모든 키가 켜진 상태이기에 true가 반환된다.
+    if (ks.is_flag_active<Key_On, KeyBoardState::Flag_AND>())
+        std::cout << "All key turned on\n";
+
+    ks.process_event(insert_off());
+
+    ks.process_event(caps_lock_off());
+
+    // 키가 하나도 안켜진 상태이기에 false가 반환된다.  
+    if (ks.is_flag_active<Key_On>())
+        std::cout << "At least one key turned on\n";
+
+    ks.stop();
+
+    return 0;
+}
+```
+설명은 주석에 모두 쓰여있다.  
+Key_On라는 flag 구조체 하나로 ```모든 버튼이 꺼진 상태```, ```모든 버튼이 켜진 상태```, ```하나의 버튼이라도 켜진 상태``` 이렇게 3가지 상태를 모두 알 수 있다.  
+flag_list는 mpl::vector 자료형이기에 ```mpl::vector<flag_1, flag_2 ...>``` 이렇게 한번에 복수의 flag를 설정할 수도 있다.  
 &nbsp;  
 
 ### Base State  
