@@ -59,19 +59,19 @@ title : CD Player UML
 flowchart TD
 
     Init[Init] --> Empty(Empty)
-    Empty -->|Event: open_close\nAction: open_drawer\nGuard: none| Open(Open)
-    Open -->|Event: open_close\nAction: close_drawer\nGuard: none| Empty
-    Paused(Paused) -->|Event: open_close\nAction: stop_and_open\nGuard: none| Open
-    Playing(Playing) -->|Event: pause\nAction: pause_playback\nGuard: none| Paused
-    Playing -->|Event: open_close\nAction: stop_and_open\nGuard: none| Open
+    Empty -->|Event: open_close\nAction: open_drawer| Open(Open)
+    Open -->|Event: open_close\nAction: close_drawer| Empty
+    Paused(Paused) -->|Event: open_close\nAction: stop_and_open| Open
+    Playing(Playing) -->|Event: pause\nAction: pause_playback| Paused
+    Playing -->|Event: open_close\nAction: stop_and_open| Open
     Paused -->|Event: end_pause\nAction: ResumePlayback\nGuard: AlwaysReturnTrue| Playing
-    Stopped(Stopped) -->|Event: stop\nAction: stopped_again\nGuard: none| Stopped
-    Stopped -->|Event: open_close\nAction: open_drawer\nGuard: none| Open
-    Stopped -->|Event: play\nAction: start_playback\nGuard: none| Playing
-    Paused -->|Event: stop\nAction: stop_playback\nGuard: none| Stopped
+    Stopped(Stopped) -->|Event: stop\nAction: stopped_again| Stopped
+    Stopped -->|Event: open_close\nAction: open_drawer| Open
+    Stopped -->|Event: play\nAction: start_playback| Playing
+    Paused -->|Event: stop\nAction: stop_playback| Stopped
     Empty -->|Event: cd_detected\nAction: store_cd_info\nGuard: good_disk_format| Stopped
     Empty -->|Event: cd_detected\nAction: store_cd_info\nGuard: auto_start| Playing
-    Playing -->|Event: stop\nAction: stop_playback\nGuard: none| Stopped
+    Playing -->|Event: stop\nAction: stop_playback| Stopped
 ```
 UML을 잘 보면 Empty에서 발생되는 cd_detected 이벤트로만 Playing, Stopped 두 개로 이어지는데 이러면 충돌이 날 수 있다.  
 이러한 충돌을 방지하려고 auto_start라는 Guard가 false를 반환해 Empty에서 Playing으로 연결되는 trigger인 cd_detected 이벤트를 비활성화한다.  
@@ -954,6 +954,47 @@ int main()
 SubState를 담고 있는 상태도 내부 FSM이기에 크게 다르지 않다.  
 &nbsp;  
 
+#### History  
+
+SubState를 이용할 때 불편한 점이 있다.  
+SubState를 담고 있는 상태를 빠져나갔다가 다시 해당 상태로 돌아오면 어디 SubState까지 진행했었는지 기억을 못한다.  
+```
+Playing --> Song1 --> Song2 -- [pause 이벤트 발생] --> Paused
+[end_pause 이벤트 발생] --> Playing -- [Playing은 과거에 어떤 SubState까지 진행했는지 기억을 못함] --> Song1 
+```
+Song2를 재생하다가 멈추고 다시 재생해도 Playing 상태가 초기화되어 Song1이 재생되어 버린다.  
+&nbsp;  
+
+이러한 문제점을 해결하기 위해 Boost MSM은 History라는 기능을 제공한다.  
+History를 이용하면 SubState를 담고 있는 상태가 초기화되지 않고 어디까지 진행했었는지 기억하고 있다.  
+[SubState 예시](#substate) 코드를 수정해보자.  
+```c++
+// 동일한 구현부 생략 
+
+struct player_ : public msm::front::state_machine_def<player_>
+{
+    // 동일한 구현부 생략 
+
+    using Playing = msm::back::state_machine<Playing_, msm::back::ShallowHistory<mpl::vector<end_pause>>>;
+};
+```
+바뀐 것은 SubState를 담고 있는 상태인 Playing 자료형의 선언부 밖에 없다.  
+```msm::back::ShallowHistory<mpl::vector<end_pause>>``` 이 부분만 추가해주면 end_pause 이벤트를 통해 Playing 상태를 재진입할 때 예전에 수행되던 SubState부터 시작된다.  
+
+모든 이벤트에 대해서 History 기능을 수행하고 싶다면 밑과 같이 사용하면 된다.  
+```c++
+// 동일한 구현부 생략 
+
+struct player_ : public msm::front::state_machine_def<player_>
+{
+    // 동일한 구현부 생략 
+
+    using Playing = msm::back::state_machine<Playing_, msm::back::AlwaysHistory>;
+};
+```
+특정 이벤트로 재진입한 경우 History 기능을 이용하고 싶다면 ShallowHistory를, 모든 이벤트에 대해 History 기능을 이용하고 싶다면 AlwaysHistory를 사용하면 된다.  
+&nbsp;  
+
 ### Orthogonal Zone  
 
 Caps Lock과 Insert 키가 눌릴 때의 상태는 서로에게 영향을 주지 않는다.  
@@ -1220,7 +1261,7 @@ title : Debuff State UML
 flowchart TD
 
     subgraph Poisoned[Poisoned]
-        PoisonedInternalState(Internal State) --> |Event: alert_poisoned\nAction: poisone_tick| PoisonedInternalState
+        PoisonedInternalState(Internal State) --> |Event: alert_poisoned\nAction: poison_tick| PoisonedInternalState
     end
 
     subgraph Paralysis[Paralysis]
@@ -1234,7 +1275,7 @@ flowchart TD
     Paralysis -->|Event: be_cured| None
 
 ```
-poisone_tick, paralysis_tick 등의 특정 액션을 수행하기 위해 내부 상태 전이를 따로 정의하였다.  
+poison_tick, paralysis_tick 등의 특정 액션을 수행하기 위해 내부 상태 전이를 따로 정의하였다.  
 
 코드 적용법은 밑과 같다.  
 ```c++
@@ -1309,7 +1350,7 @@ struct DebuffStatus : public msm::front::state_machine_def<DebuffStatus>
             std::cout << "leaving: Poisoned" << std::endl;
         }
 
-        struct poisone_tick
+        struct poison_tick
         {
             template <class EVT, class FSM, class SourceState, class TargetState>
             void operator()(EVT const &, FSM &, SourceState &, TargetState &)
@@ -1323,7 +1364,7 @@ struct DebuffStatus : public msm::front::state_machine_def<DebuffStatus>
         // msm::front::Internal<Event, Action, Guard> 순으로 적어주면 된다.
         // Action이나 Guard가 빠져야 한다면 Row와 같은 방식으로 msm::front::none을 적거나 인자를 생략해주면 된다.
         struct internal_transition_table : mpl::vector<
-                                               msm::front::Internal<alert_poisoned, poisone_tick>>
+                                               msm::front::Internal<alert_poisoned, poison_tick>>
         {
         };
     };
@@ -1436,13 +1477,6 @@ Funtor를 이용한 internal_transition_table 정의 방식이 워낙 편하기�
 
 상태 생성자를 만들어 특정 인자를 넘겨 미리 생성해둘수 있음
 
-
-&nbsp;  
-
-### History  
-
-ShallowHistory는 특정 이벤트 발생시에만 substate가 어디서 끊겼는지 기억해서 거기서 재개
-AlwaysHistroy는 어떤 이벤트가 발생하던 substate가 어디서 끊겼는지 기억해서 거기서 재개
 
 &nbsp;  
 
