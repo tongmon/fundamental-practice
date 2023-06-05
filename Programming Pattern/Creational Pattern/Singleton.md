@@ -281,10 +281,15 @@ public:
 std::shared_ptr<Singleton> Singleton::singleton = nullptr;
 std::mutex Singleton::mut;
 ```
-C++20에서 atomic_load, atomic_store 등이 Deprecated 처리되었기에 위 코드는 작동하지 않는다.  
+포인터를 thread-safe하게 만들기 위해 [atomic](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#atomic), [mutex](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#mutex)를 사용했다.  
+중요한 점은 Deleter에서 singleton 포인터를 nullptr로 만들어 주는 ```singleton.reset()```이 추가되었다는 것이다.  
+이 때문에 singleton 객체가 해제되었는지를 nullptr 유무를 통해 확인할 수 있다.  
+get() 함수가 호출될 때 처음 객체를 생성하거나 객체가 소멸된 상태라면 singleton이 nullptr이기 때문에 동적 할당으로 객체가 새로 생성된다.  
+따라서 다른 전역 객체의 생성자, 소멸자 어디든지 피닉스 싱글턴을 사용하면 싱글턴 객체가 죽어있는 경우가 없다.  
 &nbsp;  
 
-대신 ```std::atomic<std::shared_ptr<Type>>```을 지원한다.  
+C++20에서는 shared_ptr에 대한 [atomic](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#atomic) 연산이 추가되었기에 개선이 가능하다.  
+atomic 연산이 가능한 shared_ptr은 ```std::atomic<std::shared_ptr<Type>>``` 이렇게 나타낼 수 있다.   
 밑은 C++20 이상에서 작동하는 피닉스 싱글턴 패턴이다.  
 ```c++
 class Singleton
@@ -323,17 +328,14 @@ public:
     Singleton &operator=(Singleton &&) = delete;
 };
 ```
-C++17 이하에서 작동하는 피닉스 싱글턴 코드를 기준으로 설명하겠다.  
-구현이 어려워보이는 이유는 thread-safe하게 만들기 위해 [atomic](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#atomic)과 [mutex](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Language/C%2B%2B/Confusing%20Concepts/Parallelism%20and%20Concurrency.md#mutex)를 사용했기 때문이다.  
-그런 부분들을 제외하고 중요한 점은 Deleter에서 singleton 포인터를 nullptr로 만들어 주는 ```singleton.reset()```이 추가되었다는 점이다.  
-이 때문에 singleton 객체가 해제되었는지를 nullptr 유무를 통해 확인할 수 있다.  
-get() 함수가 호출될 때 처음 객체를 생성하거나 객체가 소멸된 상태라면 singleton이 nullptr이기 때문에 동적 할당으로 객체가 새로 생성된다.  
-따라서 다른 전역 객체의 생성자, 소멸자 어디든지 피닉스 싱글턴을 사용하면 싱글턴 객체가 죽어있는 경우가 없다.  
+C++20의 shared_ptr은 atomic 연산시 lock-free 기법을 이용하기에 C++11 ~ C++17에서 spin-lock을 이용하는 shared_ptr의 atomic 연산보다 빠르다.  
 &nbsp;  
 
 이러한 피닉스 싱글턴도 단점이 있다.  
+
 **첫번째**는 다른 전역 객체의 소멸자에 피닉스 싱글턴을 사용한 경우 피닉스 싱글턴이 되살린 객체에 대한 소멸자는 따로 호출되지 않아서 힙 영역에 할당된 싱글턴 객체에 대한 할당 해제는 운영체제가 해줘야 한다는 것이다.  
 전에 설명했듯이 대부분의 운영체제에서는 프로세스가 종료되면 그 프로세스에 딸려있던 힙 메모리도 정리하기에 특정 Embedded OS가 아닌이상 문제가 되지 않는다.  
+
 **두번째**는 되살린 싱글턴 객체는 모든 값이 초기화되기에 예전 싱글턴 객체에 저장해놓던 값을 다시 이용하지 못한다는 것이다.  
 이는 프로그래머가 유의하여 로직을 구현하면 충분히 피해갈 수 있는 문제다.  
 이러한 문제는 모두 전역 객체의 소멸 시점을 프로그래머가 통제할 수 없기 때문에 발생된 것이라 이를 해결하기 위해서는 프로그래머가 싱글턴 객체의 생명주기를 직접 관리하는 IoC 컨테이너 로직을 따로 구현하던지 전역 객체의 사용을 최소화하던지 하는 방향으로 나아가야 할 것이다.  
@@ -342,7 +344,8 @@ get() 함수가 호출될 때 처음 객체를 생성하거나 객체가 소멸�
 ## 범용적인 싱글턴  
 
 싱글턴을 좀 더 generic하게 만들어보자.  
-밑에서 소개할 범용적인 싱글턴들은 전역 멤버 변수를 inline으로 초기화하기에 C++17 이상부터 사용가능하다. (C++20 이상에서 사용하려면 atomic_load, atomic_store에 대한 수정이 이뤄져야 한다.)  
+밑에서 소개할 범용적인 싱글턴들은 전역 멤버 변수를 inline으로 초기화하기에 C++17에서 사용가능하다.  
+C++20 이상에서 사용하려면 기존의 std::shared_ptr 말고 [atomic_shared_ptr](https://en.cppreference.com/w/cpp/memory/shared_ptr/atomic2)을 이용하자.  
 &nbsp;  
 
 밑은 CRTP 기법을 이용한 템플릿 싱글턴이다.  

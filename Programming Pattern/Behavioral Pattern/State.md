@@ -40,15 +40,18 @@ UML을 보기 전에 등장할 용어에 대해 알아야 한다.
 * Event  
     ```시작 상태``` ----> ```끝 상태```로 전이를 일으키는 이벤트를 뜻한다.  
     trigger 역할을 하기에 이벤트가 없으면 상태는 변하지 않는다.  
+    **E**로 표시하겠다.  
 
 * Guard  
     ```시작 상태``` ----> ```끝 상태```로 전이가 가능한지 불가능한지 Guard가 반환 하는 값을 통해 알 수 있다.  
     Guard가 false를 반환한다면 이벤트가 발생해도 ```시작 상태```에 머무른다.  
     true를 반환해야만 ```끝 상태```로 전이될 수 있다.  
+    **G**로 표시하겠다.  
 
 * Action  
     ```시작 상태``` ----> ```끝 상태```로 전이가 확정된 경우 발생하는 동작을 의미한다. (상태가 아니라 특정 동작이다.)   
     전이 중간에 수행되기에 ```시작 상태``` --- ```Action``` ---> ```끝 상태``` 이러한 순서라고 보면된다.  
+    **A**로 표시하겠다.  
 
 먼저 UML은 밑과 같이 생겼다.  
 ```mermaid
@@ -56,22 +59,21 @@ UML을 보기 전에 등장할 용어에 대해 알아야 한다.
 title : CD Player UML
 ---
 
-flowchart TD
-
-    Init[Init] --> Empty(Empty)
-    Empty -->|Event: open_close\nAction: open_drawer| Open(Open)
-    Open -->|Event: open_close\nAction: close_drawer| Empty
-    Paused(Paused) -->|Event: open_close\nAction: stop_and_open| Open
-    Playing(Playing) -->|Event: pause\nAction: pause_playback| Paused
-    Playing -->|Event: open_close\nAction: stop_and_open| Open
-    Paused -->|Event: end_pause\nAction: ResumePlayback\nGuard: AlwaysReturnTrue| Playing
-    Stopped(Stopped) -->|Event: stop\nAction: stopped_again| Stopped
-    Stopped -->|Event: open_close\nAction: open_drawer| Open
-    Stopped -->|Event: play\nAction: start_playback| Playing
-    Paused -->|Event: stop\nAction: stop_playback| Stopped
-    Empty -->|Event: cd_detected\nAction: store_cd_info\nGuard: good_disk_format| Stopped
-    Empty -->|Event: cd_detected\nAction: store_cd_info\nGuard: auto_start| Playing
-    Playing -->|Event: stop\nAction: stop_playback| Stopped
+stateDiagram-v2
+    [*] --> Empty
+    Empty --> Open: E﹕open_close\nA﹕open_drawer
+    Open --> Empty: E﹕open_close\nA﹕close_drawer
+    Paused --> Open: E﹕open_close\nA﹕stop_and_open
+    Playing --> Paused: E﹕pause\nA﹕pause_playback
+    Playing --> Open: E﹕open_close\nA﹕stop_and_open
+    Paused --> Playing: E﹕end_pause\nA﹕ResumePlayback\nG﹕AlwaysReturnTrue
+    Stopped --> Stopped: E﹕stop\nA﹕stopped_again
+    Stopped --> Open: E﹕open_close\nA﹕open_drawer
+    Stopped --> Playing: E﹕play\nA﹕start_playback
+    Paused --> Stopped: E﹕stop\nA﹕stop_playback
+    Empty --> Stopped: E﹕cd_detected\nA﹕store_cd_info\nG﹕good_disk_format
+    Empty --> Playing: E﹕cd_detected\nA﹕store_cd_info\nG﹕auto_start
+    Playing --> Stopped: E﹕stop\nA﹕stop_playback
 ```
 UML을 잘 보면 Empty에서 발생되는 cd_detected 이벤트로만 Playing, Stopped 두 개로 이어지는데 이러면 충돌이 날 수 있다.  
 이러한 충돌을 방지하려고 auto_start라는 Guard가 false를 반환해 Empty에서 Playing으로 연결되는 trigger인 cd_detected 이벤트를 비활성화한다.  
@@ -543,30 +545,27 @@ Guard는 모두 PrintState이기에 생략한다.
 title : CD Player With SubState UML
 ---
 
-flowchart TD
-
-    Init[Init] --> Empty(Empty)
-    Empty -->|Event: open_close\nAction: OpenDrawer| Open(Open)
-    Open -->|Event: open_close\nAction: CloseDrawer| Empty
-    Paused(Paused) -->|Event: open_close\nAction: StopAndOpen| Open
-    Playing -->|Event: pause\nAction: PausePlayBack| Paused
-
-    subgraph Playing[Playing]
-        SubInit[Init] --> Song1(Song1)
-        Song1 -->|Event: next_song\nAction: StartNextSong| Song2(Song2)
-        Song2 -->|Event: next_song\nAction: StartNextSong| Song3(Song3)
-        Song3 -->|Event: previous_song\nAction: StartPreviousSong| Song2
-        Song2 -->|Event: previous_song\nAction: StartPreviousSong| Song1
-    end
-
-    Playing -->|Event: open_close\nAction: StopAndOpen| Open
-    Paused -->|Event: end_pause\nAction: ResumePlayback| Playing
-    Stopped(Stopped) -->|Event: stop\nAction: StoppedAgain| Stopped
-    Stopped -->|Event: open_close\nAction: OpenDrawer| Open
-    Stopped -->|Event: play\nAction: StartPlayback| Playing
-    Paused -->|Event: stop\nAction: StopPlayBack| Stopped
-    Empty -->|Event: cd_detected\nAction: StoreCdInfo| Stopped
-    Playing -->|Event: stop\nAction: StopPlayBack| Stopped
+stateDiagram-v2
+    state Playing {
+        [*] --> Song1
+        Song1 --> Song2: E﹕next_song\nA﹕StartNextSong
+        Song2 --> Song3: E﹕next_song\nA﹕StartNextSong
+        Song3 --> Song2: E﹕previous_song\nA﹕StartPreviousSong
+        Song2 --> Song1: E﹕previous_song\nA﹕StartPreviousSong
+    }
+    [*] --> Empty
+    Empty --> Open: E﹕open_close\nA﹕OpenDrawer
+    Open --> Empty: E﹕open_close\nA﹕CloseDrawer
+    Paused --> Open: E﹕open_close\nA﹕StopAndOpen
+    Playing --> Paused: E﹕pause\nA﹕PausePlayBack
+    Playing --> Open: E﹕open_close\nA﹕StopAndOpen
+    Paused --> Playing: E﹕end_pause\nA﹕ResumePlayback
+    Stopped --> Stopped: E﹕stop\nA﹕StoppedAgain
+    Stopped --> Open: E﹕open_close\nA﹕OpenDrawer
+    Stopped --> Playing: E﹕play\nA﹕StartPlayback
+    Paused --> Stopped: E﹕stop\nA﹕StopPlayBack
+    Empty --> Stopped: E﹕cd_detected\nA﹕StoreCdInfo
+    Playing --> Stopped: E﹕stop\nA﹕StopPlayBack
 ```
 CD Player는 Playing 상태 내부에 다양한 SubState가 추가되어 이제 음악을 넘기면서 들을 수가 있다.  
 &nbsp;  
@@ -1007,15 +1006,24 @@ Caps Lock과 Insert 키가 눌릴 때의 상태는 서로에게 영향을 주지
 title : Caps Lock and Insert Key UML
 ---
 
-flowchart TD
-
-    Init[Init] --> None(None)
-    None <--> CapsLock(Caps Lock)
-    CapsLock <--> Insert(Insert)
-    Insert <--> None
-    None <--> CapsLockInsert(Caps Lock + Insert)
-    CapsLockInsert <--> Insert
-    CapsLockInsert <--> CapsLock
+stateDiagram-v2
+    None: None
+    CapsLock: Caps Lock
+    Insert: Insert   
+    Insert_Caps: Caps Lock + Insert
+    [*] --> None
+    None --> CapsLock
+    None --> Insert
+    None --> Insert_Caps
+    CapsLock --> None
+    CapsLock --> Insert
+    CapsLock --> Insert_Caps
+    Insert --> None
+    Insert --> CapsLock
+    Insert --> Insert_Caps
+    Insert_Caps --> None
+    Insert_Caps --> CapsLock
+    Insert_Caps --> Insert
 ```
 4개의 상태를 표현할 뿐인데 12개의 이벤트가 필요하다.  
 &nbsp;  
@@ -1026,19 +1034,26 @@ flowchart TD
 title : Orthogonal Zone UML
 ---
 
-flowchart TD
-
-    subgraph CapsLockInsert[Caps Lock and Insert]
-        subgraph Zone1[Zone A]
-            Zone1Init[Init] --> CapsLockOff(Caps Lock Off)
-            CapsLockOn(Caps Lock On) <--> CapsLockOff
-        end
-
-        subgraph Zone2[Zone B]
-            Zone2Init[Init] --> InsertOff(Insert Off)
-            InsertOn(Insert On) <--> InsertOff
-        end
-    end
+stateDiagram-v2
+    CL_and_In: Caps Lock and Insert
+    state CL_and_In {       
+        ZoneA: Zone A
+        state ZoneA {
+            CapsOff: Caps Lock Off
+            CapsOn: Caps Lock On
+            [*] --> CapsOff
+            CapsOff --> CapsOn
+            CapsOn --> CapsOff
+        }
+        ZoneB: Zone B
+        state ZoneB {
+            InOff: Insert Off
+            InOn: Insert On
+            [*] --> InOff
+            InOff --> InOn
+            InOn --> InOff
+        }
+    }
 ```
 FSM이 동시 상태를 가질 수 있기에 4개의 이벤트로 서로 다른 4개의 상태를 표현할 수 있다.  
 &nbsp;  
