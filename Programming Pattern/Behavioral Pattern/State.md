@@ -1478,27 +1478,170 @@ Funtor를 이용한 internal_transition_table 정의 방식이 워낙 편하기�
 궁금하다면 [이곳](https://www.boost.org/doc/libs/1_82_0/libs/msm/doc/HTML/ch03s02.html#internal-transitions)을 참고하자.  
 &nbsp;  
 
-### Base State  
-
-상태에서 특정 base class를 상속할 수 있음
-특정 클래스의 함수를 계속해서 이용하게 되는 경우 코드량을 줄이기 위해 사용됨
-또 상태에서 visitor 함수를 호출하기 위해 사용되기도 함
-
-&nbsp;  
-
-### 상태 생성자  
-
-상태 생성자를 만들어 특정 인자를 넘겨 미리 생성해둘수 있음
-
-
-&nbsp;  
-
-
 ### 가짜 진입, 가짜 종료점, 직접 진입  
 
 서브 상태의 내부의 특정 상태로 바로 진입하고 싶을 수 있는데 이때 직접 진입을 사용하면 됨
 서브 상태는 항상 진입점이 존재하는데 해당 진입점을 사용하지 않고 다른 진입점을 추가적으로 만들고 싶다면 가짜 진입점을 만들면 됨.
 서브 상태는 명시적인 종료 지점이 없는데 가짜 종료점을 만들어 종료 지점을 만들 수 있음
+&nbsp;  
+
+### Base State Type  
+
+상태들이 공통적인 구현부를 자주 이용해야 할 때 Base State 상속 기능을 이용할 수 있다.  
+여태 보았던 구현부에서 상태 구조체들은 모두 ```state<>```를 상속하고 있는데 ```state<기본 상태 자료형>``` 이렇게 사용할 수도 있다.  
+&nbsp;  
+
+구현하려는 UML은 간단하다.  
+```mermaid
+stateDiagram-v2
+    State1: State 1
+    State2: State 2
+
+    [*] --> State1
+    State1 --> State2: E﹕next
+    State2 --> State1: E﹕next
+```
+&nbsp;  
+
+Base State를 사용한 구현은 밑과 같다.  
+```c++
+// back-end header
+#include <boost/msm/back/state_machine.hpp>
+
+// front-end header
+#include <boost/msm/front/state_machine_def.hpp>
+
+// funtor row type header
+#include <boost/msm/front/functor_row.hpp>
+
+// for mpl_list
+#include <boost/mp11/mpl_list.hpp>
+
+namespace msm = boost::msm;
+namespace mp11 = boost::mp11;
+
+// 이벤트 정의
+struct next
+{
+};
+
+// Base State 정의
+// Base State는 FSM이나 상태로 하여금 중복된 로직을 줄여주거나 가상 함수를 사용할 수 있게 해준다.
+struct BaseState
+{
+    void print_on_entry(const std::string &content)
+    {
+        std::cout << "On Entry Function Called!\n"
+                  << content;
+    }
+
+    void print_on_exit(const std::string &content)
+    {
+        std::cout << "On Exit Function Called!\n"
+                  << content;
+    }
+
+    virtual void virtual_func() = 0;
+};
+
+// 사용할 FSM에 BaseState를 state_machine_def 템플릿 인자로 넘겨줘야 한다.
+struct MyFSM : public msm::front::state_machine_def<MyFSM, BaseState>
+{
+    template <class Event, class FSM>
+    void on_entry(Event const &, FSM &)
+    {
+        print_on_entry("Start MyFSM!\n");
+    }
+    template <class Event, class FSM>
+    void on_exit(Event const &, FSM &)
+    {
+        print_on_exit("End MyFSM!\n");
+    }
+    void virtual_func()
+    {
+        std::cout << "virtual_func for MyFSM!\n";
+    }
+
+    // 상태도 FSM과 마찬가지로 state 템플릿 인자에 BaseState를 넘겨준다.
+    struct State_1 : public msm::front::state<BaseState>
+    {
+        template <class Event, class FSM>
+        void on_entry(Event const &, FSM &)
+        {
+            print_on_entry("Enter State_1!\n");
+        }
+        template <class Event, class FSM>
+        void on_exit(Event const &, FSM &)
+        {
+            print_on_exit("End State_1!\n");
+        }
+        void virtual_func()
+        {
+            std::cout << "virtual_func for State_1!\n";
+        }
+    };
+
+    struct State_2 : public msm::front::state<BaseState>
+    {
+        template <class Event, class FSM>
+        void on_entry(Event const &, FSM &)
+        {
+            print_on_entry("Enter State_2!\n");
+        }
+        template <class Event, class FSM>
+        void on_exit(Event const &, FSM &)
+        {
+            print_on_exit("End State_2!\n");
+        }
+        void virtual_func()
+        {
+            std::cout << "virtual_func for State_2!\n";
+        }
+    };
+
+    // 시작 상태 정의
+    using initial_state = mp11::mp_list<State_1>;
+
+    // 관계 정의
+    using transition_table = mp11::mp_list<msm::front::Row<State_1, next, State_2>,
+                                           msm::front::Row<State_2, next, State_1>>;
+
+    template <class FSM, class Event>
+    void no_transition(Event const &e, FSM &, int state)
+    {
+        std::cout << "no transition from state " << state
+                  << " on event " << typeid(e).name() << std::endl;
+    }
+};
+
+using MyStateMachine = msm::back::state_machine<MyFSM>;
+
+int main()
+{
+    MyStateMachine msm;
+    msm.start();
+    msm.process_event(next());
+    msm.process_event(next());
+    msm.stop();
+
+    return 0;
+}
+```
+FSM, State 1, State 2는 BaseState를 이용하여 동일한 로직을 줄이고 가상 함수를 구현하고 있다.  
+주의할 점은 상태뿐 아니라 해당 상태들을 관리하는 FSM도 BaseState를 상속해야 한다는 것이다.  
+&nbsp;  
+
+#### Visitor  
+
+Base State 기능을 이용하여 방문자 패턴을 구현할 수도 있다.  
+FMS에서 ```visit_current_states()``` 함수를 호출하여 이용이 가능하다.  
+&nbsp;  
+
+### 상태 생성자  
+
+상태 생성자를 만들어 특정 인자를 넘겨 미리 생성해둘수 있음
+&nbsp;  
+
 
 ### 이벤트 상속  
 
