@@ -1273,22 +1273,20 @@ UML로 표현하면 밑과 같다.
 title : Debuff State UML
 ---
 
-flowchart TD
-
-    subgraph Poisoned[Poisoned]
-        PoisonedInternalState(Internal State) --> |Event: alert_poisoned\nAction: poison_tick| PoisonedInternalState
-    end
-
-    subgraph Paralysis[Paralysis]
-        ParalysisInternalState(Internal State) --> |Event: be_cured\nAction: paralysis_tick\nGuard: paralysis_guard| ParalysisInternalState
-    end
-
-    Init[Init] --> None(None)
-    None -->|Event: get_poisoned| Poisoned
-    None -->|Event: get_paralysis| Paralysis
-    Poisoned -->|Event: be_cured| None
-    Paralysis -->|Event: be_cured| None
-
+stateDiagram-v2
+    [*] --> None
+    state Paralysis {
+        InternalPara: E﹕be_cured\nA﹕paralysis_tick\nG﹕paralysis_guard
+        InternalPara --> InternalPara
+    }
+    state Poisoned {
+        InternalPoin: E﹕alert_poisoned\nA﹕poison_tick
+        InternalPoin --> InternalPoin
+    }
+    None --> Poisoned: E﹕get_poisoned
+    None --> Paralysis: E﹕get_paralysis
+    Poisoned --> None: E﹕be_cured
+    Paralysis --> None: E﹕be_cured
 ```
 poison_tick, paralysis_tick 등의 특정 액션을 수행하기 위해 내부 상태 전이를 따로 정의하였다.  
 
