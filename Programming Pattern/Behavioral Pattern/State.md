@@ -1698,10 +1698,77 @@ State 2만 BaseState 상속을 할 수도 있고 FSM만 BaseState 상속을 할 
 
 #### Visitor  
 
-Base State 기능을 이용하여 방문자 패턴을 구현할 수도 있다.  
+Base State 기능을 이용하여 [방문자 패턴](https://github.com/tongmon/fundamental-practice/blob/master/Programming%20Pattern/Behavioral%20Pattern/Visitor.md)을 구현할 수도 있다.  
 FMS에서 ```visit_current_states()``` 함수를 호출하여 이용이 가능하다.  
 구현하고자 하는 UML은 [Base State 목차](#base-state-type)와 동일하다.  
-구현 코드는 밑과 같다.  
+
+상호 참조를 방지하기 위해 방문자 코드는 .cpp, .hpp 파일로 분리해야 한다.  
+먼저 Visitor.hpp 파일의 구현부는 밑과 같다.  
+```c++
+// back-end header
+#include <boost/msm/back/state_machine.hpp>
+
+// front-end header
+#include <boost/msm/front/state_machine_def.hpp>
+
+namespace msm = boost::msm;
+
+struct State_1;
+struct State_2;
+
+// 방문자 정의
+struct Visitor
+{
+    virtual void visit(State_1 &) = 0;
+    virtual void visit(State_2 &) = 0;
+};
+
+struct ConsolePrintVisitor : Visitor
+{
+    void visit(State_1 &obj);
+    void visit(State_2 &obj);
+};
+
+struct HelloWorldVisitor : Visitor
+{
+    void visit(State_1 &obj);
+    void visit(State_2 &obj);
+};
+```
+순환 방문자 방식을 이용한다.  
+새로운 상태 구조체가 추가될 때마다 해당 상태에 대한 visit() 함수를 추가해줘야 한다.  
+Visitor 상속시 모든 상태마다 visit() 함수 구현이 강제되는 것이 싫다면 ```= 0```을 ```{}```로 바꿔 그냥 가상 함수로 만들어주면 된다.  
+&nbsp;  
+
+Visitor.cpp 파일의 구현부는 밑과 같다.  
+```c++
+#include "Visitor.hpp"
+#include "FSM.hpp"
+
+void ConsolePrintVisitor::visit(State_1 &obj)
+{
+    std::cout << "State_1 Visitor Called!\n";
+}
+
+void ConsolePrintVisitor::visit(State_2 &obj)
+{
+    std::cout << "State_2 Visitor Called!\n";
+}
+
+void HelloWorldVisitor::visit(State_1 &obj)
+{
+    std::cout << "Hello World From State_1!\n";
+}
+
+void HelloWorldVisitor::visit(State_2 &obj)
+{
+    std::cout << "Hello World From State_2!\n";
+}
+```
+ConsolePrintVisitor와 HelloWorldVisitor의 내부 로직이 다른 것을 볼 수 있다.  
+&nbsp;  
+
+FSM이 구현된 FSM.hpp는 밑과 같다.  
 ```c++
 // back-end header
 #include <boost/msm/back/state_machine.hpp>
@@ -1718,27 +1785,13 @@ FMS에서 ```visit_current_states()``` 함수를 호출하여 이용이 가능�
 namespace msm = boost::msm;
 namespace mp11 = boost::mp11;
 
-// 이벤트 정의
-struct next
-{
-};
-
-// 방문자 정의
-struct Visitor
-{
-    template <typename T, typename R>
-    void operator()(const T &state, const R &data)
-    {
-        std::cout << "visiting state: " << typeid(state).name()
-                  << "\nvalue: " << data << "\n";
-    }
-};
+struct Visitor;
 
 // 방문자 Base State 정의
 struct VisitableState
 {
     // 밑에서 정의할 accept 함수 형식을 accept_sig에 선언한다.
-    using accept_sig = msm::back::args<void, Visitor &, int>;
+    using accept_sig = msm::back::args<void, Visitor &>;
 
     // vtable 생성을 위해 적어도 하나의 virtual 관련 생성자 혹은 함수는 있어야 한다.
     virtual ~VisitableState()
@@ -1746,9 +1799,42 @@ struct VisitableState
     }
 
     // 방문자의 역할을 하기위해 반드시 accept라는 이름의 함수가 있어야 한다.
-    void accept(Visitor &, int)
+    // 상태들이 accept() 함수를 정의해야 하는 강제성을 없애기 위해 순수 가상 함수를 사용하지 않았다.  
+    void accept(Visitor &obj)
     {
     }
+};
+
+struct State_1 : public msm::front::state<VisitableState>
+{
+    template <class Event, class FSM>
+    void on_entry(Event const &, FSM &)
+    {
+    }
+    template <class Event, class FSM>
+    void on_exit(Event const &, FSM &)
+    {
+    }
+    // Visitor를 호출하기 위해 accept 함수를 재정의한다.
+    void accept(Visitor &vis);
+};
+
+// Visitor를 이용하기 싫다면 accept 함수를 정의하지 않으면 된다.
+struct State_2 : public msm::front::state<VisitableState>
+{
+    template <class Event, class FSM>
+    void on_entry(Event const &, FSM &)
+    {
+    }
+    template <class Event, class FSM>
+    void on_exit(Event const &, FSM &)
+    {
+    }
+};
+
+// 이벤트 정의
+struct next
+{
 };
 
 // 사용할 FSM에 VisitableState를 state_machine_def 템플릿 인자로 넘겨줘야 한다.
@@ -1762,44 +1848,6 @@ struct MyFSM : public msm::front::state_machine_def<MyFSM, VisitableState>
     void on_exit(Event const &, FSM &)
     {
     }
-
-    // 상태도 FSM과 마찬가지로 state 템플릿 인자에 VisitableState를 넘겨줘야 한다.
-    struct State_1 : public msm::front::state<VisitableState>
-    {
-        template <class Event, class FSM>
-        void on_entry(Event const &, FSM &)
-        {
-        }
-        template <class Event, class FSM>
-        void on_exit(Event const &, FSM &)
-        {
-        }
-        // VisitableState에 선언된 accept 함수를 State_1에 맞게 재정의한다.
-        void accept(Visitor &vis, int data)
-        {
-            std::cout << "State_1 accept func\n";
-            vis(*this, data);
-        }
-    };
-
-    // FSM을 포함해 모든 내부 상태들은 VisitableState를 상속해야 한다.
-    // 그렇지 않으면 방문자 패턴을 이용하기 위한 visit_current_states() 함수 사용이 불가능하다.
-    struct State_2 : public msm::front::state<VisitableState>
-    {
-        template <class Event, class FSM>
-        void on_entry(Event const &, FSM &)
-        {
-        }
-        template <class Event, class FSM>
-        void on_exit(Event const &, FSM &)
-        {
-        }
-        void accept(Visitor &vis, int data)
-        {
-            std::cout << "State_2 accept func\n";
-            vis(*this, data);
-        }
-    };
 
     // 시작 상태 정의
     using initial_state = mp11::mp_list<State_1>;
@@ -1817,29 +1865,148 @@ struct MyFSM : public msm::front::state_machine_def<MyFSM, VisitableState>
 };
 
 using MyStateMachine = msm::back::state_machine<MyFSM>;
+```
+visit_current_states()를 이용하기 위해선 각 상태 구조체뿐만 아니라 FSM도 동일한 VisitableState를 템플릿 인자로 넘겨줘야 한다.  
+&nbsp;  
+
+FSM.cpp에서는 accept() 함수만 정의해주면 된다.  
+```c++
+#include "FSM.hpp"
+#include "Visitor.hpp"
+
+// 알맞은 방문자를 호출한다.
+void State_1::accept(Visitor &vis)
+{
+    vis.visit(*this);
+}
+```
+VisitableState에 기본적인 accept() 함수가 정의되어 있기에 State_2에서 따로 accept() 함수를 정의하지 않아도 된다.  
+&nbsp;  
+
+활용은 밑과 같다.  
+```c++
+#include "FSM.hpp"
+#include "Visitor.hpp"
 
 int main()
 {
     // 이용할 방문자 정의
-    Visitor vis;
+    ConsolePrintVisitor vis_1;
+    HelloWorldVisitor vis_2;
 
     MyStateMachine msm;
+
+#pragma region ConsolePrintVisitor 이용
+
     msm.start();
 
     // State 1 상태에서 방문자 함수 수행
-    msm.visit_current_states(boost::ref(vis), 1);
+    msm.visit_current_states(boost::ref(vis_1));
 
     msm.process_event(next());
 
     // State 2 상태에서 방문자 함수 수행
-    msm.visit_current_states(boost::ref(vis), 2);
+    // accept() 함수를 따로 정의하지 않았기에 수행되지 않음
+    msm.visit_current_states(boost::ref(vis_1));
 
     msm.stop();
+
+#pragma endregion
+
+#pragma region HelloWorldVisitor 이용
+
+    msm.start();
+
+    // State 1 상태에서 방문자 함수 수행
+    msm.visit_current_states(boost::ref(vis_2));
+
+    msm.process_event(next());
+
+    // State 2 상태에서 방문자 함수 수행
+    // accept() 함수를 따로 정의하지 않았기에 수행되지 않음
+    msm.visit_current_states(boost::ref(vis_2));
+
+    msm.stop();
+
+#pragma endregion
 
     return 0;
 }
 ```
-각 상태에 구현된 accept() 함수를 visit_current_states()를 이용해 호출할 수 있다.  
+visit_current_states() 함수를 이용하여 현재 상태를 함수의 인자로 받는 방문자를 이용할 수 있다.  
+참조 인자는 ```boost::ref```, ```boost::cref```를 이용하여 넘긴다.  
+&nbsp;  
+
+구현한 방문자 함수에 인자를 추가할 수도 있다.  
+먼저 VisitableState을 수정해보자.  
+```c++
+struct VisitableState
+{
+    // 동일 구현 생략
+
+    using accept_sig = msm::back::args<void, Visitor &, std::string*>;
+
+    void accept(Visitor &obj, std::string*)
+    {
+    }
+};
+```
+accept_sig에 스트링 포인터를 추가하고 accept() 함수의 인자도 그에 맞게 바꿔준다.  
+&nbsp;  
+
+각 상태에 accept() 함수가 존재한다면 알맞게 수정해준다.  
+```c++
+struct State_1 : public msm::front::state<VisitableState>
+{
+    // 동일 구현 생략
+
+    void accept(Visitor &vis, std::string *);
+};
+
+void State_1::accept(Visitor &vis, std::string *str)
+{
+    vis.visit(*this, str);
+}
+```
+&nbsp;  
+
+Visitor 함수의 선언부와 정의부도 알맞게 바꿔주자.  
+```c++
+struct Visitor
+{
+    virtual void visit(State_1 &, std::string *) = 0;
+    virtual void visit(State_2 &, std::string *) = 0;
+};
+
+struct ConsolePrintVisitor : Visitor
+{
+    void visit(State_1 &obj, std::string *str);
+    void visit(State_2 &obj, std::string *str);
+};
+
+struct HelloWorldVisitor : Visitor
+{
+    void visit(State_1 &obj, std::string *str);
+    void visit(State_2 &obj, std::string *str);
+};
+
+void ConsolePrintVisitor::visit(State_1 &obj, std::string *str) { /*생략*/ }
+
+void ConsolePrintVisitor::visit(State_2 &obj, std::string *str) { /*생략*/ }
+
+void HelloWorldVisitor::visit(State_1 &obj, std::string *str) { /*생략*/ }
+
+void HelloWorldVisitor::visit(State_2 &obj, std::string *str) { /*생략*/ }
+```
+&nbsp;  
+
+활용은 밑과 같다.  
+```c++
+HelloWorldVisitor vis;
+MyStateMachine msm;
+std::string my_str = "My Data";
+msm.visit_current_states(boost::ref(vis), &my_str);
+```
 &nbsp;  
 
 ### 상태 생성자  
