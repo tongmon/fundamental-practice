@@ -1478,6 +1478,69 @@ Funtor를 이용한 internal_transition_table 정의 방식이 워낙 편하기�
 궁금하다면 [이곳](https://www.boost.org/doc/libs/1_82_0/libs/msm/doc/HTML/ch03s02.html#internal-transitions)을 참고하자.  
 &nbsp;  
 
+### 명시적 진입  
+
+특정 SubState로 바로 진입하고 싶을 때 사용한다.  
+UML은 밑과 같다.  
+```mermaid
+stateDiagram-v2
+    State1: State 1
+    State2: State 2
+
+    state SubFSM {
+        SubState1: SubState 1
+        SubState2: SubState 2
+        [*] --> SubState1
+        SubState1 --> SubState2 : E﹕next
+    }
+
+    [*] --> State1
+    State1 --> SubFSM : E﹕next
+    State1 --> SubState2 : E﹕direct_to_sub
+    SubState2 --> State1 : E﹕back_to_main
+    SubFSM --> State2 : exit_to_main
+```
+direct_to_sub 이벤트로 SubFSM의 Entry를 무시하고 바로 SubState 2로 이동이 가능하다.  
+&nbsp;  
+
+이를 구현한 코드는 밑과 같다.  
+```c++
+
+```
+&nbsp;  
+
+### Forks  
+명시적 진입을 사용하지 않고 Forks 기능을 이용하여 특정 SubState에 진입할 수도 있다.   
+밑 UML을 보면 이해가 쉽다.  
+```mermaid
+stateDiagram-v2
+    State1: State 1
+    State2: State 2
+    State3: State 3
+
+    [*] --> State1
+
+    state SubFSM {
+        ZoneA : Zone A
+        ZoneB : Zone B
+        state ZoneA {
+            [*] --> SubState1
+        }
+    }
+
+    state Fork <<fork>>
+        State1 --> Fork: E﹕next_to_fork
+        Fork --> SubState2
+        Fork --> State2
+```
+
+&nbsp;  
+
+### 가짜 진입 / 가짜 종료  
+서브 상태는 항상 진입점이 존재하는데 해당 진입점을 사용하지 않고 다른 진입점을 추가적으로 만들고 싶다면 가짜 진입점을 만들면 됨.
+서브 상태는 명시적인 종료 지점이 없는데 가짜 종료점을 만들어 종료 지점을 만들 수 있음
+&nbsp;  
+
 ### 가짜 진입, 가짜 종료점, 직접 진입  
 
 서브 상태의 내부의 특정 상태로 바로 진입하고 싶을 수 있는데 이때 직접 진입을 사용하면 됨
@@ -1487,7 +1550,7 @@ Funtor를 이용한 internal_transition_table 정의 방식이 워낙 편하기�
 
 ### Base State Type  
 
-상태들이 공통적인 구현부를 자주 이용해야 할 때 Base State 상속 기능을 이용할 수 있다.  
+상태들이 공통적인 구현부를 자주 이용해야 할 때 Base State 상속 기능을 사용하면 좋다.   
 여태 보았던 구현부에서 상태 구조체들은 모두 ```state<>```를 상속하고 있는데 ```state<기본 상태 자료형>``` 이렇게 사용할 수도 있다.  
 &nbsp;  
 
@@ -1544,7 +1607,7 @@ struct BaseState
     virtual void virtual_func() = 0;
 };
 
-// 사용할 FSM에 BaseState를 state_machine_def 템플릿 인자로 넘겨줘야 한다.
+// 사용할 FSM에 BaseState를 state_machine_def 템플릿 인자로 넘겨줄 수 있다.
 struct MyFSM : public msm::front::state_machine_def<MyFSM, BaseState>
 {
     template <class Event, class FSM>
@@ -1562,7 +1625,7 @@ struct MyFSM : public msm::front::state_machine_def<MyFSM, BaseState>
         std::cout << "virtual_func for MyFSM!\n";
     }
 
-    // 상태도 FSM과 마찬가지로 state 템플릿 인자에 BaseState를 넘겨준다.
+    // 상태도 FSM과 마찬가지로 state 템플릿 인자에 BaseState를 넘겨줄 수 있다.  
     struct State_1 : public msm::front::state<BaseState>
     {
         template <class Event, class FSM>
@@ -1628,13 +1691,155 @@ int main()
 }
 ```
 FSM, State 1, State 2는 BaseState를 이용하여 동일한 로직을 줄이고 가상 함수를 구현하고 있다.  
-주의할 점은 상태뿐 아니라 해당 상태들을 관리하는 FSM도 BaseState를 상속해야 한다는 것이다.  
+위 예시에서는 FSM, State 1, State 2 모두 BaseState를 상속하고 있지만 상속은 자유다.  
+FSM은 BaseState 상속을 안하는데 State 1, State 2는 상속을 할 수 있다.  
+State 2만 BaseState 상속을 할 수도 있고 FSM만 BaseState 상속을 할 수도 있다.  
 &nbsp;  
 
 #### Visitor  
 
 Base State 기능을 이용하여 방문자 패턴을 구현할 수도 있다.  
 FMS에서 ```visit_current_states()``` 함수를 호출하여 이용이 가능하다.  
+구현하고자 하는 UML은 [Base State 목차](#base-state-type)와 동일하다.  
+구현 코드는 밑과 같다.  
+```c++
+// back-end header
+#include <boost/msm/back/state_machine.hpp>
+
+// front-end header
+#include <boost/msm/front/state_machine_def.hpp>
+
+// funtor row type header
+#include <boost/msm/front/functor_row.hpp>
+
+// for mpl_list
+#include <boost/mp11/mpl_list.hpp>
+
+namespace msm = boost::msm;
+namespace mp11 = boost::mp11;
+
+// 이벤트 정의
+struct next
+{
+};
+
+// 방문자 정의
+struct Visitor
+{
+    template <typename T, typename R>
+    void operator()(const T &state, const R &data)
+    {
+        std::cout << "visiting state: " << typeid(state).name()
+                  << "\nvalue: " << data << "\n";
+    }
+};
+
+// 방문자 Base State 정의
+struct VisitableState
+{
+    // 밑에서 정의할 accept 함수 형식을 accept_sig에 선언한다.
+    using accept_sig = msm::back::args<void, Visitor &, int>;
+
+    // vtable 생성을 위해 적어도 하나의 virtual 관련 생성자 혹은 함수는 있어야 한다.
+    virtual ~VisitableState()
+    {
+    }
+
+    // 방문자의 역할을 하기위해 반드시 accept라는 이름의 함수가 있어야 한다.
+    void accept(Visitor &, int)
+    {
+    }
+};
+
+// 사용할 FSM에 VisitableState를 state_machine_def 템플릿 인자로 넘겨줘야 한다.
+struct MyFSM : public msm::front::state_machine_def<MyFSM, VisitableState>
+{
+    template <class Event, class FSM>
+    void on_entry(Event const &, FSM &)
+    {
+    }
+    template <class Event, class FSM>
+    void on_exit(Event const &, FSM &)
+    {
+    }
+
+    // 상태도 FSM과 마찬가지로 state 템플릿 인자에 VisitableState를 넘겨줘야 한다.
+    struct State_1 : public msm::front::state<VisitableState>
+    {
+        template <class Event, class FSM>
+        void on_entry(Event const &, FSM &)
+        {
+        }
+        template <class Event, class FSM>
+        void on_exit(Event const &, FSM &)
+        {
+        }
+        // VisitableState에 선언된 accept 함수를 State_1에 맞게 재정의한다.
+        void accept(Visitor &vis, int data)
+        {
+            std::cout << "State_1 accept func\n";
+            vis(*this, data);
+        }
+    };
+
+    // FSM을 포함해 모든 내부 상태들은 VisitableState를 상속해야 한다.
+    // 그렇지 않으면 방문자 패턴을 이용하기 위한 visit_current_states() 함수 사용이 불가능하다.
+    struct State_2 : public msm::front::state<VisitableState>
+    {
+        template <class Event, class FSM>
+        void on_entry(Event const &, FSM &)
+        {
+        }
+        template <class Event, class FSM>
+        void on_exit(Event const &, FSM &)
+        {
+        }
+        void accept(Visitor &vis, int data)
+        {
+            std::cout << "State_2 accept func\n";
+            vis(*this, data);
+        }
+    };
+
+    // 시작 상태 정의
+    using initial_state = mp11::mp_list<State_1>;
+
+    // 관계 정의
+    using transition_table = mp11::mp_list<msm::front::Row<State_1, next, State_2>,
+                                           msm::front::Row<State_2, next, State_1>>;
+
+    template <class FSM, class Event>
+    void no_transition(Event const &e, FSM &, int state)
+    {
+        std::cout << "no transition from state " << state
+                  << " on event " << typeid(e).name() << std::endl;
+    }
+};
+
+using MyStateMachine = msm::back::state_machine<MyFSM>;
+
+int main()
+{
+    // 이용할 방문자 정의
+    Visitor vis;
+
+    MyStateMachine msm;
+    msm.start();
+
+    // State 1 상태에서 방문자 함수 수행
+    msm.visit_current_states(boost::ref(vis), 1);
+
+    msm.process_event(next());
+
+    // State 2 상태에서 방문자 함수 수행
+    msm.visit_current_states(boost::ref(vis), 2);
+
+    msm.stop();
+
+    return 0;
+}
+```
+각 상태에 구현된 accept() 함수를 visit_current_states()를 이용해 호출할 수 있다.  
 &nbsp;  
 
 ### 상태 생성자  
