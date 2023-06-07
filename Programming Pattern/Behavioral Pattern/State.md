@@ -1419,7 +1419,7 @@ struct DebuffStatus : public msm::front::state_machine_def<DebuffStatus>
     };
 
     // 시작 상태 정의
-    using initial_state = mpl::vector<None>;
+    using initial_state = None;
 
     struct transition_table : mpl::vector<
                                   msm::front::Row<None, get_poisoned, Poisoned>,
@@ -1663,7 +1663,7 @@ struct MyFSM : public msm::front::state_machine_def<MyFSM, BaseState>
     };
 
     // 시작 상태 정의
-    using initial_state = mp11::mp_list<State_1>;
+    using initial_state = State_1;
 
     // 관계 정의
     using transition_table = mp11::mp_list<msm::front::Row<State_1, next, State_2>,
@@ -1850,7 +1850,7 @@ struct MyFSM : public msm::front::state_machine_def<MyFSM, VisitableState>
     }
 
     // 시작 상태 정의
-    using initial_state = mp11::mp_list<State_1>;
+    using initial_state = State_1;
 
     // 관계 정의
     using transition_table = mp11::mp_list<msm::front::Row<State_1, next, State_2>,
@@ -2007,13 +2007,184 @@ MyStateMachine msm;
 std::string my_str = "My Data";
 msm.visit_current_states(boost::ref(vis), &my_str);
 ```
+유의할 점은 현재 accept() 함수의 인자가 2개라서 따로 지정은 안해줬는데 accept() 함수 인자 개수가 3개를 넘어가면 반드시 BOOST_MSM_VISITOR_ARG_SIZE 매크로를 4 이상으로 재정의해줘야 한다.  
+당연히 대부분의 Boost 관련 매크로가 그러하듯 헤더 선언 전에 해줘야 한다.  
 &nbsp;  
 
-### 상태 생성자  
+### 생성자  
 
-상태 생성자를 만들어 특정 인자를 넘겨 미리 생성해둘수 있음
+FSM이나 특정 상태에 생성자를 추가하고 싶을 수도 있다.  
+Boost MSM은 이를 지원한다.  
+
+구현법에 앞서 UML을 보자.  
+```mermaid
+stateDiagram-v2
+    State1: State 1
+    State2: State 2
+
+    state SubFSM {
+        SubState1: SubState 1
+        SubState2: SubState 2
+        [*] --> SubState1
+        SubState1 --> SubState2 : E﹕sub_next
+    }
+
+    [*] --> State1
+    State1 --> SubFSM : E﹕next
+    SubFSM --> State2 : E﹕next
+```
 &nbsp;  
 
+위 UML을 구현한 코드는 밑과 같다.  
+```c++
+// back-end header
+#include <boost/msm/back/state_machine.hpp>
+
+// front-end header
+#include <boost/msm/front/state_machine_def.hpp>
+
+// funtor row type header
+#include <boost/msm/front/functor_row.hpp>
+
+// for mpl_list
+#include <boost/mp11/mpl_list.hpp>
+
+namespace msm = boost::msm;
+namespace mp11 = boost::mp11;
+
+// 이벤트 정의
+struct next
+{
+};
+struct sub_next
+{
+};
+
+struct MyFSM : public msm::front::state_machine_def<MyFSM>
+{
+    template <class Event, class FSM>
+    void on_entry(Event const &, FSM &)
+    {
+        std::cout << "entering: MyFSM" << std::endl;
+    }
+    template <class Event, class FSM>
+    void on_exit(Event const &, FSM &)
+    {
+        std::cout << "leaving: MyFSM" << std::endl;
+    }
+
+    struct State_1 : public msm::front::state<>
+    {
+        template <class Event, class FSM>
+        void on_entry(Event const &, FSM &)
+        {
+            std::cout << "entering: State_1" << std::endl;
+        }
+        template <class Event, class FSM>
+        void on_exit(Event const &, FSM &)
+        {
+            std::cout << "leaving: State_1" << std::endl;
+        }
+    };
+
+    struct State_2 : public msm::front::state<>
+    {
+        template <class Event, class FSM>
+        void on_entry(Event const &, FSM &)
+        {
+            std::cout << "entering: State_2" << std::endl;
+        }
+        template <class Event, class FSM>
+        void on_exit(Event const &, FSM &)
+        {
+            std::cout << "leaving: State_2" << std::endl;
+        }
+    };
+
+    struct SubFSM : public msm::front::state_machine_def<SubFSM>
+    {
+        template <class Event, class FSM>
+        void on_entry(Event const &, FSM &)
+        {
+            std::cout << "entering: SubFSM" << std::endl;
+        }
+        template <class Event, class FSM>
+        void on_exit(Event const &, FSM &)
+        {
+            std::cout << "leaving: SubFSM" << std::endl;
+        }
+
+        struct SubState_1 : public msm::front::state<>
+        {
+            template <class Event, class FSM>
+            void on_entry(Event const &, FSM &)
+            {
+                std::cout << "entering: SubState_1" << std::endl;
+            }
+            template <class Event, class FSM>
+            void on_exit(Event const &, FSM &)
+            {
+                std::cout << "leaving: SubState_1" << std::endl;
+            }
+        };
+
+        struct SubState_2 : public msm::front::state<>
+        {
+            template <class Event, class FSM>
+            void on_entry(Event const &, FSM &)
+            {
+                std::cout << "entering: SubState_2" << std::endl;
+            }
+            template <class Event, class FSM>
+            void on_exit(Event const &, FSM &)
+            {
+                std::cout << "leaving: SubState_2" << std::endl;
+            }
+        };
+
+        using initial_state = SubState_1;
+
+        using transition_table = mp11::mp_list<msm::front::Row<SubState_1, sub_next, SubState_2>>;
+
+        template <class FSM, class Event>
+        void no_transition(Event const &e, FSM &, int state)
+        {
+            std::cout << "no transition from state " << state
+                      << " on event " << typeid(e).name() << std::endl;
+        }
+    };
+
+    // 시작 상태 정의
+    using initial_state = State_1;
+
+    // 관계 정의
+    using transition_table = mp11::mp_list<msm::front::Row<State_1, next, SubFSM>,
+                                           msm::front::Row<SubFSM, next, State_2>>;
+
+    template <class FSM, class Event>
+    void no_transition(Event const &e, FSM &, int state)
+    {
+        std::cout << "no transition from state " << state
+                  << " on event " << typeid(e).name() << std::endl;
+    }
+};
+
+using MyStateMachine = msm::back::state_machine<MyFSM>;
+
+int main()
+{
+    MyStateMachine msm;
+    msm.start();
+    msm.process_event(next());
+    msm.process_event(sub_next());
+    msm.process_event(next());
+    msm.stop();
+
+    return 0;
+}
+```
+
+&nbsp;  
 
 ### 이벤트 상속  
 
