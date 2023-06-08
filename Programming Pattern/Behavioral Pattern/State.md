@@ -789,7 +789,8 @@ struct player_ : public msm::front::state_machine_def<player_>
         }
     };
 
-    // SubState 사용을 용이하게 만들기 위해 이름 줄이기
+    // SubState를 담고 있는 상태는 반드시 msm::back::state_machine로 감싼 녀석을 이용해야 한다.  
+    // msm::back::state_machine<Playing_>를 상태로 사용하기 번거로우므로 Playing으로 줄인다.  
     using Playing = msm::back::state_machine<Playing_>;
 
     struct Paused : public msm::front::state<>
@@ -951,6 +952,8 @@ int main()
 }
 ```
 SubState를 담고 있는 상태도 내부 FSM이기에 크게 다르지 않다.  
+중요한 것은 ```using Playing = msm::back::state_machine<Playing_>;``` 해당 부분이다.  
+SubState를 포함한 상태는 msm::back::state_machine로 감싸서 이용해야 작동한다.  
 &nbsp;  
 
 #### History  
@@ -1173,6 +1176,7 @@ int main()
 ```
 initial_state의 선언부가 달라졌다.  
 ```mpl::vector<CapsLockOff, InsertOff>```처럼 시작 상태를 여러개 지정해주면 된다.  
+mp_list를 이용하고 싶다면 ```mp11::mp_list<CapsLockOff, InsertOff>``` 이렇게 사용해도 된다.  
 
 또 하나 볼 것은 current_state() 함수다.  
 전에 current_state()가 배열을 반환한다고 했는데 이유는 위 예시처럼 Zone이 여럿인 경우가 있기 때문이다.  
@@ -1497,7 +1501,6 @@ stateDiagram-v2
     [*] --> State1
     State1 --> SubFSM : E﹕next
     State1 --> SubState2 : E﹕direct_to_sub
-    SubState2 --> State1 : E﹕back_to_main
     SubFSM --> State2 : exit_to_main
 ```
 direct_to_sub 이벤트로 SubFSM의 Entry를 무시하고 바로 SubState 2로 이동이 가능하다.  
@@ -1505,8 +1508,92 @@ direct_to_sub 이벤트로 SubFSM의 Entry를 무시하고 바로 SubState 2로 
 
 이를 구현한 코드는 밑과 같다.  
 ```c++
+// back-end header
+#include <boost/msm/back/state_machine.hpp>
 
+// front-end header
+#include <boost/msm/front/state_machine_def.hpp>
+
+// funtor row type header
+#include <boost/msm/front/functor_row.hpp>
+
+// for mpl_list
+#include <boost/mp11/mpl_list.hpp>
+
+namespace msm = boost::msm;
+namespace mp11 = boost::mp11;
+
+// 이벤트 정의
+struct next
+{
+};
+struct direct_to_sub
+{
+};
+struct exit_to_main
+{
+};
+
+// FSM 정의
+struct MyFSM_ : public msm::front::state_machine_def<MyFSM_>
+{
+    struct State_1 : public msm::front::state<>
+    {
+    };
+
+    struct State_2 : public msm::front::state<>
+    {
+    };
+
+    // SubState를 담고 있는 FSM 정의
+    struct SubFSM_ : public msm::front::state_machine_def<SubFSM_>
+    {
+        struct SubState_1 : public msm::front::state<>
+        {
+        };
+
+        // SubState 2는 explicit_entry를 상속하여 명시적 진입점이라고 표시함.
+        // explicit_entry에 넘겨지는 템플릿 인자는 Zone 인덱스이다.
+        // 동시 상태가 아닌 SubFSM은 Zone이 하나이기에 템플릿 인자에 0을 넣었다.
+        struct SubState_2 : public msm::front::state<>,
+                            public msm::front::explicit_entry<0>
+        {
+        };
+
+        using initial_state = SubState_1;
+
+        using transition_table = mp11::mp_list<msm::front::Row<SubState_1, next, SubState_2>>;
+    };
+
+    using SubFSM = msm::back::state_machine<SubFSM_>;
+
+    using initial_state = State_1;
+
+    // 명시적 진입 관계는 SubFSM 밖에서 이루어져야 한다.  
+    using transition_table = mp11::mp_list<msm::front::Row<State_1, next, SubFSM>,
+                                           msm::front::Row<SubFSM, exit_to_main, State_2>,
+                                           // State 1에서 direct_to_sub 이벤트를 통해 바로 SubState 2로 진입하는 관계는 밑과 같이 표시한다.
+                                           // 유의할 것은 direct는 state_machine 자료형인 SubFSM에서 끌어다 쓰고 SubState_2는 SubFSM_에서 끌어다 사용한다는 점이다.
+                                           msm::front::Row<State_1, direct_to_sub, SubFSM::direct<SubFSM_::SubState_2>>>;
+};
+
+using MyFSM = msm::back::state_machine<MyFSM_>;
+
+int main()
+{
+
+    MyFSM fsm;
+    fsm.start();
+    fsm.process_event(direct_to_sub());
+    fsm.process_event(exit_to_main());
+    fsm.stop();
+
+    return 0;
+}
 ```
+대부분의 설명은 주석에 남겨놓았다.  
+explicit_entry에 넘겨지는 템플릿 인자는 initial_state에 정의된 순서를 따라간다.  
+예를 들어 ```using initial_state = mpl::vector<State_1, State_2>;```라면 Zone 인덱스는 State_1는 0번, State_2는 1번이다.  
 &nbsp;  
 
 ### Forks  
@@ -2060,130 +2147,104 @@ struct sub_next
 {
 };
 
-struct MyFSM : public msm::front::state_machine_def<MyFSM>
+struct MyFSM_ : public msm::front::state_machine_def<MyFSM_>
 {
-    template <class Event, class FSM>
-    void on_entry(Event const &, FSM &)
+    std::string name;
+    int id;
+
+    MyFSM_(const char *fsm_name, int id)
+        : name{fsm_name}
     {
-        std::cout << "entering: MyFSM" << std::endl;
-    }
-    template <class Event, class FSM>
-    void on_exit(Event const &, FSM &)
-    {
-        std::cout << "leaving: MyFSM" << std::endl;
     }
 
     struct State_1 : public msm::front::state<>
     {
-        template <class Event, class FSM>
-        void on_entry(Event const &, FSM &)
+        int state_1_data;
+        State_1(int data = 0)
+            : state_1_data{data}
         {
-            std::cout << "entering: State_1" << std::endl;
-        }
-        template <class Event, class FSM>
-        void on_exit(Event const &, FSM &)
-        {
-            std::cout << "leaving: State_1" << std::endl;
         }
     };
 
     struct State_2 : public msm::front::state<>
     {
-        template <class Event, class FSM>
-        void on_entry(Event const &, FSM &)
+        std::string state_2_data;
+        State_2(const std::string &data = "")
+            : state_2_data{data}
         {
-            std::cout << "entering: State_2" << std::endl;
-        }
-        template <class Event, class FSM>
-        void on_exit(Event const &, FSM &)
-        {
-            std::cout << "leaving: State_2" << std::endl;
         }
     };
 
-    struct SubFSM : public msm::front::state_machine_def<SubFSM>
+    struct SubFSM_ : public msm::front::state_machine_def<SubFSM_>
     {
-        template <class Event, class FSM>
-        void on_entry(Event const &, FSM &)
+        double subfsm_data;
+        SubFSM_(double data = 0.0)
+            : subfsm_data{data}
         {
-            std::cout << "entering: SubFSM" << std::endl;
-        }
-        template <class Event, class FSM>
-        void on_exit(Event const &, FSM &)
-        {
-            std::cout << "leaving: SubFSM" << std::endl;
         }
 
         struct SubState_1 : public msm::front::state<>
         {
-            template <class Event, class FSM>
-            void on_entry(Event const &, FSM &)
-            {
-                std::cout << "entering: SubState_1" << std::endl;
-            }
-            template <class Event, class FSM>
-            void on_exit(Event const &, FSM &)
-            {
-                std::cout << "leaving: SubState_1" << std::endl;
-            }
         };
 
         struct SubState_2 : public msm::front::state<>
         {
-            template <class Event, class FSM>
-            void on_entry(Event const &, FSM &)
+            float substate_2_data;
+            SubState_2()
             {
-                std::cout << "entering: SubState_2" << std::endl;
+                substate_2_data = 0.f;
             }
-            template <class Event, class FSM>
-            void on_exit(Event const &, FSM &)
+            SubState_2(float &data)
+                : substate_2_data{data}
             {
-                std::cout << "leaving: SubState_2" << std::endl;
             }
         };
 
         using initial_state = SubState_1;
 
         using transition_table = mp11::mp_list<msm::front::Row<SubState_1, sub_next, SubState_2>>;
-
-        template <class FSM, class Event>
-        void no_transition(Event const &e, FSM &, int state)
-        {
-            std::cout << "no transition from state " << state
-                      << " on event " << typeid(e).name() << std::endl;
-        }
     };
 
-    // 시작 상태 정의
+    using SubFSM = msm::back::state_machine<SubFSM_>;
+
     using initial_state = State_1;
 
-    // 관계 정의
     using transition_table = mp11::mp_list<msm::front::Row<State_1, next, SubFSM>,
                                            msm::front::Row<SubFSM, next, State_2>>;
-
-    template <class FSM, class Event>
-    void no_transition(Event const &e, FSM &, int state)
-    {
-        std::cout << "no transition from state " << state
-                  << " on event " << typeid(e).name() << std::endl;
-    }
 };
 
-using MyStateMachine = msm::back::state_machine<MyFSM>;
+using MyFSM = msm::back::state_machine<MyFSM_>;
 
 int main()
 {
-    MyStateMachine msm;
-    msm.start();
-    msm.process_event(next());
-    msm.process_event(sub_next());
-    msm.process_event(next());
-    msm.stop();
+    float data_for_fsm = 1.f;
+
+    // 첫번째 생성자 활용법
+    // 객체 생성하면서 바로 필요한 인자를 넘긴다.
+    MyFSM msm("my fsm", 1);
+
+    // 나머지 상태들은 밑과 같이 초기화 할 수 있다.
+    // C++ 버퍼를 다루는 방식과 인터페이스가 유사하다.  
+    msm.set_states(msm::back::states_ << MyFSM_::State_1(13));
+    msm.set_states(msm::back::states_ << MyFSM_::State_2("my data"));
+
+    // SubState와 그것들을 담고 있는 SubFSM 초기화는 밑과 같다.
+    // SubState에 대한 초기화를 진행한 후 SubFSM 생성자에 대한 인자들을 넘긴다.
+    msm.set_states(msm::back::states_ << MyFSM_::SubFSM(msm::back::states_ << MyFSM_::SubFSM_::SubState_2(boost::ref(data_for_fsm),
+                                                        3.0));
+
+    // 객체 생성시 한방에 진행할 수도 있다.
+    // 여기도 마찬가지로 상태에 대한 초기화를 마치고 FSM 자신의 생성자에 대한 인자들을 넘긴다.
+    MyFSM fsm(msm::back::states_ << MyFSM_::State_1(13)
+                                 << MyFSM_::State_2("my data")
+                                 << MyFSM_::SubFSM(msm::back::states_ << MyFSM_::SubFSM_::SubState_2(boost::ref(data_for_fsm)),
+                                                   7.0),
+              "my fsm", 1);
 
     return 0;
 }
 ```
-
+설명은 주석에 써놓았다.  
 &nbsp;  
 
 ### 이벤트 상속  
