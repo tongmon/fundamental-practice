@@ -442,6 +442,7 @@ int main()
 }
 ```
 코드가 굉장히 많지만 주석을 읽어보면 어떤 일을 하는지 알 수 있다.  
+모든 no_transition(), on_entry(), on_exit() 함수는 생략이 가능하다.  
 &nbsp;  
 
 상태의 개수가 10개가 넘어가면 밑과 같이 매크로를 수정해줘야 한다.  
@@ -997,7 +998,7 @@ struct player_ : public msm::front::state_machine_def<player_>
 특정 이벤트로 재진입한 경우 History 기능을 이용하고 싶다면 ShallowHistory를, 모든 이벤트에 대해 History 기능을 이용하고 싶다면 AlwaysHistory를 사용하면 된다.  
 &nbsp;  
 
-### Orthogonal Zone  
+### Orthogonal regions  
 
 Caps Lock과 Insert 키가 눌릴 때의 상태는 서로에게 영향을 주지 않는다.  
 따라서 이러한 경우 이 둘의 조합을 따져야 한다.  
@@ -1107,17 +1108,6 @@ struct PrintState
 
 struct KeyBoardFsm : public msm::front::state_machine_def<KeyBoardFsm>
 {
-    template <class Event, class FSM>
-    void on_entry(Event const &, FSM &)
-    {
-        std::cout << "entering: KeyBoardFsm" << std::endl;
-    }
-    template <class Event, class FSM>
-    void on_exit(Event const &, FSM &)
-    {
-        std::cout << "leaving: KeyBoardFsm" << std::endl;
-    }
-
     // 상태 정의
     struct CapsLockOff : public msm::front::state<>
     {
@@ -1144,13 +1134,6 @@ struct KeyBoardFsm : public msm::front::state_machine_def<KeyBoardFsm>
                                   msm::front::Row<InsertOn, insert_off, InsertOff, msm::front::none, PrintState>>
     {
     };
-
-    template <class FSM, class Event>
-    void no_transition(Event const &e, FSM &, int state)
-    {
-        std::cout << "no transition from state " << state
-                  << " on event " << typeid(e).name() << std::endl;
-    }
 };
 
 using KeyBoardState = msm::back::state_machine<KeyBoardFsm>;
@@ -1329,17 +1312,6 @@ struct be_cured
 
 struct DebuffStatus : public msm::front::state_machine_def<DebuffStatus>
 {
-    template <class Event, class FSM>
-    void on_entry(Event const &, FSM &)
-    {
-        std::cout << "entering: DebuffStatus" << std::endl;
-    }
-    template <class Event, class FSM>
-    void on_exit(Event const &, FSM &)
-    {
-        std::cout << "leaving: DebuffStatus" << std::endl;
-    }
-
     // 상태 정의
     struct None : public msm::front::state<>
     {
@@ -1432,13 +1404,6 @@ struct DebuffStatus : public msm::front::state_machine_def<DebuffStatus>
                                   msm::front::Row<Paralysis, be_cured, None>>
     {
     };
-
-    template <class FSM, class Event>
-    void no_transition(Event const &e, FSM &, int state)
-    {
-        std::cout << "no transition from state " << state
-                  << " on event " << typeid(e).name() << std::endl;
-    }
 };
 
 using DebuffState = msm::back::state_machine<DebuffStatus>;
@@ -1487,6 +1452,10 @@ Funtor를 이용한 internal_transition_table 정의 방식이 워낙 편하기�
 특정 SubState로 바로 진입하고 싶을 때 사용한다.  
 UML은 밑과 같다.  
 ```mermaid
+---
+title : Explicit Entry UML
+---
+
 stateDiagram-v2
     State1: State 1
     State2: State 2
@@ -1594,16 +1563,40 @@ int main()
 대부분의 설명은 주석에 남겨놓았다.  
 explicit_entry에 넘겨지는 템플릿 인자는 initial_state에 정의된 순서를 따라간다.  
 예를 들어 ```using initial_state = mpl::vector<State_1, State_2>;```라면 Zone 인덱스는 State_1는 0번, State_2는 1번이다.  
+
+```SubState 2 -- E﹕back_to_main --> State 1```과 같은 명시적 탈출 기능은 따로 없기 때문에 Guard를 통해 구현해야 한다.  
+```c++
+// 이벤트 추가
+struct back_to_main
+{
+};
+
+// 가드 추가
+struct ExitGuard
+{
+    template <class Fsm, class Evt, class SourceState, class TargetState>
+    bool operator()(Evt const &event, Fsm &fsm, SourceState &src, TargetState &trg)
+    {
+        return src.current_state()[0] == 1; // SubState 2가 아니면 false 반환
+    }
+};
+
+// MyFSM_에 관계 추가
+msm::front::Row<SubFSM, back_to_main, State_1, msm::front::none, ExitGuard>
+```
+위와 같은 구현을 알맞은 곳에 추가하면 될 것이다.  
 &nbsp;  
 
 ### Forks  
-명시적 진입을 사용하지 않고 Forks 기능을 이용하여 특정 SubState에 진입할 수도 있다.   
-밑 UML을 보면 이해가 쉽다.  
+Orthogonal regions이 사용되는 곳에 명시적으로 특정 상태에 진입하고 싶다면 Forks를 이용한다.   
+밑 UML을 보면 상황 이해가 쉽다.   
 ```mermaid
+---
+title : Forks UML
+---
+
 stateDiagram-v2
     State1: State 1
-    State2: State 2
-    State3: State 3
 
     [*] --> State1
 
@@ -1611,26 +1604,123 @@ stateDiagram-v2
         ZoneA : Zone A
         ZoneB : Zone B
         state ZoneA {
-            [*] --> SubState1
+            direction BT
+            AState1 : A State 1
+            AState2 : A State 2
+            [*] --> AState1
+            AState1 --> AState2 : E﹕next
+        }
+        state ZoneB {
+            BState1 : B State 1
+            BState2 : B State 2
+            BSoloState : B Solo State
+            [*] --> BState1
+            BState1 --> BState2 : E﹕next
         }
     }
 
-    state Fork <<fork>>
-        State1 --> Fork: E﹕next_to_fork
-        Fork --> SubState2
-        Fork --> State2
-```
+    State1 --> SubFSM : E﹕next
 
+    state Fork <<fork>>
+        State1 --> Fork : E﹕fork
+        Fork --> AState2
+        Fork --> BSoloState
+```
+next 이벤트로 SubFSM을 진입하면 자동으로 A State 1, B State 1이 활성화되겠지만 fork 이벤트로 SubFSM을 진입하면 A State 2, B Solo State가 활성화된다.  
+&nbsp;  
+
+위 UML을 구현한 코드는 밑과 같다.  
+```c++
+// back-end header
+#include <boost/msm/back/state_machine.hpp>
+
+// front-end header
+#include <boost/msm/front/state_machine_def.hpp>
+
+// funtor row type header
+#include <boost/msm/front/functor_row.hpp>
+
+// for mpl_list
+#include <boost/mp11/mpl_list.hpp>
+
+namespace msm = boost::msm;
+namespace mp11 = boost::mp11;
+
+// 이벤트 정의
+struct next
+{
+};
+struct fork
+{
+};
+
+struct MyFSM_ : public msm::front::state_machine_def<MyFSM_>
+{
+    struct State_1 : public msm::front::state<>
+    {
+    };
+
+    struct SubFSM_ : public msm::front::state_machine_def<SubFSM_>
+    {
+        struct AState_1 : public msm::front::state<>
+        {
+        };
+
+        // Zone A에서 fork될 상태
+        struct AState_2 : public msm::front::state<>,
+                          public msm::front::explicit_entry<0>
+        {
+        };
+
+        struct BState_1 : public msm::front::state<>
+        {
+        };
+
+        struct BState_2 : public msm::front::state<>
+        {
+        };
+
+        // Zone B에서 fork될 상태
+        struct BSoloState : public msm::front::state<>,
+                            public msm::front::explicit_entry<1>
+        {
+        };
+
+        using initial_state = mp11::mp_list<AState_1, BState_1>;
+
+        // BSoloState와 같이 initial_state에 연결되어 있지 않은 녀석은 컴파일러가 최적화하면서 상태 생성을 건너뛰어 버릴 수도 있기에 explicit_creation으로 명시하는 것이 좋다.
+        using explicit_creation = mp11::mp_list<BSoloState>;
+
+        using transition_table = mp11::mp_list<msm::front::Row<AState_1, next, AState_2>,
+                                               msm::front::Row<BState_1, next, BState_2>>;
+    };
+
+    using SubFSM = msm::back::state_machine<SubFSM_>;
+
+    using initial_state = State_1;
+
+    // fork할 진입점들을 mpl::vector나 mp11::mp_list로 넘겨주면 된다.  
+    using transition_table = mp11::mp_list<msm::front::Row<State_1, next, SubFSM>,
+                                           msm::front::Row<State_1, fork, mp11::mp_list<SubFSM::direct<SubFSM_::AState_2>, SubFSM::direct<SubFSM_::BSoloState>>>>;
+};
+
+using MyFSM = msm::back::state_machine<MyFSM_>;
+
+int main()
+{
+    MyFSM fsm;
+    fsm.start();
+    fsm.process_event(fork());
+    fsm.stop();
+
+    return 0;
+}
+```
+주석에 설명을 써놓았다.  
 &nbsp;  
 
 ### 가짜 진입 / 가짜 종료  
-서브 상태는 항상 진입점이 존재하는데 해당 진입점을 사용하지 않고 다른 진입점을 추가적으로 만들고 싶다면 가짜 진입점을 만들면 됨.
-서브 상태는 명시적인 종료 지점이 없는데 가짜 종료점을 만들어 종료 지점을 만들 수 있음
-&nbsp;  
 
-### 가짜 진입, 가짜 종료점, 직접 진입  
-
-서브 상태의 내부의 특정 상태로 바로 진입하고 싶을 수 있는데 이때 직접 진입을 사용하면 됨
 서브 상태는 항상 진입점이 존재하는데 해당 진입점을 사용하지 않고 다른 진입점을 추가적으로 만들고 싶다면 가짜 진입점을 만들면 됨.
 서브 상태는 명시적인 종료 지점이 없는데 가짜 종료점을 만들어 종료 지점을 만들 수 있음
 &nbsp;  
