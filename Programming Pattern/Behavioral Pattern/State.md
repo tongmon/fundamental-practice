@@ -1588,6 +1588,7 @@ msm::front::Row<SubFSM, back_to_main, State_1, msm::front::none, ExitGuard>
 &nbsp;  
 
 ### Forks  
+
 Orthogonal regions이 사용되는 곳에 명시적으로 특정 상태에 진입하고 싶다면 Forks를 이용한다.   
 밑 UML을 보면 상황 이해가 쉽다.   
 ```mermaid
@@ -1717,6 +1718,7 @@ int main()
 }
 ```
 주석에 설명을 써놓았다.  
+위와 같은 동시 상태의 경우 직접 진입이던 fork던 특정 Zone이 활성화 되면 관계가 정의되지 않은 나머지 Zone들은 initial_state의 상태를 따라간다.  
 &nbsp;  
 
 ### 가짜 진입 / 가짜 종료  
