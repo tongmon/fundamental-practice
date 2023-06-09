@@ -23,6 +23,233 @@
 하지만 두 번째 방식이 훨씬 많이 사용된다.  
 &nbsp;  
 
+## 상태 기반 상태 정의  
+
+전등 스위치를 만들어보자.  
+```c++
+class LightSwitch
+{
+    State *state;
+
+  public:
+    LightSwitch() {}
+    void set_state(State *state)
+    {
+        this->state = state;
+    }
+    void on()
+    {
+        state->on(this);
+    }
+    void off()
+    {
+        state->off(this);
+    }
+};
+```
+일단 위와 같은 전등 스위치 클래스가 있다.  
+&nbsp;  
+
+전등 스위치 멤버 변수인 State 구조는 밑과 같다.  
+```c++
+class LightSwitch;
+
+struct State
+{
+    virtual void on(LightSwitch *ls)
+    {
+        std::cout << "Light is already on\n";
+    }
+    virtual void off(LightSwitch *ls)
+    {
+        std::cout << "Light is already off\n";
+    }
+};
+```
+그냥 상태 그 자체이기에 문제가 많다.  
+일단 켜졌는지 꺼졌는지에 대한 명확한 구분이 없고 on/off에 대한 함수가 모두 갖춰져있다.  
+State 상태가 상태 전이 자체를 결정하고 있다.  
+State 구조체가 on을 호출하면 On 상태가 되어버리고 off를 호출하면 Off 상태가 되어버린다.  
+이는 전등 스위치의 역할을 무시해버리는 효과가 발생한다.  
+&nbsp;  
+
+이렇게 직관적이지 않은 코드를 개선하기 위해 별도의 명확한 상태 클래스를 따로 만들자.  
+실제로는 상호 참조를 방지하기 위해 off() 함수 정의부를 .cpp로 분리해야 하지만 편의상 코드를 한번에 서술한다.  
+일단 On 상태는 밑과 같다.  
+```c++
+struct OnState : State
+{
+    OnState()
+    {
+        std::cout << "Light turned on\n";
+    }
+
+    void off(LightSwitch *ls)
+    {
+        std::cout << "Switching light off...\n";
+        ls->set_state(new OffState());
+        delete this;
+    }
+};
+```
+State를 상속하여 반대 상태인 off 함수를 오버라이딩한다.  
+off 구현 방식에서 유별난 점은 다른 상태의 동적 할당을 직접해준다는 것이다.  
+Off 상태를 새로 생성해서 상태를 교체하고 자기 자신은 지워버린다.  
+on() 함수는 이미 State 구조체에 존재하기에 잘 동작한다.  
+&nbsp;  
+
+Off 함수도 별반 다르지 않다.  
+```c++
+struct OffState : State
+{
+    OffState()
+    {
+        std::cout << "Light turned off\n";
+    }
+
+    void on(LightSwitch *ls)
+    {
+        std::cout << "Switching light on...\n";
+        ls->set_state(new OnState());
+        delete this;
+    }
+};
+```
+OnState와 마찬가지로 반대 상태인 on 함수를 오버라이딩한다.  
+이렇게 상태 전이를 발동시키는 동작(여기선 on() 함수)에서 목표 상태(여기선 OnState)를 생성하여 바꿔친다.  
+&nbsp;  
+
+OnState, OffState를 활용할 수 있도록 LightSwitch를 다시 바꿔주자.  
+```c++
+class LightSwitch
+{
+    // 동일 구현 생략
+
+  public:
+    LightSwitch()
+    {
+        state = new OffState();
+    }
+};
+```
+초반 상태를 Off로 지정할 뿐이다.  
+&nbsp;  
+
+이용법은 별거 없다.  
+```c++
+LightSwitch ls;
+ls.on();
+ls.off();
+```
+on/off 함수는 동작(Event), OnState/OffState 객체는 상태가 된다.  
+&nbsp;  
+
+## 수작업 상태 패턴     
+
+map 자료구조를 이용하면 직접 FSM(Finite State Machine, 유한 상태 기계)을 만들 수 있다.  
+만드려는 상태 구조는 밑과 같다.  
+```mermaid
+stateDiagram-v2
+    [*] --> None
+    None --> Play : Event﹕start
+    Play --> None : Event﹕exit
+    Play --> Stop : Event﹕pause
+    Stop --> Play : Event﹕resume
+    Stop --> None : Event﹕exit
+```
+&nbsp;  
+
+일단 상태들을 enum으로 정의하자.  
+```c++
+enum class State
+{
+    None,
+    Play,
+    Stop
+};
+```
+&nbsp;  
+
+상태 전이를 발동시키는 동작(Event)들은 밑과 같다.  
+```c++
+enum class Event
+{
+    start,
+    pause,
+    resume
+};
+```
+&nbsp;  
+
+map을 이용해 상태 관계를 정의해보자.  
+```c++
+class FSM
+{
+    std::map<State, std::vector<std::pair<Event, State>>> rules;
+    State current_state;
+
+  public:
+    FSM(State init_state = State::None)
+        : current_state{init_state}
+    {
+        rules[State::None] = {{Event::start, State::Play}};
+
+        rules[State::Play] = {{Event::pause, State::Stop}, {Event::exit, State::None}};
+
+        rules[State::Stop] = {{Event::resume, State::Play}, {Event::exit, State::None}};
+    }
+};
+```
+rules에 적절한 관계를 정의해 넣어두면 된다.  
+None은 Play로, Play는 None, Stop으로, Stop은 Play, None으로 전이가 가능하다.  
+현재 상태도 current_state에 저장해둬야 할 것이다.  
+&nbsp;  
+
+상태 전이 함수는 밑과 같다.  
+```c++
+class FSM
+{
+    // 동일 구현 생략
+  public:
+    bool trigger(Event evt)
+    {
+        // 출력 전용 map
+        static std::map<State, std::string> ps{{State::None, "None"}, {State::Play, "Play"}, {State::Stop, "Stop"}};
+        static std::map<Event, std::string> pe{{Event::exit, "exit"}, {Event::pause, "pause"}, {Event::resume, "resume"}, {Event::start, "start"}};
+
+        for (int i = 0; i < rules[current_state].size(); i++)
+            if (rules[current_state][i].first == evt)
+            {
+                // 상태 전이 성공 출력
+                std::cout << "Source: " << ps[current_state] << ", Event: " << pe[evt] << ", Target: " << ps[rules[current_state][i].second] << "\n";
+
+                // 현재 상태 변경
+                current_state = rules[current_state][i].second;
+                return true;
+            }
+
+        // 상태 전이 실패 출력
+        std::cout << "Transition fail!\n";
+        return false;
+    }
+}
+```
+현재 상태를 기반으로 주어진 이벤트에 해당하는 전이가 있는지 완전탐색을 해본다.  
+&nbsp;  
+
+활용은 밑과 같다.  
+```c++
+FSM fsm;
+fsm.trigger(Event::start);
+fsm.trigger(Event::pause);
+fsm.trigger(Event::resume);
+fsm.trigger(Event::exit);
+
+// Fail!
+fsm.trigger(Event::resume);
+```
+&nbsp;  
+
 ## Boost.MSM  
 
 Boost의 [Meta State Machine(MSM)](https://www.boost.org/doc/libs/1_82_0/libs/msm/doc/HTML/index.html)은 상태를 표현하기 위해 유용한 [UML StateChart](https://en.wikipedia.org/wiki/UML_state_machine)를 코드에 적용하기 위해 탄생한 라이브러리이다.  
@@ -227,6 +454,9 @@ struct player_ : public boost::msm::front::state_machine_def<player_>
     // initial_state를 특정 상태 자료형으로 정의해주면 됨.
     // 즉 player_는 생성되면 Empty 상태에 놓임.
     using initial_state = Empty;
+
+    // 밑과 같이 시작 이벤트를 play로 지정할 수도 있다.  
+    // using initial_event = play;
 
 #pragma region Action Callable 정의
     // 밑에 정의된 Callable들은 Action으로 [시작 상태] ---> [끝 상태] 이렇게 변할 때 그 사이에서 수행되는 동작이라고 보면 된다.
@@ -1577,6 +1807,7 @@ int main()
 대부분의 설명은 주석에 남겨놓았다.  
 explicit_entry에 넘겨지는 템플릿 인자는 initial_state에 정의된 순서를 따라간다.  
 예를 들어 ```using initial_state = mpl::vector<State_1, State_2>;```라면 Zone 인덱스는 State_1는 0번, State_2는 1번이다.  
+explicit_entry 기능을 사용하는 경우 explicit_creation도 함께 사용하는 것이 좋은데 해당 기능은 [Forks](#forks) 목차에서 다룬다.  
 
 ```SubState 2 -- E﹕back_to_main --> State 1```과 같은 명시적 탈출 기능은 따로 없기 때문에 Guard를 통해 구현해야 한다.  
 ```c++
@@ -1703,7 +1934,8 @@ struct MyFSM_ : public msm::front::state_machine_def<MyFSM_>
 
         using initial_state = mp11::mp_list<AState_1, BState_1>;
 
-        // BSoloState와 같이 initial_state에 연결되어 있지 않은 녀석은 컴파일러가 최적화하면서 상태 생성을 건너뛰어 버릴 수도 있기에 explicit_creation으로 명시하는 것이 좋다.
+        // explicit_entry 기능을 이용할 때는 항상 explicit_creation를 해줄 상태가 있는지 검사해야 한다.
+        // BSoloState와 같이 내부적인 transition_table에 정의되지 않은 녀석은 컴파일러가 최적화하면서 상태 생성을 건너뛰어 버릴 수도 있기에 explicit_creation으로 명시하는 것이 좋다.
         using explicit_creation = mp11::mp_list<BSoloState>;
 
         using transition_table = mp11::mp_list<msm::front::Row<AState_1, next, AState_2>,
@@ -2342,6 +2574,10 @@ Boost MSM은 이를 지원한다.
 
 구현법에 앞서 UML을 보자.  
 ```mermaid
+---
+title : Construtor UML
+---
+
 stateDiagram-v2
     State1: State 1
     State2: State 2
@@ -2488,6 +2724,10 @@ int main()
 
 밑과 같은 UML 관계가 있다.  
 ```mermaid
+---
+title : Event Inheritance UML
+---
+
 stateDiagram-v2
     State1: State 1
     State2: State 2
@@ -2498,7 +2738,7 @@ stateDiagram-v2
     State2 --> State1 : E﹕char_a
     State2 --> State1 : E﹕char_b
 ```
-char_a, char_b 이벤트 모두 State1, State2 간의 전이를 가능하게 한다.  
+char_a, char_b 이벤트 모두 State 1, State 2 간의 전이를 가능하게 한다.  
 &nbsp;  
 
 해당 관계를 어떻게 줄일 수 있는지 코드를 보면 이해가 된다.  
@@ -2571,3 +2811,13 @@ int main()
 }
 ```
 이벤트 상속 관계를 이용해 관계 테이블을 좀 더 깔끔하게 작성할 수 있다.  
+&nbsp;  
+
+## 요약  
+
+1. 상태 패턴을 구축하는 경우 특정 클래스를 상태로 지정할 수도 있고 enum과 같은 특정 값을 상태로 지정할 수도 있다.  
+
+2. 상용 수준의 복잡한 상태를 구현하려면 Boost MSM과 같은 외부 라이브러리를 이용하는 것이 바람직하다.  
+
+3. 최근엔 상태의 개수가 굉장히 많아져도 관리가 용이한 행동 트리가 각광받고 있다.  
+    C++도 이와 관련된 라이브러리 [BehaviorTree.CPP](https://github.com/BehaviorTree/BehaviorTree.CPP)가 존재하니 한 번 확인해보자.  
