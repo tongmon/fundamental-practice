@@ -1168,11 +1168,25 @@ mp_list를 이용하고 싶다면 ```mp11::mp_list<CapsLockOff, InsertOff>``` �
 상태 인덱스는 상태 전이 테이블을 보면 CapsLockOff : 0, CapsLockOn : 1, InsertOff : 2, InsertOn : 3 으로 지정된 것을 알 수 있다.  
 &nbsp;  
 
+#### Interrupt State  
+
+Orthogonal Regions을 사용할 때 Interrupt State(방해 상태) 기능을 이용할 수 있다.  
+예를 들어 [Caps Lock, Insert 예제](#orthogonal-regions)에서 InsertOff 상태를 밑과 같이 바꿔보자.  
+```c++
+// insert_on 대신에 mpl::vector<insert_on, insert_off> 이렇게 여러 상태도 함께 지정이 가능하다.  
+struct InsertOff : public msm::front::interrupt_state<insert_on>
+{
+};
+```
+위와 같이 구현되면 KeyBoardFsm이 InsertOff 상태인 경우 insert_on 이외의 이벤트가 도달하면 무시된다.  
+insert_on 이벤트가 도착하여 InsertOn 상태가 되었을 경우에만 CapsLock 상태를 조작할 수 있다.  
+&nbsp;  
+
 #### Flag   
 
 current_state()를 이용해서 현재 FSM의 상태를 확인하는 것은 직관적이지도 않고 한계가 명확하다.  
 따라서 Boost MSM은 Flag 기능을 제공한다.  
-위의 [Caps Lock, Insert 예제](#orthogonal-zone)에 Flag를 추가해보자.  
+위의 [Caps Lock, Insert 예제](#orthogonal-regions)에 Flag를 추가해보자.  
 ```c++
 // 동일 구현부 생략
 
@@ -1245,7 +1259,7 @@ Key_On라는 flag 구조체 하나로 ```모든 버튼이 꺼진 상태```, ```�
 flag_list는 mpl::vector 자료형이기에 ```mpl::vector<flag_1, flag_2 ...>``` 이렇게 한번에 복수의 flag를 설정할 수도 있다.  
 &nbsp;  
 
-### Internal transition  
+### Internal Transition  
 
 Boost MSM에는 내부적인 상태 전이가 존재한다.  
 기본 상태 전이와 큰 차이점으로는 전이될 목표 상태가 따로 없다는 것이다.  
@@ -1721,10 +1735,176 @@ int main()
 위와 같은 동시 상태의 경우 직접 진입이던 fork던 특정 Zone이 활성화 되면 관계가 정의되지 않은 나머지 Zone들은 initial_state의 상태를 따라간다.  
 &nbsp;  
 
-### 가짜 진입 / 가짜 종료  
+### 유사 진입 / 유사 종료  
 
-서브 상태는 항상 진입점이 존재하는데 해당 진입점을 사용하지 않고 다른 진입점을 추가적으로 만들고 싶다면 가짜 진입점을 만들면 됨.
-서브 상태는 명시적인 종료 지점이 없는데 가짜 종료점을 만들어 종료 지점을 만들 수 있음
+특정 상태에 여러 진입점, 여러 탈출점을 만들 수 있다.  
+일단 UML을 보자.  
+```mermaid
+---
+title : Entry and Exit Pseudo State UML
+---
+
+flowchart LR
+    Init(( ))-->State1(State 1)
+
+    subgraph SubFsm [SubFSM]
+    PseudoInit(( ))
+    PseudoExit(( ))
+        subgraph ZoneA [Zone A]
+        direction LR
+        AInit(( ))-->AState1(A State 1)
+        end
+        subgraph ZoneB [Zone B]
+        BInit(( ))-->BState1(B State 1)
+        BState2(B State 2)-->|"E﹕pseudo_exit"|PseudoExit
+        end
+    PseudoInit-->|"E﹕pseudo_enter"|BState2
+    end
+
+    State1-->|"E﹕next"|SubFsm
+    State1-->|"E﹕pseudo_enter"|PseudoInit
+    SubFsm-->|"E﹕next"|State3(State 3)
+    PseudoExit-->|"E﹕pseudo_exit"|State2(State 2)
+```
+State 1에서 next 이벤트가 발생하면 기본 진입점으로 인해 A State 1, B State 1이 활성화 될 것이다.  
+반면 pseudo_enter 이벤트가 발생하면 유사 진입점을 이용하기에 A State 1, B State 2가 활성화된다.  
+B State 2는 next, pseudo_exit를 이용하여 SubFSM을 탈출할 수 있다.  
+&nbsp;  
+
+이를 구현한 코드를 보자.  
+```c++
+// back-end header
+#include <boost/msm/back/state_machine.hpp>
+
+// front-end header
+#include <boost/msm/front/state_machine_def.hpp>
+
+// funtor row type header
+#include <boost/msm/front/functor_row.hpp>
+
+// for mpl_list
+#include <boost/mp11/mpl_list.hpp>
+
+namespace msm = boost::msm;
+namespace mp11 = boost::mp11;
+
+// 이벤트 정의
+struct next
+{
+};
+struct pseudo_enter
+{
+};
+struct pseudo_exit
+{
+};
+
+struct MyFSM_ : public msm::front::state_machine_def<MyFSM_>
+{
+    struct State_1 : public msm::front::state<>
+    {
+    };
+    struct State_2 : public msm::front::state<>
+    {
+    };
+    struct State_3 : public msm::front::state<>
+    {
+    };
+
+    struct SubFSM_ : public msm::front::state_machine_def<SubFSM_>
+    {
+        struct AState_1 : public msm::front::state<>
+        {
+        };
+        struct BState_1 : public msm::front::state<>
+        {
+        };
+        struct BState_2 : public msm::front::state<>
+        {
+        };
+
+        // 유사 진입점 설정
+        // 템플릿 인자에는 유사 진입점이 존재할 Zone 인덱스가 들어감
+        // B State가 있는 곳에 유사 진입점을 추가할 것이기에 1로 설정
+        struct PseudoEntry : public msm::front::entry_pseudo_state<1>
+        {
+        };
+
+        // 유사 탈출점 설정
+        // 템플릿 인자에는 탈출할 이벤트가 들어감
+        // 밑은 pseudo_exit 이벤트로 유사 탈출점에서 다른 상태로 이동할 수 있다는 것을 의미한다.   
+        struct PseudoExit : public msm::front::exit_pseudo_state<pseudo_exit>
+        {
+        };
+
+        using initial_state = mp11::mp_list<AState_1, BState_1>;
+
+        using transition_table = mp11::mp_list<msm::front::Row<PseudoEntry, pseudo_enter, BState_2>,
+                                               // 유사 탈출점을 이용하는 관계 설정
+                                               msm::front::Row<BState_2, pseudo_exit, PseudoExit>>;
+    };
+
+    using SubFSM = msm::back::state_machine<SubFSM_>;
+
+    using initial_state = State_1;
+
+    using transition_table = mp11::mp_list<msm::front::Row<State_1, next, SubFSM>,
+                                           msm::front::Row<SubFSM, next, State_3>,
+                                           // 유사 진입점은 entry_pt를 통해 상태를 이용한다.  
+                                           msm::front::Row<State_1, pseudo_enter, SubFSM::entry_pt<SubFSM_::PseudoEntry>>,
+                                           // 유사 탈출점은 exit_pt를 통해 상태를 이용한다.
+                                           msm::front::Row<SubFSM::exit_pt<SubFSM_::PseudoExit>, pseudo_exit, State_2>>;
+};
+
+using MyFSM = msm::back::state_machine<MyFSM_>;
+
+int main()
+{
+    MyFSM fsm;
+    fsm.start();
+    fsm.process_event(pseudo_enter());
+    fsm.process_event(pseudo_exit());
+    fsm.stop();
+
+    return 0;
+}
+```
+유사 진입점으로 들어가는 이벤트와 유사 진입점에서 나오는 이벤트는 동일해야 한다. (위 예시에서는 pseudo_enter로 동일)  
+유사 탈출점은 들어가는 이벤트와 나오는 이벤트가 굳이 동일할 필요는 없는데 다르면 사용하기 껄끄럽다. (껄끄러운 사용법은 [이곳](https://www.boost.org/doc/libs/1_82_0/libs/msm/doc/HTML/ch03s02.html#d0e875)을 참조하자.)  
+유사하다곤 해도 진입점, 탈출점이기에 이벤트를 중복으로 발생시키지 않아도 다음 상태로 자동으로 넘어간다.  
+예를 들어 현재 관계 테이블이 정의된 모습으로 판단해보면 ```State 1 -- pseudo_enter --> Pseudo Entry -- pseudo_enter --> B State 2``` 이렇게 보인다.  
+하지만 State 1 상태에서 pseudo_enter를 한 번 발생시켜도 B State 2 상태로 전이된다.  
+Pseudo Entry는 그저 거쳐가는 관문일 뿐이다.  
+&nbsp;  
+
+### Anonymous Transition  
+
+익명의 전이, 즉 그냥 거쳐가는 상태를 의미한다.  
+```mermaid
+---
+title : Anonymous Transition UML
+---
+
+stateDiagram-v2
+    State1: State 1
+    State2: State 2
+    State3: State 3
+
+    [*] --> State1
+    State1 --> State2: E﹕next
+    State2 --> State3
+```
+위 UML을 보자.  
+State 1 상태에서 next 이벤트가 발생하면 State 2를 거쳐 자동으로 State 3에 도착하게 된다.  
+&nbsp;  
+
+이런 관계를 정의하려면 transition_table은 밑과 같이 정의되어야 한다.  
+```c++
+using transition_table = mp11::mp_list<msm::front::Row<State_1, next, State_2>,
+                                       msm::front::Row<State_2, msm::front::none, State_3>>;
+```
+이벤트에 none을 넣어두면 곧바로 다음 상태로 전이된다.  
+Anonymous Transition 기능은 Guard를 이용해 상태의 if/else문 구현을 가능하게 해줘 유용하다.  
 &nbsp;  
 
 ### Base State Type  
@@ -1735,6 +1915,10 @@ int main()
 
 구현하려는 UML은 간단하다.  
 ```mermaid
+---
+title : Simple State UML
+---
+
 stateDiagram-v2
     State1: State 1
     State2: State 2
@@ -1847,13 +2031,6 @@ struct MyFSM : public msm::front::state_machine_def<MyFSM, BaseState>
     // 관계 정의
     using transition_table = mp11::mp_list<msm::front::Row<State_1, next, State_2>,
                                            msm::front::Row<State_2, next, State_1>>;
-
-    template <class FSM, class Event>
-    void no_transition(Event const &e, FSM &, int state)
-    {
-        std::cout << "no transition from state " << state
-                  << " on event " << typeid(e).name() << std::endl;
-    }
 };
 
 using MyStateMachine = msm::back::state_machine<MyFSM>;
@@ -1986,14 +2163,6 @@ struct VisitableState
 
 struct State_1 : public msm::front::state<VisitableState>
 {
-    template <class Event, class FSM>
-    void on_entry(Event const &, FSM &)
-    {
-    }
-    template <class Event, class FSM>
-    void on_exit(Event const &, FSM &)
-    {
-    }
     // Visitor를 호출하기 위해 accept 함수를 재정의한다.
     void accept(Visitor &vis);
 };
@@ -2001,14 +2170,6 @@ struct State_1 : public msm::front::state<VisitableState>
 // Visitor를 이용하기 싫다면 accept 함수를 정의하지 않으면 된다.
 struct State_2 : public msm::front::state<VisitableState>
 {
-    template <class Event, class FSM>
-    void on_entry(Event const &, FSM &)
-    {
-    }
-    template <class Event, class FSM>
-    void on_exit(Event const &, FSM &)
-    {
-    }
 };
 
 // 이벤트 정의
@@ -2019,28 +2180,12 @@ struct next
 // 사용할 FSM에 VisitableState를 state_machine_def 템플릿 인자로 넘겨줘야 한다.
 struct MyFSM : public msm::front::state_machine_def<MyFSM, VisitableState>
 {
-    template <class Event, class FSM>
-    void on_entry(Event const &, FSM &)
-    {
-    }
-    template <class Event, class FSM>
-    void on_exit(Event const &, FSM &)
-    {
-    }
-
     // 시작 상태 정의
     using initial_state = State_1;
 
     // 관계 정의
     using transition_table = mp11::mp_list<msm::front::Row<State_1, next, State_2>,
                                            msm::front::Row<State_2, next, State_1>>;
-
-    template <class FSM, class Event>
-    void no_transition(Event const &e, FSM &, int state)
-    {
-        std::cout << "no transition from state " << state
-                  << " on event " << typeid(e).name() << std::endl;
-    }
 };
 
 using MyStateMachine = msm::back::state_machine<MyFSM>;
@@ -2341,14 +2486,88 @@ int main()
 
 ### 이벤트 상속  
 
-```Row<Digit1, digit, Digit2>``` 요게 밑처럼 되지 않도록 가능
+밑과 같은 UML 관계가 있다.  
+```mermaid
+stateDiagram-v2
+    State1: State 1
+    State2: State 2
+
+    [*] --> State1
+    State1 --> State2 : E﹕char_a
+    State1 --> State2 : E﹕char_b
+    State2 --> State1 : E﹕char_a
+    State2 --> State1 : E﹕char_b
 ```
-Row<Digit1, char_0, Digit2>,
-Row<Digit1, char_1, Digit2>,
-Row<Digit1, char_2, Digit2>,
-Row<Digit1, char_3, Digit2>,
-Row<Digit1, char_4, Digit2>,
-Row<Digit1, char_5, Digit2>,
-Row<Digit1, char_6, Digit2>,
-...
+char_a, char_b 이벤트 모두 State1, State2 간의 전이를 가능하게 한다.  
+&nbsp;  
+
+해당 관계를 어떻게 줄일 수 있는지 코드를 보면 이해가 된다.  
+```c++
+// back-end header
+#include <boost/msm/back/state_machine.hpp>
+
+// front-end header
+#include <boost/msm/front/state_machine_def.hpp>
+
+// funtor row type header
+#include <boost/msm/front/functor_row.hpp>
+
+// for mpl_list
+#include <boost/mp11/mpl_list.hpp>
+
+namespace msm = boost::msm;
+namespace mp11 = boost::mp11;
+
+// 이벤트 정의
+struct letter
+{
+};
+// letter라는 이벤트를 상속한다.
+struct char_a : public letter
+{
+};
+struct char_b : public letter
+{
+};
+
+struct MyFSM_ : public msm::front::state_machine_def<MyFSM_>
+{
+    struct State_1 : public msm::front::state<>
+    {
+    };
+
+    struct State_2 : public msm::front::state<>
+    {
+    };
+
+    using initial_state = State_1;
+
+    /*
+    굳이 밑과 같이 정의하지 않아도 된다.
+    using transition_table = mp11::mp_list<msm::front::Row<State_1, char_a, State_2>,
+                                           msm::front::Row<State_2, char_b, State_1>,
+                                           msm::front::Row<State_1, char_a, State_2>,
+                                           msm::front::Row<State_2, char_b, State_1>>;
+    */
+
+    // 부모 이벤트를 이용해서 관계를 정의할 수 있다.  
+    using transition_table = mp11::mp_list<msm::front::Row<State_1, letter, State_2>,
+                                           msm::front::Row<State_2, letter, State_1>>;
+};
+
+using MyFSM = msm::back::state_machine<MyFSM_>;
+
+int main()
+{
+    MyFSM fsm;
+    fsm.start();
+    fsm.process_event(char_a());
+    fsm.process_event(char_b());
+    fsm.process_event(char_b());
+    fsm.process_event(char_a());
+    fsm.stop();
+
+    return 0;
+}
 ```
+이벤트 상속 관계를 이용해 관계 테이블을 좀 더 깔끔하게 작성할 수 있다.  
