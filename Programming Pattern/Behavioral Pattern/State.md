@@ -149,6 +149,10 @@ on/off 함수는 동작(Event), OnState/OffState 객체는 상태가 된다.
 map 자료구조를 이용하면 직접 FSM(Finite State Machine, 유한 상태 기계)을 만들 수 있다.  
 만드려는 상태 구조는 밑과 같다.  
 ```mermaid
+---
+title : Custom State Machine UML
+---
+
 stateDiagram-v2
     [*] --> None
     None --> Play : Event﹕start
@@ -157,6 +161,7 @@ stateDiagram-v2
     Stop --> Play : Event﹕resume
     Stop --> None : Event﹕exit
 ```
+이러한 도표를 [UML State Diagrams](https://en.wikipedia.org/wiki/UML_state_machine)이라고 한다.  
 &nbsp;  
 
 일단 상태들을 enum으로 정의하자.  
@@ -2811,6 +2816,52 @@ int main()
 }
 ```
 이벤트 상속 관계를 이용해 관계 테이블을 좀 더 깔끔하게 작성할 수 있다.  
+&nbsp;  
+
+### 정확한 상태 전이 시점  
+
+먼저 UML을 보자.  
+```mermaid
+---
+title : Custom State Machine UML
+---
+
+stateDiagram-v2
+    State1: State 1
+    State2: State 2  
+    [*] --> State1
+    State1 --> State2 : E﹕next\nA﹕next_action\nG﹕next_guard
+```
+일단 기본적으로 ```next --> State 1 [on_exit] --> next_guard --> next_action --> State 2 [on_entry]``` 이러한 순서로 실행될 것이다.  
+위에서 next 이벤트가 발생하는 경우 정확히 어느 시점에 상태가 State 2로 변경되는가?  
+next 이벤트가 발생한 직후 바로? 아니면 next_action이 수행되고?  
+이를 명확하게 해주려면 active_state_switch_policy를 재정의해야 한다.  
+
+방법의 종류는 밑과 같다.  
+
+1. active_state_switch_after_entry  
+    State 2의 on_entry() 함수가 수행된 후 현재 상태가 State 2로 바뀐다.  
+    active_state_switch_policy가 따로 지정되지 않으면 default로 해당 기능이 지정된다.  
+
+1. active_state_switch_after_exit  
+    State 1의 on_exit() 함수가 수행된 후 현재 상태가 State 2로 바뀐다.  
+
+1. active_state_switch_before_transition  
+    next_guard가 상태 전이를 허용한 후 현재 상태가 State 2로 바뀐다.  
+
+1. active_state_switch_after_transition_action  
+    next_action가 수행된 후 현재 상태가 State 2로 바뀐다.  
+&nbsp;  
+
+밑과 같이 사용할 수 있다.  
+```c++
+struct MyFsm : public boost::msm::front::state_machine_def<MyFsm>
+{
+    using active_state_switch_policy = boost::msm::active_state_switch_before_transition;
+
+    // 나머지 구현부 생략  
+};
+```
 &nbsp;  
 
 ## 요약  
