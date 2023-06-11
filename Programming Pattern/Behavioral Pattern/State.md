@@ -2823,7 +2823,7 @@ int main()
 먼저 UML을 보자.  
 ```mermaid
 ---
-title : Custom State Machine UML
+title : Transition Timing UML
 ---
 
 stateDiagram-v2
@@ -2834,7 +2834,7 @@ stateDiagram-v2
 ```
 일단 기본적으로 ```next --> State 1 [on_exit] --> next_guard --> next_action --> State 2 [on_entry]``` 이러한 순서로 실행될 것이다.  
 위에서 next 이벤트가 발생하는 경우 정확히 어느 시점에 상태가 State 2로 변경되는가?  
-next 이벤트가 발생한 직후 바로? 아니면 next_action이 수행되고?  
+next 이벤트가 발생한 직후 바로? 아니면 next_action이 수행되고? 아니면 State 2의 on_entry() 함수가 수행될 때?  
 이를 명확하게 해주려면 active_state_switch_policy를 재정의해야 한다.  
 
 방법의 종류는 밑과 같다.  
