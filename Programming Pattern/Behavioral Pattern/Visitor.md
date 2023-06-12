@@ -550,3 +550,170 @@ std::cout << evaluator.result << std::endl;
 &nbsp;  
 
 ## 비순환 방문자  
+
+순환 방문자가 함수 오버로딩에 중점을 두었다면 비순환 방문자는 런타임 타입 정보(RTTI)에 의존한다.  
+RTTI를 이용하기에 속도에서 살짝 손해를 본다.  
+순환 방문자에서는 클래스 계층에서도 방문자를 알아야 하고 방문자도 클래스 계층을 알아야 하기에 구현이 엄격하다.  
+비순환 방문자는 모든 클래스 계층을 알지 못해도 괜찮다.  
+즉 선택적으로 원하는 자료형에 대해 visit() 함수를 구현해도 컴파일이 된다.  
+&nbsp;  
+
+일단 밑과 같이 템플릿을 이용한 방문자 인터페이스가 존재해야 한다.  
+```c++
+// expression_visitor.hpp
+template <typename Visitable>
+struct Visitor
+{
+    virtual void visit(Visitable &obj) = 0;
+};
+```
+추후에 ```Visitor<AdditionExpression>``` 이런식으로 방문자에 상속된다.  
+&nbsp;  
+
+템플릿을 이용한 Visitor 클래스로는 다형성을 취할 수 없기에 밑과 같은 마커 인터페이스를 추가로 상속해야 한다.  
+```c++
+// expression_visitor.hpp
+struct VisitorBase
+{
+    virtual ~VisitorBase() = default;
+};
+```
+다형성을 취하기 위해 가상 소멸자를 달아준다.  
+&nbsp;  
+
+수식 Base 클래스는 밑과 같다.  
+```c++
+// expression.hpp
+struct Expression
+{
+    virtual ~Expression() = default;
+    virtual void accept(VisitorBase &obj){};
+};
+```
+비순환 방문자에서는 accept() 함수를 필수적으로 구현하지 않아도 되기에 가상 함수로 놓아둔다.  
+&nbsp;  
+
+나머지 수식도 구현해준다.  
+```c++
+// expression.hpp
+struct NumberExpression : Expression
+{
+    double value;
+    explicit NumberExpression(const double value)
+        : value{value}
+    {
+    }
+
+    void accept(VisitorBase &obj) override;
+};
+
+struct AdditionExpression : Expression
+{
+    Expression *left, *right;
+
+    AdditionExpression(Expression *const left, Expression *const right)
+        : left{left}, right{right}
+    {
+    }
+
+    ~AdditionExpression()
+    {
+        delete left;
+        delete right;
+    }
+
+    void accept(VisitorBase &obj) override;
+};
+```
+accept() 함수의 인자가 VisitorBase인 것을 주목하자.  
+&nbsp;  
+
+중요한 것은 accept() 함수의 실제 구현부다.  
+방문자가 ```VisitorBase```, ```Visitor<T>```를 다중 상속하고 있다는 점을 활용한다.  
+```c++
+// expression.cpp
+void NumberExpression::accept(VisitorBase &obj)
+{
+    using EV = Visitor<std::remove_reference<decltype(*this)>::type>; // EV = NumberExpression
+    if (auto ev = dynamic_cast<EV *>(&obj))
+        ev->visit(*this);
+}
+
+void AdditionExpression::accept(VisitorBase &obj)
+{
+    using EV = Visitor<std::remove_reference<decltype(*this)>::type>; // EV = AdditionExpression
+    if (auto ev = dynamic_cast<EV *>(&obj))
+        ev->visit(*this);
+}
+```
+먼저 VisitorBase를 이용해 특정 방문자를 받는다.  
+그 후 자신의 클래스에 대한 방문자로 형변환이 가능한지 dynamic_cast로 확인해본다.  
+형변환이 된다면 자신의 클래스에 대한 visit() 함수를 호출한다.  
+```using EV = Visitor<NumberExpression>``` 이렇게 사용할 수도 있지만 typeinfo 헤더의 힘을 빌려 accept() 로직을 통일하는 것이 더 바람직해 보여 위와 같이 구현했다.  
+&nbsp;  
+
+다음은 실제 방문자의 구현부다.  
+```c++
+// expression_visitor.hpp
+struct NumberExpression;
+struct AdditionExpression;
+
+struct ExpressionPrinter : VisitorBase,
+                           Visitor<NumberExpression>,
+                           Visitor<AdditionExpression>
+{
+    void visit(NumberExpression &) override;
+    void visit(AdditionExpression &) override;
+
+    std::string str() const
+    {
+        return oss.str();
+    }
+
+  private:
+    std::ostringstream oss;
+};
+```
+다중 상속을 이용해 visit() 함수를 재정의한다.  
+해당 기법의 장점은 ```Visitor<AdditionExpression>```에 대한 상속을 끊어도 컴파일이 된다.  
+단지 AdditionExpression 클래스에서 accept() 함수를 수행해도 아무런 일이 발생하지 않을 뿐이다.  
+손쉽게 자신이 원하는 클래스에 대한 방문자만 마련해 놓을 수 있는 것이 장점이다.  
+&nbsp;  
+
+visit() 함수의 세부 구현은 [순환 방문자](#순환-방문자)와 별 다를 것이 없다.  
+```c++
+// expression_visitor.cpp
+void ExpressionPrinter::visit(NumberExpression &obj)
+{
+    oss << obj.value;
+}
+
+void ExpressionPrinter::visit(AdditionExpression &obj)
+{
+    oss << "(";
+    obj.left->accept(*this);
+    oss << "+";
+    obj.right->accept(*this);
+    oss << ")";
+}
+```
+&nbsp;  
+
+활용도 거의 동일하다.  
+```c++
+auto e = new AdditionExpression{/* 동일 수식 */};
+
+std::ostringstream oss;
+ExpressionPrinter printer;
+
+printer.visit(*e);
+std::cout << printer.str() << std::endl;
+```
+단지 visit() 함수가 수식을 참조로 받는 것이 다를 뿐이다.  
+&nbsp;  
+
+## std::variant와 std::visit  
+
+&nbsp;  
+
+## 요약  
