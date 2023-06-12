@@ -10,7 +10,7 @@
 ## 동적 전략  
 
 특정 텍스트가 주어지면 Html과 MarkDown 두 가지 포맷으로 출력해주는 전략 클래스를 만들어보자.  
-먼저 밑과 같은 enum 클래스가 있어야 한다.  
+먼저 밑과 같은 enum 클래스를 구현한다.  
 ```c++
 enum class OutputFormat
 {
@@ -126,7 +126,7 @@ std::cout << tp.str() << std::endl;
 tp.clear();
 tp.set_output_format(OutputFormat::Html);
 tp.append_list({"foo", "bar", "baz"});
-std::cout << tp.str() << std::endl;
+std::cout << tp.str();
 ```
 &nbsp;  
 
@@ -142,6 +142,66 @@ std::cout << tp.str() << std::endl;
 <li>baz</li>
 </ul>
 ```
+&nbsp;  
+
+### std::variant 활용  
+
+따로 enum을 정의하기 싫은 경우도 있을 것이다.  
+그런 경우 밑과 같이 만들어 줄 수도 있다.  
+```c++
+class TextProcessor
+{
+    // 동일 구현부 생략
+
+    void set_output_format(std::unique_ptr<ListStrategy> format)
+    {
+        list_strategy = std::move(format);
+    }
+};
+```
+이래도 되긴 하지만 사용자에게 허용되지 않은 XmlListStrategy 같은 전략 행위를 인자로 넘기는 경우 문제가 발생할 수 있다.  
+&nbsp;  
+
+위와 같은 문제를 방지하기 위해 std::variant를 사용하여 enum과 같은 효과를 취할 수 있다.  
+```c++
+class TextProcessor
+{
+    // 동일 구현부 생략
+
+    void set_output_format(std::variant<std::unique_ptr<MarkdownListStrategy>, std::unique_ptr<HtmlListStrategy>> format)
+    {
+        switch (format.index())
+        {
+        case 0:
+            list_strategy = std::move(std::get<0>(format));
+            break;
+        case 1:
+            list_strategy = std::move(std::get<1>(format));
+            break;
+        default:
+            throw std::runtime_error("Unsupported strategy.");
+        }
+    }
+};
+```
+특정 전략 행위만 사용하도록 컴파일 시간에 제한할 수 있다.  
+&nbsp;  
+
+밑과 같이 이용할 수 있다.  
+```c++
+// markdown
+TextProcessor tp;
+tp.set_output_format(std::make_unique<MarkdownListStrategy>());
+tp.append_list({"foo", "bar", "baz"});
+std::cout << tp.str() << std::endl;
+
+// html
+tp.clear();
+tp.set_output_format(std::make_unique<HtmlListStrategy>());
+tp.append_list({"foo", "bar", "baz"});
+std::cout << tp.str();
+```
+달라진 점은 set_output_format() 함수 인자로 스마트 포인터를 넘겨야 한다는 것이다.  
 &nbsp;  
 
 ## 정적 전략  
@@ -188,7 +248,7 @@ std::cout << tpm.str() << std::endl;
 // html
 TextProcessor<HtmlListStrategy> tph;
 tph.append_list({"foo", "bar", "baz"});
-std::cout << tph.str() << std::endl;
+std::cout << tph.str();
 ```
 동적으로 포맷 지정이 불가하여 TextProcessor 객체를 포맷마다 따로 만들어줘야 한다.  
 출력 결과는 [동적 전략](#동적-전략)의 결과와 동일하다.  
@@ -199,3 +259,5 @@ std::cout << tph.str() << std::endl;
 1. 전략 패턴에서 각 행위에 대한 세부 구현은 전략 인터페이스를 상속한 전략 클래스에 위치한다.  
 
 2. 동적 전략, 정적 전략 중 어떤 것을 선택할 지는 개발자의 선택에 달렸다.  
+
+3. 특정 전략 행위만 사용하도록 사용자에 강제하기 위해 enum, std::variant 등을 이용할 수 있다.  
