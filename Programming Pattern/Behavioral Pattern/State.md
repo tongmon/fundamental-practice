@@ -181,7 +181,8 @@ enum class Event
 {
     start,
     pause,
-    resume
+    resume,
+    exit
 };
 ```
 &nbsp;  
