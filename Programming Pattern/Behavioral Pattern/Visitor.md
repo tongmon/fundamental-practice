@@ -586,11 +586,10 @@ struct VisitorBase
 // expression.hpp
 struct Expression
 {
-    virtual ~Expression() = default;
-    virtual void accept(VisitorBase &obj){};
+    virtual void accept(VisitorBase &obj) = 0;
 };
 ```
-비순환 방문자에서는 accept() 함수를 필수적으로 구현하지 않아도 되기에 가상 함수로 놓아둔다.  
+accept() 함수의 인자가 VisitorBase인 것을 주목하자.  
 &nbsp;  
 
 나머지 수식도 구현해준다.  
@@ -625,7 +624,7 @@ struct AdditionExpression : Expression
     void accept(VisitorBase &obj) override;
 };
 ```
-accept() 함수의 인자가 VisitorBase인 것을 주목하자.  
+별로 특이할 것이 없다.  
 &nbsp;  
 
 중요한 것은 accept() 함수의 실제 구현부다.  
@@ -675,9 +674,9 @@ struct ExpressionPrinter : VisitorBase,
 };
 ```
 다중 상속을 이용해 visit() 함수를 재정의한다.  
-해당 기법의 장점은 ```Visitor<AdditionExpression>```에 대한 상속을 끊어도 컴파일이 된다.  
+해당 기법의 장점은 ```Visitor<AdditionExpression>```와 같이 특정 방문자에 대한 상속을 끊어도 컴파일이 된다는 것이다.  
 단지 AdditionExpression 클래스에서 accept() 함수를 수행해도 아무런 일이 발생하지 않을 뿐이다.  
-손쉽게 자신이 원하는 클래스에 대한 방문자만 마련해 놓을 수 있는 것이 장점이다.  
+손쉽게 자신이 원하는 자료형에 대한 방문자만 작동시킬 수 있다.  
 &nbsp;  
 
 visit() 함수의 세부 구현은 [순환 방문자](#순환-방문자)와 별 다를 것이 없다.  
