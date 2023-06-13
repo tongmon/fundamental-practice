@@ -96,7 +96,15 @@ eval() 함수가 추가되면 Expression은 출력과 계산 두 가지의 일�
 
 ## Reflective 방문자  
 
-dynamic_cast를 이용한 방문자를 만들어보자.  
+Reflective 방문자 기법은 dynamic_cast를 활용한다.  
+
+일단 dynamic_cast에 대한 대략적인 특징을 알아보자.  
+dynamic_cast는 런타임에 다형성을 이용하여 모호한 타입 캐스팅을 시도할 때 오류를 방지하는 역할을 해준다.  
+클래스가 다형성을 갖추기 위해서는 virtual 키워드가 사용된 멤버가 한 개라도 존재해야 한다.  
+다형성 없는 클래스를 대상으로 dynamic_cast 할 수 있는 경우는 자식 클래스에서 부모 클래스로의 업 캐스팅 뿐이다.  
+업 캐스팅은 형변환을 명시적으로 적어주지 않아도 되기에 dynamic_cast를 붙일 필요가 없다.  
+따라서 dynamic_cast의 대상은 **다형성이 존재하는 클래스**라고 봐도 무방하다.  
+
 일단 수식 인터페이스는 밑과 같이 바뀐다.  
 ```c++
 struct Expression
@@ -105,17 +113,15 @@ struct Expression
 };
 ```
 수식의 종류는 다양하지만 **수식**이라는 공통점이 있기에 Expression은 남아있어야 한다.  
-dynamic_cast는 기본적으로 자식 클래스에서 부모 클래스로의 **업 캐스팅**은 허용하지만 그 반대인 **다운 캐스팅**은 금지한다.  
-하지만 한 가지 예외가 있는데 부모 클래스가 다형성을 갖춘 경우에는 다운 캐스팅도 허용된다.  
-Reflective 방문자는 다운 캐스팅을 이용하기에 Expression에 가상 소멸자를 만들어 다형성을 부여한다.  
+dynamic_cast를 추후에 이용하기 위해 가상 소멸자를 만들어 다형성을 부여한다.  
 &nbsp;  
 
 각 수식은 밑과 같다.  
 ```c++
-struct DoubleExpression : Expression
+struct NumberExpression : Expression
 {
     double value;
-    explicit DoubleExpression(const double value)
+    explicit NumberExpression(const double value)
         : value{value}
     {
     }
@@ -148,7 +154,7 @@ struct ExpressionPrinter
 
     void print(Expression *e)
     {
-        if (auto de = dynamic_cast<DoubleExpression *>(e))
+        if (auto de = dynamic_cast<NumberExpression *>(e))
         {
             oss << de->value;
         }
@@ -177,10 +183,10 @@ dynamic_cast를 사용해 어떤 수식인지 분류하여 처리한다.
 실제 사용법을 보면 방문자 패턴이 대략 어떻게 쓰이는지 알 수 있다.  
 ```c++
 auto e = new AdditionExpression{
-    new DoubleExpression{1},
+    new NumberExpression{1},
     new AdditionExpression{
-        new DoubleExpression{2},
-        new DoubleExpression{3}}};
+        new NumberExpression{2},
+        new NumberExpression{3}}};
 
 std::ostringstream oss;
 ExpressionPrinter ep;
@@ -584,6 +590,8 @@ struct VisitorBase
 수식 Base 클래스는 밑과 같다.  
 ```c++
 // expression.hpp
+struct VisitorBase;
+
 struct Expression
 {
     virtual void accept(VisitorBase &obj) = 0;
@@ -633,14 +641,14 @@ struct AdditionExpression : Expression
 // expression.cpp
 void NumberExpression::accept(VisitorBase &obj)
 {
-    using EV = Visitor<std::remove_reference<decltype(*this)>::type>; // EV = NumberExpression
+    using EV = Visitor<std::remove_reference_t<decltype(*this)>>; // EV = NumberExpression
     if (auto ev = dynamic_cast<EV *>(&obj))
         ev->visit(*this);
 }
 
 void AdditionExpression::accept(VisitorBase &obj)
 {
-    using EV = Visitor<std::remove_reference<decltype(*this)>::type>; // EV = AdditionExpression
+    using EV = Visitor<std::remove_reference_t<decltype(*this)>>; // EV = AdditionExpression
     if (auto ev = dynamic_cast<EV *>(&obj))
         ev->visit(*this);
 }
@@ -713,6 +721,148 @@ std::cout << printer.str() << std::endl;
 
 ## std::variant와 std::visit  
 
+std::variant 변수에 방문자와 비슷한 역할을 해주는 std::visit 함수가 있다.  
+예제를 보면 이해가 쉽다.  
+```c++
+struct Printer
+{
+    void operator()(const int &var)
+    {
+        std::cout << "int-> " << var;
+    }
+    void operator()(const std::string &var)
+    {
+        std::cout << "string-> " << var;
+    }
+};
+```
+위와 같은 Functor가 있다.  
+&nbsp;  
+
+해당 Functor를 이용해서 std::visit을 활용해보자.  
+```c++
+std::variant<int, std::string> var = "hello world";
+std::visit(Printer(), var);
+
+// 출력 결과: string-> hello world
+```
+문자열이 넘어가 ```void operator()(std::string &var)```가 호출된다.  
+&nbsp;  
+
+숫자가 넘어가면 ```void operator()(int &var)```가 호출된다.  
+```c++
+std::variant<int, std::string> var = 123;
+std::visit(Printer(), var);
+
+// 출력 결과: int-> 123
+```
+&nbsp;  
+
+람다도 가능하다.  
+```c++
+std::variant<int, std::string> var = "lambda";
+std::visit([](auto &var) -> void {
+    using T = std::decay_t<decltype(var)>;
+    if constexpr (std::is_same_v<T, int>)
+        std::cout << "int-> " << var;
+    else if constexpr (std::is_same_v<T, std::string>)
+        std::cout << "string-> " << var;
+}, var);
+```
+&nbsp;  
+
+수식 클래스에 std::visit을 적용해보자.  
+```c++
+struct Expression
+{
+    virtual ~Expression() = default;
+};
+
+struct NumberExpression : Expression
+{
+    double value;
+    explicit NumberExpression(const double value)
+        : value{value}
+    {
+    }
+};
+
+struct AdditionExpression : Expression
+{
+    Expression *left, *right;
+
+    AdditionExpression(Expression *const left, Expression *const right)
+        : left{left}, right{right}
+    {
+    }
+
+    ~AdditionExpression()
+    {
+        delete left;
+        delete right;
+    }
+};
+```
+Expression들은 바뀐 게 거의 없다.  
+&nbsp;  
+
+수식 출력 방문자 Functor를 구현해보자.  
+```c++
+// std::variant 자료형 이름 줄이기
+using Factor = std::variant<Expression *, NumberExpression *, AdditionExpression *>;
+
+struct ExpressionPrinter
+{
+    std::ostringstream oss;
+
+    void operator()(Expression *exp)
+    {
+        Factor expression;
+        if (auto ptr = dynamic_cast<NumberExpression *>(exp))
+            expression = ptr;
+        else if (auto ptr = dynamic_cast<AdditionExpression *>(exp))
+            expression = ptr;
+        std::visit(*this, static_cast<Factor>(expression));
+    }
+
+    void operator()(NumberExpression *exp)
+    {
+        oss << exp->value;
+    }
+
+    void operator()(AdditionExpression *exp)
+    {
+        oss << "(";
+        std::visit(*this, static_cast<Factor>(exp->left));
+        oss << "+";
+        std::visit(*this, static_cast<Factor>(exp->right));
+        oss << ")";
+    }
+
+    std::string str() const
+    {
+        return oss.str();
+    }
+};
+```
+```void operator()(Expression *exp)``` 함수를 보면 알겠지만 std::visit에서 다형성 고려를 자동으로 안해주기에 일일이 dynamic_cast를 해줘야 한다.  
+&nbsp;  
+
+활용은 밑과 같다.  
+```c++
+auto e = new AdditionExpression{/* 동일 수식 */};
+
+ExpressionPrinter printer;
+std::visit(printer, static_cast<Factor>(e));
+
+std::cout << printer.str() << std::endl;
+```
 &nbsp;  
 
 ## 요약  
+
+1. 기존 객체의 많은 부분을 수정하기 어렵다면 코드 구조 변경이 적은 Reflective 방문자 방식을 이용하는 것이 좋다.  
+
+2. 순환/비순환 방문자 방식은 코드의 전반적인 구조를 수정해야 하지만 한 번 완성해놓으면 그 다음부터 기능 확장이 굉장히 편해진다.  
+
+3. 방문자 패턴은 주로 인터프리터 패턴에서 구문 트리를 해석할 때 이용된다.  
