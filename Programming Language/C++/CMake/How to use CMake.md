@@ -173,7 +173,7 @@ else문, else if문은 else(), elseif()로 사용한다.
 
 * **add_custom_command**  
 특정 타켓의 빌드 시점에 따라 터미널 명령어를 수행하거나 통상적인 빌드 절차로 생성할 수 없는 별도의 파일들을 관리하는 경우 사용된다.  
-빌드 시점도 POST_BUILD, PRE_LINK, POST_BUILD 이렇게 세분화하여 지정할 수 있다.  
+빌드 시점도 PRE_BUILD, PRE_LINK, POST_BUILD 이렇게 세분화하여 지정할 수 있다.  
 예를 들어 특정 경로에 존재하는 dll을 MyExecutable이라는 타켓이 빌드된 후 특정 폴더로 옮기고 싶다면 아래와 같이 ```add_custom_command()```를 사용한다.  
 	```cmake
 	add_custom_command(TARGET MyExecutable POST_BUILD
@@ -361,12 +361,20 @@ BUILD_SHARED_LIBS가 ON이면 ```add_library()```가 수행될 때 명시적으�
 C++ 빌드할 때 사용되는 컴파일러 이름이 세팅되어 있다.  
 Visual Studio는 MSVC, Clang은 Clang, GCC는 GNU이다.  
 
+* **CMAKE_EXECUTABLE_SUFFIX**  
+실행 파일의 확장자가 저장된다.  
+윈도우에서는 ```.exe```가 기본적으로 세팅된다.  
+
+* **OUTPUT_NAME**  
+특정 타겟의 이름을 설정할 수 있다.  
+따로 세팅하지 않으면 논리적 타겟 이름이 디폴트로 설정된다.  
+
 * **```$<변수 이름>```**  
 CMake 구성 시간이 아닌 빌드 수행시 결정되는 변수들이 지정된다.  
 예를 들어 빌드 시간에 결정되는 --config 인자에 넘겨진 값을 사용하고 싶다면  ```$<CONFIG>```를 이용하면 된다.  
 좋은 점은 변수들을 조합해서 조건식을 만들 수가 있다.  
 예를 들어 ```$<IF:$<CONFIG:Debug>,--debug,--release>``` 이러한 식은 ```$<CONFIG>``` 이 녀석이 Debug면 --debug, 아니면 --release를 도출한다.  
-자세한 내용은 https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html 여기를 참조하자.  
+자세한 내용은 [여기](https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html)를 참조하자.  
 &nbsp;  
 
 ## CMake 명령어 문법  
@@ -398,7 +406,7 @@ CMake 세팅을 할 때는 파일 경로를 적는 일이 잦은데 경로 구�
 이유는 링크 종속성을 전달하는 방식이 플랫폼마다 다르기 때문인데 Mac과 같은 Unix 기반에서는 Unix Makefiles가 생성기 역할을 해주고 Windows에서는 Visual Studio가 이 역할을 해준다.  
 물론 Ninja와 같이 크로스 플랫폼 생성기도 있지만 프로젝트가 돌아가는 컴퓨터에 Ninja가 깔려있을 것이라는 보장이 없지 않은가? 따라서 자신이 빌드할 때 특정한 생성기를 이용하여 빌드하고 싶다면 -G 옵션을 사용하면 된다.   
 예를 들어 ```cmake -S .. -B . -G "Visual Studio 16 2019"``` 이렇게 하면 CMake관련 빌드 구성 파일들이 Visual Studio 2019를 통해 생성된다.  
-생성기에 대한 자세한 답변은 https://stackoverflow.com/questions/25941536/what-is-a-cmake-generator 요기에 잘 설명되어 있다.
+생성기에 대한 자세한 답변은 [이곳](https://stackoverflow.com/questions/25941536/what-is-a-cmake-generator)에 잘 설명되어 있다.
 
 * _--graphviz_  
 --graphviz 옵션은 dot이라는 모듈 종속성 그리기 프로그램이 설치되어 있어야 사용이 가능하다. (```choco install graphviz```를 했다면 사용이 가능하다.)  
@@ -639,7 +647,7 @@ git, vcpkg, conan 등등... 각각의 방법에 대해 알아보자.
 예를들어 굉장히 유명한 C++ 전용 로깅 라이브러리인 [spdlog](https://github.com/gabime/spdlog)를 사용하고 싶다면 다음과 같이 명령을 선언하면 된다.   
 ```FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.11.0)```   
 GIT_TAG를 주의해야 하는데 태그 주소를 보고 적어야 한다.  
-즉 https://github.com/gabime/spdlog/releases/tag/v1.11.0이면 v1.11.0 이 녀석을 적는다.   
+즉 ```https://github.com/gabime/spdlog/releases/tag/v1.11.0```이면 v1.11.0 이 녀석을 적는다.   
 
 1. **FetchContent_Declare 바로 밑에  ```FetchContent_MakeAvailable(<라이브러리 이름>)```을 적는다.**  
 
