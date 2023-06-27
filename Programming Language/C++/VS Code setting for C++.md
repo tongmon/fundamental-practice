@@ -7,18 +7,18 @@ Linux나 Mac에서 C++ 빌드 환경을 구성하는 것은 Windows랑 별반 �
 
 1. Microsoft Store에 들어가서 Windows Terminal을 설치해준다. (그냥 깔려져있는 Powershell을 이용해도 되지만 편의성을 위해서 설치해준다.)  
 
-2. Windows Terminal에서 PowerShell 탭을 열고 ```$PSVersionTable``` 명령어를 수행한 뒤에 출력된 PSVersion이 3 이상인지 확인한다. (3이하라면 PowerShell을 업데이트해준다.)  
+1. Windows Terminal에서 PowerShell 탭을 열고 ```$PSVersionTable``` 명령어를 수행한 뒤에 출력된 PSVersion이 3 이상인지 확인한다. (3이하라면 PowerShell을 업데이트해준다.)  
 
-3. .NET Framework 4.5 버전 이상이 설치되어 있는지 확인한다. (Visual Studio에서 ```.NET 테스크톱 개발``` 항목을 선택하면 알아서 최신버전의 .NET Framework를 설치해준다.)  
+1. .NET Framework 4.5 버전 이상이 설치되어 있는지 확인한다. (Visual Studio에서 ```.NET 테스크톱 개발``` 항목을 선택하면 알아서 최신버전의 .NET Framework를 설치해준다.)  
 
-4. Windows Terminal을 관리자 모드로 열고 PowerShell 탭을 띄운후에 Get-ExecutionPolicy 명령어를 수행 후에 Restricted인지 확인한다.  
+1. Windows Terminal을 관리자 모드로 열고 PowerShell 탭을 띄운후에 Get-ExecutionPolicy 명령어를 수행 후에 Restricted인지 확인한다.  
 Restricted이라면 Set-ExecutionPolicy AllSigned 명령어를 추가적으로 수행해준다.  
 
 1. ```Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))``` 명령어를 수행해 Chocolatey를 설치해준다.  
   
-2. 설치가 끝났으면 Windows Terminal를 관리자 모드로 재시작해주고 PowerShell 탭을 띄우고 choco 명령어를 수행해 Chocolatey가 잘 설치되었는지 확인한다.  
+1. 설치가 끝났으면 Windows Terminal를 관리자 모드로 재시작해주고 PowerShell 탭을 띄우고 choco 명령어를 수행해 Chocolatey가 잘 설치되었는지 확인한다.  
   
-3. ```choco install graphviz```, ```choco install git```, ```choco install doxygen.install```, ```choco install python```, ```choco install cmake``` 여기까지는 어떤 컴파일러를 사용하던지 필수적이니 깔아준다.  
+1. ```choco install graphviz```, ```choco install git```, ```choco install doxygen.install```, ```choco install python```, ```choco install cmake``` 여기까지는 어떤 컴파일러를 사용하던지 필수적이니 깔아준다.  
    
 	* **Visual Studio를 사용하고 싶다.**  
 		Visual Studio Installer를 다운받고 C++ 구성요소를 선택하고 Visual Studio를 설치해주면 된다.  
@@ -38,7 +38,7 @@ Restricted이라면 Set-ExecutionPolicy AllSigned 명령어를 추가적으로 �
 		반면에 리눅스에서는 multilib를 설치하면 x64 GCC로 x86용 프로그램을 빌드 할 수 있다.  
 		이렇게 세팅한다면 generator는 ```MinGW Makefiles```(혹은 ```Unix Makefiles```), C 컴파일러는 ```gcc```, C++ 컴파일러는 ```g++```, 디버거는 ```gdb```를 사용하게 된다.  	
 
-4. CMake를 설치해도 PowerShell 관리자 모드에서 cmake --version 명령어가 제대로 실행되지 않는다면 환경변수가 제대로 설정되지 않은 것이니 시스템 속성 -> 고급 탭 -> 환경 변수 -> 시스템 변수 -> Path 에 cmake.exe가 위치한 폴더 경로를 추가해주자. (보통 ```C:\Program Files\CMake\bin``` 이거다.)   
+1. CMake를 설치해도 PowerShell 관리자 모드에서 cmake --version 명령어가 제대로 실행되지 않는다면 환경변수가 제대로 설정되지 않은 것이니 시스템 속성 -> 고급 탭 -> 환경 변수 -> 시스템 변수 -> Path 에 cmake.exe가 위치한 폴더 경로를 추가해주자. (보통 ```C:\Program Files\CMake\bin``` 이거다.)   
 
 ## VS Code 플러그인  
 아래는 VS Code에서 C++ 사용시 유용한 플러그인 이름이 나열된다.  
@@ -431,9 +431,9 @@ C++을 빌드할 수 있는 환경이 다양한 플러그인 설치를 통해 �
         	* toolchainFile   
 				CMake의 CMAKE_TOOLCHAIN_FILE 변수를 지정하는 것과 동일한 효과지만 이게 더 추천된다.  
 
-			더 자세한 정보는 https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html 이곳에 적혀있다.  
+			더 자세한 정보는 [이곳](https://cmake.org/cmake/help/latest/manual/cmake-presets.7.html)에 적혀있다.  
 		
-		1. 해당 CMakePresets.json을 다 작성했다면 CMake Tools에서 제공하는 하단의 파란색 바에서 적절한 구성, 빌드 프리셋을 선택하고 빌드하면 된다.  
+		2. 해당 CMakePresets.json을 다 작성했다면 CMake Tools에서 제공하는 하단의 파란색 바에서 적절한 구성, 빌드 프리셋을 선택하고 빌드하면 된다.  
 			파란색 바에서 CMake Tools 옵션들이 안보인다면 명령 팔레트에서 ```CMake: Configure```를 실행해보자.  
 
 ## 디버깅    
@@ -456,18 +456,25 @@ VS Code의 좌측 탭의 ```실행 밑 디버그```에 들어가서 launch.json 
     "cwd": "${workspaceFolder}"
 }
 ``` 
+
 * type  
-lldb를 쓸 것이기에 lldb로 고정한다.
+lldb를 쓸 것이기에 lldb로 고정한다.  
+
 * request  
 디버그 구성형식을 지정한다.  
-보통 launch로 구성하고 특수한 경우에만 attach로 설정한다.
+보통 launch로 구성하고 특수한 경우에만 attach로 설정한다.  
+
 * name  
-해당 디버그 구성에 대한 이름을 정하면 된다.
+해당 디버그 구성에 대한 이름을 정하면 된다.  
+
 * program  
 디버깅을 진행할 실행 프로그램의 경로를 적어준다.  
-VS Code의 CMake Tools이 알아서 지정하도록 위 예시처럼 ```${command:cmake.launchTargetPath}``` 요렇게 선언 해놓는 것이 편하다.
+VS Code의 CMake Tools이 알아서 지정하도록 위 예시처럼 ```${command:cmake.launchTargetPath}``` 요렇게 선언 해놓는 것이 편하다.  
+json에서 사용할 수 있는 command:cmake의 종류는 [이곳](https://github.com/microsoft/vscode-cmake-tools/blob/main/docs/cmake-settings.md)에 적혀있다.  
+
 * args  
-실행 파일에 전달할 파라메터를 적어준다.
+실행 파일에 전달할 파라메터를 적어준다.  
+
 * cwd  
 작업 디렉토리 경로를 적어준다.  
 &nbsp;  
@@ -490,8 +497,10 @@ VS Code의 CMake Tools이 알아서 지정하도록 위 예시처럼 ```${comman
 
 * stopAtEntry   
 이 녀석이 true면 디버그 진입점에서 중단점이 설정된 것 마냥 중단된다.  
+
 * environment  
 따로 환경 설정 관련해서 변수나 세팅이 존재한다면 여기다 적어준다.  
+
 * console  
 디버깅을 어디서 할지 결정한다.  
 ```internalConsole```면 VS Code 내부 터미널에서 진행되고 ```externalConsole```면 외부 콘솔창이 따로 켜지고 거기서 디버깅이 진행된다.   
@@ -529,11 +538,14 @@ VS Code의 CMake Tools이 알아서 지정하도록 위 예시처럼 ```${comman
 * externalConsole  
 디버깅을 어디서 진행할지 결정하는 옵션이다.  
 true인 경우 외부 콘솔창에서 디버깅이 진행된다.  
+
 * MIMode  
-gdb, lldb 둘 중 하나를 선택할 수 있는데 gdb를 사용할 것이니 gdb로 설정한다.
+gdb, lldb 둘 중 하나를 선택할 수 있는데 gdb를 사용할 것이니 gdb로 설정한다.  
+
 * miDebuggerPath  
 MIMode에 지정된 컴파일러의 경로가 적힌다.  
-gdb를 설정하였으니 gdb의 경로로 지정해준다.
+gdb를 설정하였으니 gdb의 경로로 지정해준다.  
+
 * setupCommands  
 gdb 실행시 같이 넘겨줄 인자들을 정의한다.  
 &nbsp;  
@@ -591,6 +603,80 @@ gdb 실행시 같이 넘겨줄 인자들을 정의한다.
 ```
 위 launch.json에서 개별적인 항목을 사용자 환경에 알맞게 수정해서 사용하면 된다.  
 디버깅을 시작하고 싶다면 중단점을 찍고 F5를 누르면 된다.   
+
+## Intellisense  
+
+위 항목까지 진행하면 빌드와 실행은 원활하게 잘 될 것이다.  
+문제는 VS Code 편집기에서 include path를 분명히 포함했는데 찾지 못한다고 경고 문구가 뜨는 경우가 있다는 것이다.  
+이러한 문제를 해결해주기 위해서 c_cpp_properties.json 파일을 추가적으로 작성해줘야 한다.  
+c_cpp_properties.json도 다른 json 파일들과 마찬가지로 .vscode 폴더 내부에 위치해야 한다.  
+
+밑은 c_cpp_properties.json 파일 모습이다.  
+```json
+{
+  "configurations": [
+    {
+      "name": "Win32",
+      "includePath": [
+        "${workspaceFolder}/**"
+      ],
+      "compilerPath": "C:/Program Files/Microsoft Visual Studio/2022/Professional/VC/Tools/MSVC/14.16.27023/bin/HostX64/x64/cl.exe",
+      "defines": [
+        "_DEBUG",
+        "UNICODE",
+        "_UNICODE"
+      ],
+      "cStandard": "c11",
+      "cppStandard": "c++17",
+      "intelliSenseMode": "windows-msvc-x64",
+	  "compileCommands": "${command:cmake.buildDirectory}/compile_commands.json",
+      "configurationProvider": "ms-vscode.cmake-tools"
+    }
+  ],
+  "version": 4
+}
+```
+각 옵션들에 대한 내용은 밑과 같다.  
+
+* name  
+플랫폼을 특정하여 Linux, Mac, Win32 중 선택할 수도 있고 그냥 원하는 데로 적어도 된다.  
+
+* includePath  
+Intellisense에 필요한 포함 파일 경로를 지정하면 된다.  
+필자는 프로젝트 하위 어떤 폴더든 포함하기 위해 ```${workspaceFolder}/**```로 지정했다.  
+
+* compilerPath  
+컴파일러 경로를 적어주면 된다.  
+Windows 기준으로 컴파일러에 따라 GCC는 gcc.exe, Clang은 clang.exe, MSVC는 cl.exe를 찾아서 적어주면 된다.  
+
+* defines  
+Intellisense에 필요한 프로젝트 전처리기를 지정하면 된다.  
+컴파일러에서 지정해준 것과 동일하게 적어주자.  
+
+* cStandard    
+Intellisense에 필요한 C언어 버전을 적어주자.  
+
+* cppStandard    
+Intellisense에 필요한 C++언어 버전을 적어주자.  
+
+* intelliSenseMode  
+compilerPath에서 지정한 컴파일러가 지원하는 Intellisense 모드를 지정할 수 있다.  
+```linux-gcc-x86```, ```ios-clang-x64```와 같이 ```<플랫폼>-<컴파일러>-<아키텍쳐>``` 조합에 따라 굉장히 많다.  
+
+* compileCommands  
+Intellisense에 필요한 컴파일러 부가 명령에 대한 파일인 compile_commands.json 경로를 적어주는 옵션이다.  
+CMake에서 생성한 compile_commands.json를 이용할 것이기에 ```${command:cmake.buildDirectory}/compile_commands.json```로 설정했다.  
+compile_commands.json은 CMake의 CMAKE_EXPORT_COMPILE_COMMANDS 옵션을 ON으로 설정하여 생성할 수 있다.  
+주의점은 generator가 Ninja, MakeFile인 경우만 작동한다는 것으로 MSVC 컴파일러를 이용한다면 사용할 수 없다.  
+
+* configurationProvider  
+Intellisense 구성 제공자에 대한 정보를 넘겨준다.  
+```ms-vscode.cmake-tools```로 지정했다면 부가적인 include 파일 정보를 CMake로부터 제공받는다.  
+```ms-vscode.cpptools```로 지정했다면 부가적인 include 파일 정보를 c_cpp_properties.json 파일의 ```includePath``` 부분으로부터 제공받는다.  
+
+c_cpp_properties.json 내용이 수정되면 VS Code를 한 번 껏다가 켜야 적용된다.  
+c_cpp_properties.json은 빌드 과정에서는 전혀 쓰이지 않고 Intellisense 부분에만 쓰인다는 점을 유의하자.  
+&nbsp;  
 
 ## Compiler와 Generator 특성  
 
