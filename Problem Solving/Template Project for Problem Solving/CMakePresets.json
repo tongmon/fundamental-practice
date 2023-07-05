@@ -1,0 +1,78 @@
+﻿{
+    "version": 4,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 23,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "description": "윈도우 빌드 전용 / 컴파일 빌드 폴더와 설치 폴더 지정",
+            "name": "windows-base",
+            "hidden": true,
+            "binaryDir": "${sourceDir}/Build/${presetName}",
+            "installDir": "${sourceDir}/Installed/${presetName}",
+            "toolchainFile": "C:/vcpkg/scripts/buildsystems/vcpkg.cmake",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            }
+        },
+        {
+            "description": "MinGW Makefiles와 GCC 컴파일러 사용",
+            "name": "gcc",
+            "hidden": true,
+            "generator": "MinGW Makefiles",
+            "inherits": "windows-base",
+            "cacheVariables": {
+                "CMAKE_C_COMPILER": "gcc",
+                "CMAKE_CXX_COMPILER": "g++"
+            }
+        },
+        {
+            "description": "GCC 컴파일러로 x64 디버그 빌드",
+            "name": "gcc-x64-debug",
+            "displayName": "GCC x64 Debug",
+            "inherits": "gcc",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
+                "CMAKE_CXX_FLAGS": "-m64",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "description": "GCC 컴파일러로 x64 릴리즈 빌드",
+            "name": "gcc-x64-release",
+            "displayName": "GCC x64 Release",
+            "inherits": "gcc",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-mingw-static",
+                "CMAKE_CXX_FLAGS": "-O3 -Wall -m64",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "make-base-build-settings",
+            "hidden": true,
+            "nativeToolOptions": [
+                "-j"
+            ]
+        },
+        {
+            "name": "gcc-x64-debug-build",
+            "displayName": "Debug Build",
+            "inherits": "make-base-build-settings",
+            "configurePreset": "gcc-x64-debug"
+        },
+        {
+            "name": "gcc-x64-release-build",
+            "displayName": "Release Build",
+            "inherits": "make-base-build-settings",
+            "configurePreset": "gcc-x64-release"
+        }
+    ],
+    "testPresets": []
+}

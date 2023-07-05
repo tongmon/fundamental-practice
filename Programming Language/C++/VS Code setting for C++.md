@@ -2,6 +2,7 @@
 일단 VS Code를 C++ 에디터로 사용한다는 것은 크로스 플랫폼을 고려한다는 것이지만 일단 설명은 필자가 사용하고 있는 Windows 10 기준에 중점이 맞춰져 있다.   
 Linux나 Mac에서 C++ 빌드 환경을 구성하는 것은 Windows랑 별반 차이가 없을 뿐만 아니라 오히려 더 쉬운 부분이 많다.  
 큰 차이점들을 살짝 살펴보자면 Windows에서 choco로 패키지를 설치하는 과정이 Linux에서는 apt-get install 명령어를 써야하는 것, 2023년 1월 13일 기준으로 native Linux를 지원하는 Visual Studio가 없어서 Linux에서는 보통 GCC, Clang 컴파일러를 쓰게 된다는 점, OS 별로 기저에 기본적으로 설치되어 있는 라이브러리들이 가지각색이라 상황에 따라 추가적인 라이브러리들을 설치해줘야 한다는 점 등이 있겠다.  
+&nbsp;  
 
 ## VS Code에서 C++ 빌드를 하기 위한 사전 준비
 
@@ -39,6 +40,7 @@ Restricted이라면 Set-ExecutionPolicy AllSigned 명령어를 추가적으로 �
 		이렇게 세팅한다면 generator는 ```MinGW Makefiles```(혹은 ```Unix Makefiles```), C 컴파일러는 ```gcc```, C++ 컴파일러는 ```g++```, 디버거는 ```gdb```를 사용하게 된다.  	
 
 1. CMake를 설치해도 PowerShell 관리자 모드에서 cmake --version 명령어가 제대로 실행되지 않는다면 환경변수가 제대로 설정되지 않은 것이니 시스템 속성 -> 고급 탭 -> 환경 변수 -> 시스템 변수 -> Path 에 cmake.exe가 위치한 폴더 경로를 추가해주자. (보통 ```C:\Program Files\CMake\bin``` 이거다.)   
+&nbsp;  
 
 ## VS Code 플러그인  
 아래는 VS Code에서 C++ 사용시 유용한 플러그인 이름이 나열된다.  
@@ -99,6 +101,7 @@ makefile로 명령어를 묶어 실행해 빌드하는 스타일이라면 꺼놓
 
 1.  C/C++ Include Guard by Akira Miyakoda  
 헤더 파일을 생성할 때 자동으로 헤더 가드를 붙여준다. (**설치 선택**)  
+&nbsp;  
 
 ## VS Code 환경 설정  
 C++을 빌드할 수 있는 환경이 다양한 플러그인 설치를 통해 만들어졌다면 이제 실제 코드를 작성하는 경우 생산성을 높여주는 것들에 대해서 알아본다.  
@@ -137,6 +140,7 @@ C++을 빌드할 수 있는 환경이 다양한 플러그인 설치를 통해 �
 
 4. ```VS Code 설정(좌측 하단 톱니바퀴 아이콘) -> 텍스트 편집기 -> 서식```에서 Format On Paste, Format On Save, Format On Save Mode를 모두 켜준다.   
 세이브를 하거나 세미콜론을 붙이거나(이 경우 해당 줄만) 텍스트를 붙여넣는 경우 지정한 clang format 형식에 맞춰 텍스트를 재조립해준다.  
+&nbsp;  
 
 ## CMake 환경설정  
 코드를 작성하는 환경이 편해졌으니 이제 빌드 환경을 설정해야 한다.  
@@ -435,6 +439,7 @@ C++을 빌드할 수 있는 환경이 다양한 플러그인 설치를 통해 �
 		
 		2. 해당 CMakePresets.json을 다 작성했다면 CMake Tools에서 제공하는 하단의 파란색 바에서 적절한 구성, 빌드 프리셋을 선택하고 빌드하면 된다.  
 			파란색 바에서 CMake Tools 옵션들이 안보인다면 명령 팔레트에서 ```CMake: Configure```를 실행해보자.  
+&nbsp;  
 
 ## 디버깅    
 일단 원활할 디버깅을 하려면 컴파일러와 디버거를 맞춰줘야 한다. (clang은 lldb로... msvc는 vsdbg로... gcc는 gdb로...)  

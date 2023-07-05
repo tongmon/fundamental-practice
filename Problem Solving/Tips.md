@@ -8,6 +8,7 @@ struct Cmp {
 };
 sort(K.begin(), K.end(), Cmp());
 ```
+&nbsp;  
 
 * 정사각 배열 회전  
 ```c++
@@ -24,6 +25,7 @@ void Rotate(vector<vector<int>>& mat) {
 	}
 }
 ```
+&nbsp;  
 
 * 최대공약수, 최소공배수  
 ```c++
@@ -40,7 +42,8 @@ int Lcm(int a, int b) {
 ```
 3수의 최소공배수, c <= Lcm(a, b) 라고 가정  
 ex. ```Lcm(Lcm(a, b), c)```  
-  
+&nbsp;  
+
 * 에라토스테네스의 체 (3000번까지 소수 거르기)  
 ```c++
 bool Prime[3001] = { 1,1,0, };
@@ -55,6 +58,7 @@ void Erathos() {
 	}
 }
 ```
+&nbsp;  
 
 * 소수 판정  
 ```c++
@@ -70,6 +74,7 @@ bool is_Prime(int Num) {
     return 1;
 }
 ```
+&nbsp;  
 
 * 플로이드 와샬, 징검다리 via는 항상 제일 밖의 루프  
 ```c++
