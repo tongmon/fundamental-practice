@@ -1,10 +1,4 @@
-#include <iostream>
-#include <unordered_map>
-#include <cstring>
-#include <queue>
-#include <vector>
-#include <cmath>
-#include <algorithm>
+#include <bits/stdc++.h>
 using namespace std;
 
 /*
@@ -17,44 +11,34 @@ https://www.acmicpc.net/problem/2108
 이것 땜시 겁나 시간 버렸다. 도대체 진짜.... 그나마 알아냈으니 다행이다.
 그리고 정밀도를 위해서 float대신에 double을 애용하자!
 그리고 반올림 함수 round 기억하자 아니면 내림함수 floor(a + 0.5)로 반올림 함수로 만들수 있다.
+
+--------- 2023-07-11 ---------
+재채점 후 틀려서 거의 3년만에 다시 풀었는데 과거의 위 설명을 보니 웃음만 나온다.
+음수, 양수 반올림만 잘 구분해주면 풀 수 있다.
 */
-
-#pragma warning(disable:4996)
-
-int Plus_Ary[4001], Minus_Ary[4001], Ary[500001];
-long long Sum = 0;
 
 int main()
 {
-    ios::sync_with_stdio(false); cin.tie(0); cout.tie(0);
-    int N, buffer, MAX = -1;
-    vector<int> Freq_sto;
-    cin >> N;
-    for (int i = 0; i < N; i++)
+    int n;
+    unordered_map<int, int> m;
+    cin >> n;
+    vector<int> a(n), f;
+    while (n--)
+        cin >> a[n];
+    sort(a.begin(), a.end());
+    auto e = accumulate(a.begin(), a.end(), 0) / (double)a.size();
+    for (const auto& i : a)
     {
-        cin >> Ary[i];
-        Sum = Sum + Ary[i];
-        if (Ary[i] >= 0)
-        {
-            Plus_Ary[Ary[i]] = Plus_Ary[Ary[i]] + 1; buffer = Plus_Ary[Ary[i]];
-        }
-        else
-        {
-            Minus_Ary[-Ary[i]] = Minus_Ary[-Ary[i]] + 1; buffer = Minus_Ary[-Ary[i]];
-        }
-        if (buffer > MAX) MAX = buffer;
+        if (m.find(i) == m.end())
+            m[i] = 0;
+        n = max(n, ++m[i]);
     }
-    sort(Ary, Ary + N);
-    for (int i = 4000; i > 0; i--)
-    {
-        if (MAX == Minus_Ary[i]) Freq_sto.push_back(-i);
-    }
-    for (int i = 0; i <= 4000; i++)
-    {
-        if (MAX == Plus_Ary[i]) Freq_sto.push_back(i);
-    }
-    cout << round((double)Sum / N) << '\n' << Ary[N / 2] << '\n';
-    if (Freq_sto.size() == 1) cout << Freq_sto.front() << '\n';
-    else cout << Freq_sto[1] << '\n';
-    cout << Ary[N - 1] - Ary[0];
+    for (const auto& i : m)
+        if (i.second == n)
+            f.push_back(i.first);
+    sort(f.begin(), f.end());
+    cout << (int)e + (e < 0 ? (int(e * 10) % 10 < -4 ? -1 : 0) : (int(e * 10) % 10 < 5 ? 0 : 1)) << '\n'
+        << a[a.size() / 2] << '\n'
+        << (f.size() > 1 ? f[1] : f[0]) << '\n'
+        << a.back() - a.front();
 }
