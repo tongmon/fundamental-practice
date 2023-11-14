@@ -50,7 +50,7 @@ int main()
 
 인자가 여러개인 경우
 
-```
+```c++
 template <typename K, typename V, template <typename...> class R>
 inline std::vector<std::wstring> GetFilteredData(const std::wstring &target, const R<K, V> &data)
 {
