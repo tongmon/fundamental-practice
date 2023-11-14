@@ -4,7 +4,7 @@ https://learn.microsoft.com/ko-kr/cpp/cpp/template-specialization-cpp?view=msvc-
 
 
 
-- 템플릿의 템플릿
+- 템플릿 템플릿 파라미터 예시들
 
 ```c++
 template <typename T, template <typename V> class R>
@@ -45,5 +45,30 @@ int main()
 	lfstack<int> lock_free_st;
 	std::cout << "Lock free stack test!\n";
 	print_stack_performance(lock_free_st);
+}
+```
+
+인자가 여러개인 경우
+
+```
+template <typename K, typename V, template <typename...> class R>
+inline std::vector<std::wstring> GetFilteredData(const std::wstring &target, const R<K, V> &data)
+{
+    std::vector<std::wstring> ret;
+    auto lower = data.lower_bound(target);
+    for (auto iter = lower; iter != data.end(); iter++)
+    {
+        std::wstring_view searched = iter->first;
+
+        if (target.size() > searched.size())
+            break;
+        for (int i = 0; i < target.size(); i++)
+        {
+            if (target[i] != searched[i])
+                return ret;
+        }
+        ret.emplace_back(searched);
+    }
+    return ret;
 }
 ```
