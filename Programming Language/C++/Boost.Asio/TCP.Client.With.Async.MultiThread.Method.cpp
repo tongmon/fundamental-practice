@@ -113,13 +113,12 @@ class AsyncTCPClient // : public boost::noncopyable
         // Preparing the request string.
         std::string request = "EMULATE_LONG_CALC_OP " + std::to_string(duration_sec) + "\n";
 
-        std::shared_ptr<Session> session =
-            std::shared_ptr<Session>(new Session(m_ios,
-                                                 raw_ip_address,
-                                                 port_num,
-                                                 request,
-                                                 request_id,
-                                                 callback));
+        std::shared_ptr<Session> session = std::shared_ptr<Session>(new Session(m_ios,
+                                                                                raw_ip_address,
+                                                                                port_num,
+                                                                                request,
+                                                                                request_id,
+                                                                                callback));
 
         session->m_sock.open(session->m_ep.protocol());
 
