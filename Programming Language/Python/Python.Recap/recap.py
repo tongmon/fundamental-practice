@@ -13,6 +13,11 @@ def some_func(a=1, b=2):
     return a + b
 
 
+# You can write nothing on function with pass keyword
+def do_nothing_func():
+    pass
+
+
 # string
 my_name = "tongstar"
 my_name.upper()
@@ -83,3 +88,49 @@ split_text = "a..b..c..d..e".split("..")
 print(split_text)
 split_text = "a-b-c-d-e".split("-", 2)  # you can set the max split count
 print(split_text)
+
+
+# parent class
+# Every member function should have self arg
+class Car:
+    id = ""
+    price = 0
+    type = ""
+
+    # initiator
+    def __init__(self, id, price):
+        self.id = id
+        self.price = price
+
+    # Same with c++'s [ std::ostream& operator << (std::ostream &out, ...) ]
+    def __str__(
+        self,
+    ):
+        return f"{self.id}'s type is {self.type}, price: {self.price}"
+
+    # Same with c++'s virtual function
+    def drive():
+        pass
+
+    def blow_the_horn(self):
+        print("default horn sound!")
+
+
+# child class
+class ElectricCar(Car):
+    manufacturer = ""
+
+    # Can access parent class with super keyword
+    def __init__(self, id, price, manufacturer):
+        super().__init__(id, price)
+        self.type = "electric"
+        self.manufacturer = manufacturer
+
+    def blow_the_horn(self):
+        print("electric horn sound!")
+
+
+tesla_car = ElectricCar("Model S", 200, "tesla")
+print(tesla_car)
+super(ElectricCar, tesla_car).blow_the_horn()  # super() can use like c++'s dynamic_cast
+tesla_car.blow_the_horn()
