@@ -24,6 +24,45 @@ let big_int =
 let inf = 1 / 0; // Infinity 값으로 바뀜
 console.log(inf);
 
+let some_ary = [1, 2, 3];
+
+// C++ unordered_map이랑 비스무리하지만 많이 다른 Js의 Object
+let some_key = "final_key";
+let user = {}; // {} === new Object()
+let specific_user = {
+  name: "gyungjoonlee",
+  id: "tongstar",
+  "favorite foods": ["curry", "ramen"], // 띄어쓰기 포함 단어도 key로 사용 가능
+  [some_key]: 12345, // key를 동적으로 획득해서 사용가능
+  obj: {
+    name: "child object",
+  },
+};
+delete specific_user.id; // property 삭제
+console.log(specific_user["favorite foods"]); // property 참조
+
+console.log(Object.keys(specific_user).length > 0); // 비어있는지 확인
+console.log(specific_user.hasOwnProperty("favorite foods")); // 특정 키가 있는지 확인
+
+// Object 순회
+// key가 정수라면 정렬되어 오름차순으로 출력됨
+// key가 정수가 아니라면 객체 key가 추가된 순서대로 출력됨
+for (let key in specific_user)
+  console.log("key: " + key + ", value: " + specific_user[key]);
+
+// Object 복사
+user = specific_user; // Object의 등호는 참조를 나타냄. 즉 user는 specific_user를 가리킬 뿐임
+
+// 원시적인 복사는 이렇게 함
+let clone = Object.assign({}, specific_user);
+
+// 하지만 specific_user.obj는 Object 내의 Object이기에 복사가 안되고 참조를 유지함
+console.log(clone.obj == specific_user.obj);
+
+// 결과적으로 깊은 복사를 하기 위해선 모든 Object 형을 재귀적으로 찾아 복사해줘야 한다.
+clone.obj = Object.assign({}, specific_user.obj);
+console.log(clone.obj == specific_user.obj);
+
 // Formatting
 console.log("' is same " + 'with "'); // js에서는 "이거나 '이거나 같음
 console.log(`My name is ${my_name}`); // `를 이용하면 fmt와 같은 표현 사용 가능
@@ -65,13 +104,59 @@ console.log(
 );
 
 console.log(null == undefined); // true, undefined는 null 이외의 값과 모든 비교 연산자에 false를 반환함
-console.log(null == undefined); // false, 값은 같으나 자료형이 다름
+console.log(null === undefined); // false, 값은 같으나 자료형이 다름
 
 // Logics
-if (!a) {
-  console.log(a + " is zero");
-} else if (my_name == "tongstar") {
-  console.log("My name is " + my_name);
-} else {
-  console.log("Nothing right");
+// C++과 다른 것만 정리함
+
+// break, continue문은 C++과 동일하게 사용할 수도 있으나 밑과 같이 C++의 goto 처럼 사용 가능함.
+point1: for (let i = 0; i < 3; i++) {
+  point2: for (let j = 0; j < 4; j++) {
+    if (my_name === "yellowjam") {
+      continue point1;
+    }
+    if (my_name === "victoh") {
+      break point2;
+    }
+  }
 }
+
+// C++ goto와 차이점이라면 밑과 같이 lable을 하단에 추가할 수 없음
+/*
+for (let j = 0; j < 4; j++) {
+    if (my_name === "yellowjam") {
+      continue point1;
+    }
+}
+  
+point1: console.log("Can't reach this point!"); // 이렇게 밑에 lable 추가는 못함
+*/
+
+// Switch문은 C++과 다르게 대부분의 자료형이 위치할 수 있음
+let some_string = "this is js recap!";
+switch (some_string) {
+  case "this is c++ recap!":
+    break;
+  case "this is js recap!":
+    break;
+  default:
+    break;
+}
+
+// function
+// C++과 대부분은 같지만 인자에 자료형을 명시하지 않음
+function showMessage(arg1, arg2 = "default text") {
+  console.log(arg1 + " " + arg2);
+  return arg1 + arg2;
+}
+
+let func_pt_in_js = showMessage; // 함수는 변수에 함수 포인터마냥 저장할 수 있음
+
+// C++의 Functor 비스무리한 것은 밑과 같이 사용함
+// 값 캡쳐는 따로 안써줘도 그냥 됨...
+let capture1 = 3,
+  capture2 = 4;
+let lambda = (arg1, arg2) => {
+  return arg1 + arg2 + capture1 + capture2;
+};
+console.log(lambda(1, 2));
