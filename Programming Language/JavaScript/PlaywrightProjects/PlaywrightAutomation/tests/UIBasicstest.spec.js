@@ -19,6 +19,7 @@
 
 // test와 expect 키워드를 이용하기 위해 선언함
 const { test, expect } = require("@playwright/test");
+const exp = require("constants");
 
 // browser를 넘기는 경우는 무조건 {}로 감싸야 playwright의 browser로 인식한다.
 // 그리고 함수를 전달할 때 async로 전달해야만 await가 의미있다.
@@ -84,12 +85,14 @@ test("Third Playwright test", async ({ page }) => {
   await page.locator("#signInBtn").click(); // 특정 버튼 클릭
 
   const alertText = await page.locator("[style*='block']");
-  console.log(await alertText.textContent()); // 텍스트 추출
+
+  // 텍스트 추출, textContent 함수는 화면 렌더링이 되어 해당 CSS 요소를 획득할 때까지 기다려줌
+  console.log(await alertText.textContent());
 
   await expect(alertText).toContainText("Incorrect"); // Incorrect 텍스트를 획득하는지 확인
 });
 
-test.only("Fourth Playwright test", async ({ page }) => {
+test("Fourth Playwright test", async ({ page }) => {
   await page.goto("https://rahulshettyacademy.com/loginpagePractise/");
 
   const idInput = page.locator("#username");
@@ -100,16 +103,65 @@ test.only("Fourth Playwright test", async ({ page }) => {
   await pwInput.fill("learning");
   await signInBtn.click(); // 특정 버튼 클릭
 
-  const cardInfo = page.locator(".card-body a");
+  const cardInfo = await page.locator(".card-body a");
 
   // locator가 탐색하여 찾은 element가 여럿인 경우 nth(index)를 이용하면 된다.
-  console.log(await cardInfo.nth(0).textContent());
+  // console.log(await cardInfo.nth(0).textContent());
 
   // 밑도 nth(0)과 같은 기능을 수행함
   // console.log(await cardInfo.first().textContent());
 
+  // waitForLoadState() 함수는 특정 네트워크 상황에 도달할 때까지 기다리게 만든다.
+  // networkidle 상태는 모든 network call이 마무리되고 idle 상태인 경우를 의미한다.
+  // 하지만 브라우저에 따라 실패하는 경우도 있다.
+  await page.waitForLoadState("networkidle");
+
+  // waitFor() 함수는 해당 요소가 로딩이 완전히 될 때까지 기다려준다.
+  // waitFor()는 locator()가 가리킨 곳에 단 하나의 요소만 존재하는 경우 이용할 수 있다.
+  // 따라서 first(), last() 등으로 하나의 요소로 만든 후에 사용해야 한다.
+  await cardInfo.last().waitFor();
+
   // allTextContents를 통해 전체 텍스트를 획득함
-  // allTextContents 함수는 화면 렌더링이 완료되는 시점까지 기다려주지 않는다
-  //
+  // allTextContents 함수는 화면 렌더링이 완료되는 시점까지 기다려주지 않기에 실제로는 값이 존재하지만 빈 배열을 반환해버리는 경우가 있다.
+  // 따라서 waitForLoadState()와 함께 사용하여 화면 로딩이 확실하게 될 때까지 기다린 후에 작동되도록 만들어줘야 한다.
+  // 아니면 textContent()를 호출한 후 allTextContents()를 사용하는 방법도 있다.
+  // 혹은 waitFor()를 이용할 수도 있다.
   console.log(await cardInfo.allTextContents());
+});
+
+test.only("Fifth Playwright test", async ({ page }) => {
+  await page.goto("https://rahulshettyacademy.com/loginpagePractise/");
+
+  const idInput = page.locator("#username");
+  const pwInput = page.locator("[type='password']");
+  const signInBtn = page.locator("#signInBtn");
+
+  const dropDown = page.locator("select.form-control");
+  await dropDown.selectOption("consult"); // Option Css의 value 값을 넣어준다.
+
+  // 매칭된 .radiotextsty 중에서 마지막 녀석을 클릭함
+  await page.locator(".radiotextsty").last().click();
+
+  // 해당 버튼이 체크 상태인지 확인함
+  await expect(page.locator(".radiotextsty").last()).toBeChecked();
+
+  // 밑의 방식으로도 체크 상태를 확인할 수 있다.
+  const checkedRet = await page.locator(".radiotextsty").last().isChecked();
+
+  await page.locator("#okayBtn").click();
+
+  await page.locator("#terms").click();
+
+  // click 해서 체크했다면 uncheck로 체크를 해제할 수도 있다.
+  await page.locator("#terms").uncheck();
+
+  // toBeFalsy() 함수를 통해 expect()에 주어진 값이 false인지 검사할 수 있다.
+  await expect(await page.locator("#terms").isChecked()).toBeFalsy();
+
+  // 테스트 중인 페이지를 멈춤, 중단점이 해당 시점으로 잡힘
+  // await page.pause();
+
+  await idInput.fill("rahulshettyacademy"); // fill 함수로 input UI를 채움
+  await pwInput.fill("learning");
+  await signInBtn.click(); // 특정 버튼 클릭
 });
