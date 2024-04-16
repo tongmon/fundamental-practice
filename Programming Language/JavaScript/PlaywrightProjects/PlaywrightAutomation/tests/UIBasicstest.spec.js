@@ -16,6 +16,10 @@
 //
 // 리포트 결과를 보는 명령어는 밑과 같다.
 // npx playwright show-report
+//
+// playright은 codegen 기능도 제공한다.
+// npx playwright codegen [특정 링크] 명령어로 사용할 수 있다.
+// 해당 명령어를 치면 특정 링크로 접속한 상태의 브라우저가 뜨는데 여기서 자기가 원하는 행위를 하면 codegen 출력창에 playwright 코드가 쓰여진다.
 
 // test와 expect 키워드를 이용하기 위해 선언함
 const { test, expect } = require("@playwright/test");
@@ -106,7 +110,7 @@ test("Fourth Playwright test", async ({ page }) => {
   const cardInfo = await page.locator(".card-body a");
 
   // locator가 탐색하여 찾은 element가 여럿인 경우 nth(index)를 이용하면 된다.
-  // console.log(await cardInfo.nth(0).textContent());
+  console.log(await cardInfo.nth(0).textContent());
 
   // 밑도 nth(0)과 같은 기능을 수행함
   // console.log(await cardInfo.first().textContent());
@@ -129,12 +133,13 @@ test("Fourth Playwright test", async ({ page }) => {
   console.log(await cardInfo.allTextContents());
 });
 
-test.only("Fifth Playwright test", async ({ page }) => {
+test("Fifth Playwright test", async ({ page }) => {
   await page.goto("https://rahulshettyacademy.com/loginpagePractise/");
 
   const idInput = page.locator("#username");
   const pwInput = page.locator("[type='password']");
   const signInBtn = page.locator("#signInBtn");
+  const docLink = page.locator("[href*='documents-request']");
 
   const dropDown = page.locator("select.form-control");
   await dropDown.selectOption("consult"); // Option Css의 value 값을 넣어준다.
@@ -156,7 +161,20 @@ test.only("Fifth Playwright test", async ({ page }) => {
   await page.locator("#terms").uncheck();
 
   // toBeFalsy() 함수를 통해 expect()에 주어진 값이 false인지 검사할 수 있다.
-  await expect(await page.locator("#terms").isChecked()).toBeFalsy();
+  // Action이 expect() 함수 내부에서 isChecked() 함수를 통해 발생하고 있으므로 expect() 내부에 await을 넣어줘야 한다.
+  // Action인지 아닌지 확인하는 방법은 함수가 Promise<>를 반환한다면 Action인 것이다.
+  //
+  // 반환형이 Promise<>인 경우 Js에서는 항상 3가지 상태를 즉시 반환한다.
+  // 1. Pending
+  // 함수가 비동기로 동작하고 있는 상태
+  // 2. Rejected
+  // 비동기 처리가 비정상적으로 완료되어 반환된 상태
+  // 3. Fulfilled
+  // 비동기 처리가 정상적으로 완료되어 반환된 상태
+  expect(await page.locator("#terms").isChecked()).toBeFalsy();
+
+  // toHaveAttribute()로 특정 속성이 있는지 검사
+  await expect(docLink).toHaveAttribute("class", "blinkingText");
 
   // 테스트 중인 페이지를 멈춤, 중단점이 해당 시점으로 잡힘
   // await page.pause();
@@ -164,4 +182,68 @@ test.only("Fifth Playwright test", async ({ page }) => {
   await idInput.fill("rahulshettyacademy"); // fill 함수로 input UI를 채움
   await pwInput.fill("learning");
   await signInBtn.click(); // 특정 버튼 클릭
+});
+
+test("Child Windows handling", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto("https://rahulshettyacademy.com/loginpagePractise/");
+
+  const docLink = page.locator("[href*='documents-request']"); // 누르면 특정 페이지가 새로 열리는 링크 텍스트
+
+  // waitForEvent() 함수는 특정 이벤트가 발생할 때까지 기다려줌
+  // 'page'인자를 넘긴다면 새로운 페이지가 생성될 때까지 기다린 후에 새로운 페이지를 반환하며 종료한다.
+  //
+  // Promise.all()을 통해 waitForEvent("page"), click() 두 개의 비동기 함수를 트랜잭션과 같이 묶어줘야 하는 이유가 있다.
+  // 3가지 상황을 고려해보자.
+  //
+  // 1. click() 수행 후 waitForEvent("page") 수행
+  // click() 수행이 되는 즉시 새로운 페이지가 생겨버리면 waitForEvent()가 반응할 시간이 없기에 계속 기다리기만 하다가 에러를 출력한다.
+  //
+  // 2 waitForEvent("page") 수행 후 click() 수행
+  // 전제부터 잘못되었다.
+  // waitForEvent("page")는 특정 페이지가 생기지 않는 이상 수행되지 않는다.
+  // 따라서 click()이 진행될 수 없다.
+  //
+  // 3. waitForEvent("page") 비동기 수행 후 click() 수행
+  // waitForEvent("page")가 비동기이기에 잘 동작한다.
+  //
+  // 3번 빼고는 모두 정상적인 수행이 불가능하다.
+  // 3번도 좋지만 이러한 경우 Promise.all()을 이용하는 것이 가독성이 명확하기에 선호된다.
+  const [newPage] = await Promise.all([
+    context.waitForEvent("page"),
+    docLink.click(),
+  ]);
+
+  console.log(await newPage.locator(".red").textContent());
+});
+
+test.only("Market Shopping handling", async ({ browser }) => {
+  const targetProductName = "IPHONE 13 PRO";
+
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto("https://rahulshettyacademy.com/client");
+
+  const idInput = page.locator("#userEmail");
+  const pwInput = page.locator("#userPassword");
+  const loginBtn = page.locator("[value='Login']");
+
+  await idInput.fill("anshika@gmail.com");
+  await pwInput.fill("Iamking@000");
+  await loginBtn.click();
+
+  const products = page.locator(".card-body");
+  await products.last().locator("b").waitFor();
+  const productsCnt = await products.count();
+
+  for (let i = 0; i < productsCnt; i++) {
+    if (
+      (await products.nth(i).locator("b").textContent()) === targetProductName
+    ) {
+      // text로 버튼을 찾아 누르기
+      await products.nth(i).locator("text=Add To Cart").click();
+      break;
+    }
+  }
 });

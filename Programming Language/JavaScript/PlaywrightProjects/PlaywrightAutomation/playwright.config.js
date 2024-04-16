@@ -1,5 +1,6 @@
 // @ts-check
 const { defineConfig, devices } = require("@playwright/test");
+const { off } = require("process");
 
 /**
  * Read environment variables from file.
@@ -43,8 +44,13 @@ module.exports = defineConfig({
     /* Base URL to use in actions like `await page.goto('/')`. */
     // baseURL: 'http://127.0.0.1:3000',
 
-    /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
-    trace: "on-first-retry",
+    /* 테스트에 대한 로그를 언제 남길 것인지 설정 */
+    // playwright의 로그는 굉장히 강력함
+    // 각 라인 별로 어떤 행위가 수행되었는지 각 시간별로 화면을 보여줌
+    trace: "retain-on-failure",
+
+    // 스크린샷 캡쳐를 언제 수행할 것인지 설정
+    screenshot: "only-on-failure",
 
     // 수행할 브라우저 유형
     browserName: "chromium",
