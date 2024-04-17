@@ -242,8 +242,24 @@ test.only("Market Shopping handling", async ({ browser }) => {
       (await products.nth(i).locator("b").textContent()) === targetProductName
     ) {
       // text로 버튼을 찾아 누르기
+      // text=Add*Cart와 같이 정규식도 사용이 가능함
       await products.nth(i).locator("text=Add To Cart").click();
       break;
     }
   }
+
+  // 장바구니에 담긴 물건을 확인하기 위해 카트 버튼 클릭
+  await page.locator("[routerlink*='cart']").click();
+
+  // 밑에서 수행할 isVisible()을 auto-waiting 함수가 아니기에 waitFor()를 수행해줘야 한다.
+  await page.locator("div li").first().waitFor();
+
+  // tagname:has-text("특정 텍스트") 기능은 tagname 하위에 "특정 텍스트"를 가지고 있는 녀석들을 모두 골라주는 방법이다.
+  // h3:has-text("IPHONE 13 PRO")라면 h3 자신 혹은 그 자식 요소 중 "IPHONE 13 PRO"와 일치하는 녀석들을 모두 가져옴
+  // 밑은 장바구니에 targetProductName을 가진 물건이 제대로 들어있는지 확인하기 위한 코드
+  const isVisible = await page
+    .locator(`h3:has-text("${targetProductName}")`)
+    .isVisible();
+
+  expect(isVisible).toBeTruthy();
 });
