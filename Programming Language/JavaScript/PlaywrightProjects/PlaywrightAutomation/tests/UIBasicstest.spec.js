@@ -302,7 +302,7 @@ test("Market Shopping handling", async ({ browser }) => {
   console.log(orderId);
 });
 
-test.only("Practice get by functions", async ({ page }) => {
+test("Practice get by functions", async ({ page }) => {
   await page.goto("https://rahulshettyacademy.com/angularpractice/");
 
   // 레이블을 통해 locator 접근
@@ -336,14 +336,29 @@ test.only("Practice get by functions", async ({ page }) => {
     .click();
 });
 
-test("Calendar validations", async ({ page }) => {
-  const monthNumber = "6",
-    date = "15",
-    year = 2027;
-
+test.only("Calendar validations", async ({ page }) => {
+  const month = "6",
+    day = "15",
+    year = "2027";
+  const date = [month, day, year];
   await page.goto("https://rahulshettyacademy.com/seleniumPractise/#/offers");
   await page.locator(".react-date-picker__inputGroup").click(); // 달력 클릭
-  await page.locator(".react-calendar__navigation__lable").click(); // 달력 날짜 선택 scope 조정
-  await page.locator(".react-calendar__navigation__lable").click(); // 달력 날짜 선택 scope 조정
+  await page.locator(".react-calendar__navigation__label").click(); // 달력 날짜 선택 scope 조정
+  await page.locator(".react-calendar__navigation__label").click(); // 달력 날짜 선택 scope 조정
   await page.getByText(year).click(); // 년도 선택
+  await page
+    .locator(".react-calendar__year-view__months__month")
+    .nth(month - 1)
+    .click(); // 월 선택
+
+  // xpath를 이용해 요소를 찾는다.
+  // xpath에 대한 자세한 정보는 https://blog.hashscraper.com/understanding-xpath-for-web-crawling/ 참고
+  await page.locator(`//abbr[contains(text(),'${day}')]`).click(); // 일자 선택
+
+  const timeData = page.locator(".react-date-picker__inputGroup input");
+  // 첫번째 인덱스는 불필요한 정보라 스킵하고 1부터 분석
+  for (let i = 1; i < (await timeData.count()); i++) {
+    const value = await timeData.nth(i).getAttribute("value");
+    expect(value).toEqual(date[i - 1]);
+  }
 });
