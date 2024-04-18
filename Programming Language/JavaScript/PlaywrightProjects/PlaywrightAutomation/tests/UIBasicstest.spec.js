@@ -9,6 +9,7 @@
 // npx playwright test --project=chromium -> chromium으로 테스트 수행
 // npx playwright test tests/UIBasicstest.spec.js // 특정 파일을 지정해 테스트 수행, 나머지 설정은 playwright.config.js에 지정된 대로 가져감
 // npx playwright test --debug -> 디버그 모드로 테스트 수행
+// npx playwright test --ui -> UI 모드로 테스트 수행
 //
 // 모든 테스트는 headless 방식으로 진행되기 때문에 별도의 명령어가 없다면 브라우저가 보이지 않음
 // npx playwright test --headed
@@ -78,7 +79,7 @@ test("Third Playwright test", async ({ page }) => {
   // 3. Css Attribute를 통해 찾는 경우
   // 해당 방식의 장점은 정규식 사용이 가능하다는 것이다.
   // 자세한 내용은 https://developer.mozilla.org/ko/docs/Learn/CSS/Building_blocks/Selectors/Attribute_selectors 참조
-  // [attribute = 'value'] (ex. [name = 'username'])
+  // tagname[attribute = 'value'] 혹은 [attribute = 'value'] (ex. [name = 'username'])
   //
   // 4. Css 부모 자식 관계를 통해 찾는 경우 (>> 혹은 공백 둘 다 가능)
   // parent_tagname >> child_tagname (ex.form >> div >> input)
@@ -218,8 +219,9 @@ test("Child Windows handling", async ({ browser }) => {
   console.log(await newPage.locator(".red").textContent());
 });
 
-test.only("Market Shopping handling", async ({ browser }) => {
+test("Market Shopping handling", async ({ browser }) => {
   const targetProductName = "IPHONE 13 PRO";
+  const email = "anshika@gmail.com";
 
   const context = await browser.newContext();
   const page = await context.newPage();
@@ -229,7 +231,7 @@ test.only("Market Shopping handling", async ({ browser }) => {
   const pwInput = page.locator("#userPassword");
   const loginBtn = page.locator("[value='Login']");
 
-  await idInput.fill("anshika@gmail.com");
+  await idInput.fill(email);
   await pwInput.fill("Iamking@000");
   await loginBtn.click();
 
@@ -262,4 +264,74 @@ test.only("Market Shopping handling", async ({ browser }) => {
     .isVisible();
 
   expect(isVisible).toBeTruthy();
+
+  await page.locator("text=Checkout").click();
+
+  // fill()말고 pressSequentially()를 이용해야 자동완성 선택지를 정상적으로 표기할 수 있음
+  // fill()은 한 방에 모든 단어를 Copy + Paste 하는 것이고 pressSequentially()는 한 글자씩 타이핑하는 것
+  // 자동 완성 선택를 고르기 위해 Korea, Democratic People's Republic of의 kor만 삽입함
+  await page.locator("[placeholder*='Country']").pressSequentially("kor");
+
+  // 자동 완성 드롭 다운 처리
+  const dropDown = page.locator(".ta-results");
+  await dropDown.last().waitFor();
+  const optCnt = await dropDown.locator("button").count();
+  for (let i = 0; i < optCnt; i++) {
+    const text = await dropDown.locator("button").nth(i).textContent();
+
+    // 자동완성 목록에서 남한을 선택
+    if (text.trim() === "Korea, Democratic People's Republic of") {
+      await dropDown.locator("button").nth(i).click();
+      break;
+    }
+  }
+
+  await expect(page.locator(".user__name label[type='text']")).toHaveText(
+    email
+  );
+  await page.locator(".action__submit").click(); // 결재 버튼 클릭
+
+  await expect(page.locator(".hero-primary")).toHaveText(
+    "Thankyou for the order."
+  );
+
+  // 주문 코드 획득
+  const orderId = await page
+    .locator(".em-spacer-1 .ng-star-inserted")
+    .textContent();
+  console.log(orderId);
+});
+
+test.only("Practice get by functions", async ({ page }) => {
+  await page.goto("https://rahulshettyacademy.com/angularpractice/");
+
+  // 레이블을 통해 locator 접근
+  // 그냥 "Check me out if you Love IceCreams!"가 쓰여져 있는 타겟을 가져오는 것
+  await page.getByLabel("Check me out if you Love IceCreams!").click();
+
+  // 체크 버튼, 버튼, 드롭다운 등은 getByLable()을 이용하는 것이 유효하지만 input 등 안먹히는 UI 계열도 있다.
+  await page.getByLabel("Employed").check();
+  await page.getByLabel("Gender").selectOption("Female");
+
+  // text input의 경우 placeholder에 적힌 글자를 매칭시켜 찾을 수 있다.
+  await page.getByPlaceholder("Password").fill("abc123");
+
+  // 특정 Role을 통해 element를 가져오는 방법
+  // 밑 코드는 화면에 있는 모든 Submit 버튼을 가져옴
+  await page.getByRole("button", { name: "Submit" });
+
+  // 특정 텍스트로 접근, 정규식도 사용 가능
+  await page
+    .getByText("Success! The Form has been submitted successfully!.")
+    .isVisible();
+
+  // 특정 링크가 담긴 요소들만 획득 가능
+  await page.getByRole("link", { name: "Shop" }).click();
+
+  // filter() 함수를 이용하여 app-card 요소를 가져올 때 하위 요소에 Nokia Edge 텍스트가 존재하는 녀석들을 추려서 가져옴
+  await page
+    .locator("app-card")
+    .filter({ hasText: "Nokia Edge" })
+    .getByRole("button")
+    .click();
 });
