@@ -335,3 +335,15 @@ test.only("Practice get by functions", async ({ page }) => {
     .getByRole("button")
     .click();
 });
+
+test("Calendar validations", async ({ page }) => {
+  const monthNumber = "6",
+    date = "15",
+    year = 2027;
+
+  await page.goto("https://rahulshettyacademy.com/seleniumPractise/#/offers");
+  await page.locator(".react-date-picker__inputGroup").click(); // 달력 클릭
+  await page.locator(".react-calendar__navigation__lable").click(); // 달력 날짜 선택 scope 조정
+  await page.locator(".react-calendar__navigation__lable").click(); // 달력 날짜 선택 scope 조정
+  await page.getByText(year).click(); // 년도 선택
+});
