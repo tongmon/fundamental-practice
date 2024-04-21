@@ -23,8 +23,8 @@
 // 해당 명령어를 치면 특정 링크로 접속한 상태의 브라우저가 뜨는데 여기서 자기가 원하는 행위를 하면 codegen 출력창에 playwright 코드가 쓰여진다.
 
 // test와 expect 키워드를 이용하기 위해 선언함
-const { test, expect } = require("@playwright/test");
-const exp = require("constants");
+// request는 Web Api 테스트를 위해 필요하다.
+const { test, expect, request } = require("@playwright/test");
 
 // browser를 넘기는 경우는 무조건 {}로 감싸야 playwright의 browser로 인식한다.
 // 그리고 함수를 전달할 때 async로 전달해야만 await가 의미있다.
@@ -336,7 +336,7 @@ test("Practice get by functions", async ({ page }) => {
     .click();
 });
 
-test.only("Calendar validations", async ({ page }) => {
+test("Calendar validations", async ({ page }) => {
   const month = "6",
     day = "15",
     year = "2027";
@@ -361,4 +361,52 @@ test.only("Calendar validations", async ({ page }) => {
     const value = await timeData.nth(i).getAttribute("value");
     expect(value).toEqual(date[i - 1]);
   }
+});
+
+// test 키워드
+// only => 다른 테스트 무시하고 해당 테스트만 수행
+// beforeAll => 모든 테스트가 수행되기 전 첫 순위로 해당 테스트가 수행됨
+// beforeEach => 모든 테스트가 수행되기 전마다 해당 테스트를 계속 같이 수행시킴
+
+test("Use Cookie to skip login process", async ({ browser }) => {
+  const apiContext = await request.newContext();
+
+  // post() 함수를 통해 http 서버에서 요청하는 값을 받아 Cookie 데이터를 생성할 수 있다.
+  // 요구되는 인자는 다음과 같다.
+  // 1. Request Url
+  // 2. Option Object
+  // 2-1. Request Payload
+  const loginResponse = await apiContext.post(
+    "https://rahulshettyacademy.com/api/ecom/auth/login",
+    {
+      data: {
+        userEmail: "anshika@gmail.com",
+        userPassword: "Iamking@000",
+      },
+    }
+  );
+
+  // ok() 함수로 loginResponse가 성공인지 확인한다.
+  expect(loginResponse.ok()).toBeTruthy();
+
+  // loginResponse의 결과를 json으로 바꿔 받는다.
+  const loginResponseJson = await loginResponse.json();
+
+  // 로그인 결과를 저장할 수 있는 토큰을 획득한다.
+  const loginToken = loginResponseJson.token;
+
+  // 밑은 다시 짜야하기에 무시
+  const email = "anshika@gmail.com";
+
+  const context = await browser.newContext();
+  const page = await context.newPage();
+  await page.goto("https://rahulshettyacademy.com/client");
+
+  const idInput = page.locator("#userEmail");
+  const pwInput = page.locator("#userPassword");
+  const loginBtn = page.locator("[value='Login']");
+
+  await idInput.fill(email);
+  await pwInput.fill("Iamking@000");
+  await loginBtn.click();
 });
