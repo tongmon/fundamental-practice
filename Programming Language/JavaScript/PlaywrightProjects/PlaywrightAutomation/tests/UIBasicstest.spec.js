@@ -363,6 +363,31 @@ test("Calendar validations", async ({ page }) => {
   }
 });
 
+test("Popup validations", async ({ page }) => {
+  await page.goto("https://rahulshettyacademy.com/AutomationPractice/");
+
+  await expect(page.locator("#displayed-text")).toBeVisible(); // 요소가 보이는 상태인지
+  await page.locator("#hide-textbox").click();
+  await expect(page.locator("#displayed-text")).toBeHidden(); // 요소가 숨겨진 상태인지
+
+  // on()으로 이벤트를 낚아채 dialog 팝업을 컨트롤 할 수 있다.
+  // 이벤트 발생 시에 어떤 것을 행하라는 행위를 등록해놓는 것이기에 await는 필요없다.
+  // 즉 모든 dialog 이벤트는 accpet()를 해버리기에 행위를 바꾸고 싶다면 따로 on()을 더 써줘야 한다.
+  page.on("dialog", (dialog) => dialog.accept());
+  await page.locator("#confirmbtn").click();
+
+  // 특정 요소에 마우스 호버링
+  await page.locator("#mousehover").hover();
+
+  // iframe 획득
+  const framePage = page.frameLocator("#courses-iframe");
+
+  // 여러 항목 중 보이는 것만 가져오고 싶다면 isVisible()를 이용한 순회를 해도 되지만 :visible을 달아줘도 된다.
+  await framePage.locator("li a[href*='lifetime-access']:visible").click();
+  const someText = await framePage.locator(".text h2").textContent();
+  console.log(someText.split(" ")[1]);
+});
+
 // test 키워드
 // only => 다른 테스트 무시하고 해당 테스트만 수행
 // beforeAll => 모든 테스트가 수행되기 전 첫 순위로 해당 테스트가 수행됨
