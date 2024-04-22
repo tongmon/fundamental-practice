@@ -25,6 +25,7 @@
 // test와 expect 키워드를 이용하기 위해 선언함
 // request는 Web Api 테스트를 위해 필요하다.
 const { test, expect, request } = require("@playwright/test");
+const { APIUtil } = require("./utilities/APIUtil");
 
 // browser를 넘기는 경우는 무조건 {}로 감싸야 playwright의 browser로 인식한다.
 // 그리고 함수를 전달할 때 async로 전달해야만 await가 의미있다.
@@ -393,14 +394,16 @@ test("Popup validations", async ({ page }) => {
 // beforeAll => 모든 테스트가 수행되기 전 첫 순위로 해당 테스트가 수행됨
 // beforeEach => 모든 테스트가 수행되기 전마다 해당 테스트를 계속 같이 수행시킴
 
-test("Use Cookie to skip login process", async ({ browser }) => {
+test("Use WebAPI", async ({ browser }) => {
   const apiContext = await request.newContext();
 
-  // post() 함수를 통해 http 서버에서 요청하는 값을 받아 Cookie 데이터를 생성할 수 있다.
+  // post() 함수를 통해 http 서버에서 요청하는 값을 받아 활용할 수 있다.
   // 요구되는 인자는 다음과 같다.
   // 1. Request Url
-  // 2. Option Object
+  // 2. Post Object
   // 2-1. Request Payload
+  // 2-2. Request Header
+  // ... more
   const loginResponse = await apiContext.post(
     "https://rahulshettyacademy.com/api/ecom/auth/login",
     {
@@ -420,18 +423,113 @@ test("Use Cookie to skip login process", async ({ browser }) => {
   // 로그인 결과를 저장할 수 있는 토큰을 획득한다.
   const loginToken = loginResponseJson.token;
 
-  // 밑은 다시 짜야하기에 무시
-  const email = "anshika@gmail.com";
-
   const context = await browser.newContext();
   const page = await context.newPage();
+
+  // addInitScript() 함수를 통해 특정 스크립트를 지정해 실행하거나 특정 함수를 수행한다.
+  // 물론 함수에 인자가 들어간다면 인자를 함께 넘겨준다.
+  // 웹 창에 획득한 token 값을 로컬 저장소에 저장하는 함수를 수행하고 있다.
+  page.addInitScript((value) => {
+    window.localStorage.setItem("token", value);
+  }, loginToken);
+
   await page.goto("https://rahulshettyacademy.com/client");
 
-  const idInput = page.locator("#userEmail");
-  const pwInput = page.locator("#userPassword");
-  const loginBtn = page.locator("[value='Login']");
+  // 장바구니에 물건 추가
+  const addCartResponse = await apiContext.post(
+    "https://rahulshettyacademy.com/api/ecom/user/add-to-cart",
+    {
+      data: {
+        _id: "620c7bf148767f1f1215d2ca",
+        product: {
+          _id: "6581ca979fd99c85e8ee7faf",
+          productName: "ADIDAS ORIGINAL",
+          productCategory: "household",
+          productSubCategory: "shoes",
+          productPrice: 31500,
+          productDescription: "Adidas shoes for Men",
+          productImage:
+            "https://rahulshettyacademy.com/api/ecom/uploads/productImage_1650649488046.jpg",
+          productRating: "0",
+          productTotalOrders: "0",
+          productStatus: true,
+          productFor: "men",
+          productAddedBy: "admin@gmail.com",
+          __v: 0,
+        },
+      },
+      headers: {
+        Authorization: loginToken,
+        "Content-Type": "application/json",
+      },
+    }
+  );
 
-  await idInput.fill(email);
-  await pwInput.fill("Iamking@000");
-  await loginBtn.click();
+  const addCartResponseJson = await addCartResponse.json();
+  expect(addCartResponseJson.message === "Product Added To Cart").toBeTruthy();
+
+  // 주문
+  const orderResponse = await apiContext.post(
+    "https://rahulshettyacademy.com/api/ecom/order/create-order",
+    {
+      data: {
+        orders: [
+          {
+            country: "Korea, Democratic People's Republic of",
+            productOrderedId: "6581ca979fd99c85e8ee7faf",
+          },
+        ],
+      },
+      headers: {
+        Authorization: loginToken,
+        "Content-Type": "application/json",
+      },
+    }
+  );
+
+  const orderResponseJson = await orderResponse.json();
+  expect(
+    orderResponseJson.message === "Order Placed Successfully"
+  ).toBeTruthy();
+});
+
+test.only("Use WebAPI With Wrapping Class", async ({ browser }) => {
+  const apiContext = await request.newContext();
+  const apiUtil = new APIUtil(apiContext, {
+    userEmail: "anshika@gmail.com",
+    userPassword: "Iamking@000",
+  });
+
+  const addCartResponse = await apiUtil.addToCart({
+    _id: "620c7bf148767f1f1215d2ca",
+    product: {
+      _id: "6581ca979fd99c85e8ee7faf",
+      productName: "ADIDAS ORIGINAL",
+      productCategory: "household",
+      productSubCategory: "shoes",
+      productPrice: 31500,
+      productDescription: "Adidas shoes for Men",
+      productImage:
+        "https://rahulshettyacademy.com/api/ecom/uploads/productImage_1650649488046.jpg",
+      productRating: "0",
+      productTotalOrders: "0",
+      productStatus: true,
+      productFor: "men",
+      productAddedBy: "admin@gmail.com",
+      __v: 0,
+    },
+  });
+
+  expect(addCartResponse.message === "Product Added To Cart").toBeTruthy();
+
+  const orderResponse = await apiUtil.createOrder({
+    orders: [
+      {
+        country: "Korea, Democratic People's Republic of",
+        productOrderedId: "6581ca979fd99c85e8ee7faf",
+      },
+    ],
+  });
+
+  expect(orderResponse.message === "Order Placed Successfully").toBeTruthy();
 });
