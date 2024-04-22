@@ -25,7 +25,8 @@
 // test와 expect 키워드를 이용하기 위해 선언함
 // request는 Web Api 테스트를 위해 필요하다.
 const { test, expect, request } = require("@playwright/test");
-const { APIUtil } = require("./utilities/APIUtil");
+
+import { APIUtil } from "./utilities/APIUtil";
 
 // browser를 넘기는 경우는 무조건 {}로 감싸야 playwright의 browser로 인식한다.
 // 그리고 함수를 전달할 때 async로 전달해야만 await가 의미있다.
@@ -495,6 +496,7 @@ test("Use WebAPI", async ({ browser }) => {
 
 test.only("Use WebAPI With Wrapping Class", async ({ browser }) => {
   const apiContext = await request.newContext();
+
   const apiUtil = new APIUtil(apiContext, {
     userEmail: "anshika@gmail.com",
     userPassword: "Iamking@000",

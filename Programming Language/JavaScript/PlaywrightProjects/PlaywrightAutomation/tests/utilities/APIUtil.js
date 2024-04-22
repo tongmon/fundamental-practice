@@ -1,13 +1,14 @@
-const { test, expect, request } = require("@playwright/test");
-
 class APIUtil {
+  #token = "";
+
   constructor(apiContext, loginData) {
     this.apiContext = apiContext;
     this.loginData = loginData;
-    this.token = this.getToken();
   }
 
-  async getToken() {
+  async #getToken() {
+    if (this.#token.length) return this.#token;
+
     const loginResponse = await this.apiContext.post(
       "https://rahulshettyacademy.com/api/ecom/auth/login",
       {
@@ -15,7 +16,12 @@ class APIUtil {
       }
     );
 
-    return loginResponse.json().token;
+    // 꼭 단계별로 나누어서 await을 박자...
+    // const loginResponseToken = await loginResponse.json().token 요딴거 하면 바로 결과 박살난다.
+    const loginResponseJson = await loginResponse.json();
+    this.#token = loginResponseJson.token;
+
+    return this.#token;
   }
 
   async addToCart(addPayload) {
@@ -24,13 +30,13 @@ class APIUtil {
       {
         data: addPayload,
         headers: {
-          Authorization: this.token,
+          Authorization: await this.#getToken(),
           "Content-Type": "application/json",
         },
       }
     );
 
-    return addCartResponse.json();
+    return await addCartResponse.json();
   }
 
   async createOrder(orderPayload) {
@@ -39,14 +45,14 @@ class APIUtil {
       {
         data: orderPayload,
         headers: {
-          Authorization: this.token,
+          Authorization: await this.#getToken(),
           "Content-Type": "application/json",
         },
       }
     );
 
-    return orderResponse.json();
+    return await orderResponse.json();
   }
 }
 
-module.exports = { APIUtil };
+export { APIUtil };
