@@ -12,6 +12,8 @@ class CMassWebSwimmerDlg : public CDialogEx
 	CEdit m_keywordInput;
 	CEdit m_amountInput;
 	CString m_filePath;
+	CButton m_executeButton;
+	CStatic m_filePathStatic;
 
 // 생성입니다.
 public:
@@ -32,14 +34,14 @@ protected:
 
 	// 생성된 메시지 맵 함수
 	virtual BOOL OnInitDialog();
-	afx_msg void OnPaint();
+	virtual BOOL PreTranslateMessage(MSG* pMsg);
+	afx_msg LRESULT OnKickIdle(WPARAM wParam, LPARAM lParam);
+	void OnPaint();
 	afx_msg void OnClose();
 	afx_msg void OnSize(UINT, int, int);
 	afx_msg HCURSOR OnQueryDragIcon();
-	afx_msg void OnUpdateTypeCombo(CCmdUI* pUI);
 	afx_msg void OnSelchangeTypeCombo();
 	afx_msg void OnClickExecuteButton();
 	afx_msg void OnClickFilePathButton();
-	afx_msg void OnUpdateExecuteButton(CCmdUI* pUI);
 	DECLARE_MESSAGE_MAP()
 };

@@ -7,6 +7,21 @@
 #ifndef PCH_H
 #define PCH_H
 
+#include <vector>
+#include <list>
+#include <queue>
+#include <stack>
+#include <set>
+#include <unordered_set>
+#include <map>
+#include <unordered_map>
+#include <filesystem>
+#include <thread>
+#include <sstream>
+#include <fstream>
+#include <regex>
+#include <memory>
+
 // 여기에 미리 컴파일하려는 헤더 추가
 #include "framework.h"
 

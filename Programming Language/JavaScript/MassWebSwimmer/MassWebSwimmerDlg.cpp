@@ -29,6 +29,8 @@ void CMassWebSwimmerDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_TYPE_COMBO, m_typeCombo);
 	DDX_Control(pDX, IDC_KEYWORD_INPUT, m_keywordInput);
 	DDX_Control(pDX, IDC_AMOUNT_INPUT, m_amountInput);
+	DDX_Control(pDX, IDC_EXECUTE_BUTTON, m_executeButton);
+	DDX_Control(pDX, IDC_FILEPATH_STATIC, m_filePathStatic);
 }
 
 BEGIN_MESSAGE_MAP(CMassWebSwimmerDlg, CDialogEx)
@@ -37,9 +39,9 @@ BEGIN_MESSAGE_MAP(CMassWebSwimmerDlg, CDialogEx)
 	ON_WM_SIZE()
 	ON_WM_QUERYDRAGICON()
 	ON_CBN_SELCHANGE(IDC_TYPE_COMBO, OnSelchangeTypeCombo)
+	ON_BN_CLICKED(IDC_FILEPATH_BUTTON, OnClickFilePathButton)
 	ON_BN_CLICKED(IDC_EXECUTE_BUTTON, OnClickExecuteButton)
-	ON_UPDATE_COMMAND_UI(IDC_TYPE_COMBO, OnUpdateTypeCombo)
-	ON_UPDATE_COMMAND_UI(IDC_EXECUTE_BUTTON, OnUpdateExecuteButton)
+	ON_MESSAGE(WM_KICKIDLE, OnKickIdle)
 END_MESSAGE_MAP()
 
 BOOL CMassWebSwimmerDlg::OnInitDialog()
@@ -54,9 +56,10 @@ BOOL CMassWebSwimmerDlg::OnInitDialog()
 	SetIcon(m_hIcon, FALSE);		// 작은 아이콘을 설정합니다.
 
 #pragma region Init Controls
-	m_typeCombo.AddString(_T("Instagram"));
-	m_typeCombo.AddString(_T("Naver"));
-	m_typeCombo.AddString(_T("Google"));
+	m_typeCombo.InsertString(-1, _T("Instagram"));
+	m_typeCombo.InsertString(-1, _T("Naver"));
+	m_typeCombo.InsertString(-1, _T("Google"));
+	m_typeCombo.SetCurSel(0);
 
 	CString placeholderText = _T("Please input your keyword here.");
 	::SendMessage(m_keywordInput.GetSafeHwnd(), EM_SETCUEBANNER, TRUE, reinterpret_cast<LPARAM>(placeholderText.GetString()));
@@ -72,6 +75,38 @@ BOOL CMassWebSwimmerDlg::OnInitDialog()
 // 대화 상자에 최소화 단추를 추가할 경우 아이콘을 그리려면
 //  아래 코드가 필요합니다.  문서/뷰 모델을 사용하는 MFC 애플리케이션의 경우에는
 //  프레임워크에서 이 작업을 자동으로 수행합니다.
+
+LRESULT CMassWebSwimmerDlg::OnKickIdle(WPARAM wParam, LPARAM lParam)
+{
+#pragma region Process Execute Button Enabling
+	BOOL bSelectEnable = TRUE;
+
+	if (m_filePath.IsEmpty())
+		bSelectEnable = FALSE;
+
+	if (bSelectEnable)
+	{
+		CString keyword;
+		m_keywordInput.GetWindowText(keyword);
+
+		if (keyword.IsEmpty())
+			bSelectEnable = FALSE;
+	}
+
+	if (bSelectEnable)
+	{
+		CString amount;
+		m_amountInput.GetWindowText(amount);
+
+		if (amount.IsEmpty())
+			bSelectEnable = FALSE;
+	}
+
+	m_executeButton.EnableWindow(bSelectEnable);
+#pragma endregion
+
+	return 0;
+}
 
 void CMassWebSwimmerDlg::OnPaint()
 {
@@ -103,6 +138,11 @@ void CMassWebSwimmerDlg::OnClose()
 	CDialogEx::OnClose();
 }
 
+BOOL CMassWebSwimmerDlg::PreTranslateMessage(MSG* pMsg)
+{
+	return CDialogEx::PreTranslateMessage(pMsg);
+}
+
 void CMassWebSwimmerDlg::OnSize(UINT nType, int cx, int cy)
 {
 	// CWnd* pwndParent = this->GetParent();
@@ -122,6 +162,7 @@ HCURSOR CMassWebSwimmerDlg::OnQueryDragIcon()
 
 void CMassWebSwimmerDlg::OnSelchangeTypeCombo()
 {
+
 }
 
 void CMassWebSwimmerDlg::OnClickExecuteButton()
@@ -130,39 +171,45 @@ void CMassWebSwimmerDlg::OnClickExecuteButton()
 
 void CMassWebSwimmerDlg::OnClickFilePathButton()
 {
-}
-
-void CMassWebSwimmerDlg::OnUpdateExecuteButton(CCmdUI* pUI)
-{
-	if (m_filePath.IsEmpty())
+	CFolderPickerDialog folderPickerDlg(NULL, OFN_EXPLORER);
+	if (folderPickerDlg.DoModal() == IDOK)
 	{
-		pUI->Enable(FALSE);
-		return;
+		m_filePath = folderPickerDlg.GetFolderPath();
+		m_filePathStatic.SetWindowText(m_filePath);
 	}
 
-	CString keyword;
-	m_keywordInput.GetWindowText(keyword);
-
-	if (keyword.IsEmpty())
-	{
-		pUI->Enable(FALSE);
-		return;
-	}
-
-	CString amount;
-	m_amountInput.GetWindowText(amount);
-
-	if (amount.IsEmpty())
-	{
-		pUI->Enable(FALSE);
-		return;
-	}
-
-	pUI->Enable(TRUE);
-}
-
-void CMassWebSwimmerDlg::OnUpdateTypeCombo(CCmdUI* pUI)
-{
-	// 비활성화
-	// pUI->Enable(FALSE);
+	// CString filter, initDir;
+	// size_t pathCnt = 1, size = pathCnt * MAX_PATH;
+	// auto fileName = std::make_unique<TCHAR[]>(size);
+	// fileName[0] = 0;
+	// 
+	// OPENFILENAME ofn;
+	// std::memset(&ofn, 0, sizeof(OPENFILENAME));
+	// ofn.lStructSize = sizeof(OPENFILENAME);
+	// ofn.hwndOwner = this->GetSafeHwnd();
+	// ofn.lpstrFilter = filter.GetString();
+	// ofn.lpstrFile = fileName.get();
+	// ofn.lpstrTitle = _T("Select file path");
+	// ofn.nMaxFile = size;
+	// ofn.lpstrInitialDir = initDir.GetString();
+	// ofn.Flags = OFN_EXPLORER | (pathCnt == 1 ? 0 : OFN_ALLOWMULTISELECT);
+	// 
+	// if (GetOpenFileName(&ofn))
+	// {
+	// 	if (pathCnt == 1)
+	// 		m_filePath = ofn.lpstrFile;
+	// 	else
+	// 	{
+	// 		TCHAR* filePt = ofn.lpstrFile;
+	// 		CString targetDir = filePt;
+	// 		filePt += (targetDir.GetLength() + 1);
+	// 
+	// 		while (*filePt)
+	// 		{
+	// 			CString targetFile = filePt;
+	// 			filePt += (targetFile.GetLength() + 1);
+	// 			m_filePath = m_filePath + _T(";") + targetDir + _T("\\") + targetFile;
+	// 		}
+	// 	}
+	// }
 }
