@@ -171,7 +171,7 @@ void CMassWebSwimmerDlg::OnClickExecuteButton()
 
 void CMassWebSwimmerDlg::OnClickFilePathButton()
 {
-	CFolderPickerDialog folderPickerDlg(NULL, OFN_EXPLORER);
+	CFolderPickerDialog folderPickerDlg(NULL, OFN_EXPLORER | OFN_PATHMUSTEXIST | OFN_FILEMUSTEXIST);
 	if (folderPickerDlg.DoModal() == IDOK)
 	{
 		m_filePath = folderPickerDlg.GetFolderPath();
