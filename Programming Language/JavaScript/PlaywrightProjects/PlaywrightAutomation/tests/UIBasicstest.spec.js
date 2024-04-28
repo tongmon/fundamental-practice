@@ -494,7 +494,7 @@ test("Use WebAPI", async ({ browser }) => {
   ).toBeTruthy();
 });
 
-test.only("Use WebAPI With Wrapping Class", async ({ browser }) => {
+test("Use WebAPI With Wrapping Class", async ({ browser }) => {
   const apiContext = await request.newContext();
 
   const apiUtil = new APIUtil(apiContext, {
@@ -534,4 +534,128 @@ test.only("Use WebAPI With Wrapping Class", async ({ browser }) => {
   });
 
   expect(orderResponse.message === "Order Placed Successfully").toBeTruthy();
+});
+
+test.only("Get google place info", async ({ page }) => {
+  // searchKeyword 구성 방법 => 시/군/구/동 + " " + 유형
+  let searchKeyword = "삼성동 맛집";
+
+  await page.goto("https://www.google.co.kr/maps/");
+  await page.locator("#searchboxinput").fill(searchKeyword);
+  await page.getByLabel("검색", { exact: true }).click();
+
+  let placeDivList = page.locator(".m6QErb[role$='feed']");
+  await placeDivList.focus();
+
+  let isEndOfPlace = false;
+  do {
+    await page.keyboard.press("PageDown");
+    // isEndOfPlace = await page.getByText("마지막 항목입니다.").isVisible();
+
+    isEndOfPlace = await Promise.race([
+      () => {
+        return page.getByText("마지막 항목입니다.").isVisible();
+      },
+      () => {
+        setTimeout(() => {}, 3000);
+        return true;
+      },
+    ]);
+  } while (!isEndOfPlace);
+
+  let placeElem = placeDivList.locator("div.Nv2PK.tH5CWc.THOPZb > a.hfpxzc");
+  let placeCnt = await placeElem.count();
+
+  for (let i = 0; i < placeCnt; i++) {
+    await placeElem.nth(i).click();
+
+    let location = page
+      .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
+      .last()
+      .locator("div.m6QErb")
+      .nth(1)
+      .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
+      .nth(0)
+      .locator("div.Io6YTe.fontBodyMedium.kR99db");
+    console.log(await location.textContent());
+
+    let time = page
+      .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
+      .last()
+      .locator("div.m6QErb")
+      .nth(1)
+      .locator("div.OqCZI.fontBodyMedium.WVXvdc > div.t39EBf.GUrTXd");
+    console.log(await time.textContent());
+
+    let webSite = page
+      .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
+      .last()
+      .locator("div.m6QErb")
+      .nth(1)
+      .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
+      .nth(1)
+      .locator("a.CsEnBe")
+      .first();
+    console.log(await webSite.getAttribute("href"));
+
+    let phoneNumber = page
+      .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
+      .last()
+      .locator("div.m6QErb")
+      .nth(1)
+      .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
+      .nth(2)
+      .locator("button.CsEnBe")
+      .first();
+    console.log(await phoneNumber.getAttribute("aria-label"));
+
+    // let placeInfo = page
+    //   .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
+    //   .last()
+    //   .locator("div.m6QErb")
+    //   .nth(1);
+    //
+    // console.log(
+    //   await placeInfo
+    //     .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
+    //     .count()
+    // );
+  }
+
+  // await placeDivList.mouse.(0, 600);
+
+  // await placeDivList.scrollIntoViewIfNeeded();
+
+  //let placeCnt = placeDivList.count();
+  //for (let i = 2; i < placeCnt; i += 2) {
+  //  let placeElem = placeDivList
+  //    .nth(ind)
+  //    .locator("div.Nv2PK.tH5CWc.THOPZb > a.hfpxzc");
+  //
+  //  await placeElem.click();
+  //
+  //  let placeInfo = page
+  //    .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
+  //    .last()
+  //    .nth(6);
+  //
+  //  let infoCnt = await placeInfo.count();
+  //  for (let j = 2; j < 6; j++) {
+  //    console.log(await placeInfo.nth(j).textContent());
+  //  }
+  //}
+
+  // /html[1]/body[1]/div[1]/div[3]/div[8]/div[9]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]
+
+  // m6QErb DxyBCb kA9KIf dS8AEf ecceSd
+
+  //a[@aria-label='강남구보건소·방문한 링크']
+
+  // await page.getByLabel("검색", { exact: true }).fill(searchKeyword);
+  // await page.getByRole("link", { name: "장소 더보기" }).click();
+  // await page
+  //   .getByRole("button", { name: "전주집 (JeonJoo Jip) 별 5개 중 3.1" })
+  //   .click({
+  //     button: "right",
+  //   });
 });
