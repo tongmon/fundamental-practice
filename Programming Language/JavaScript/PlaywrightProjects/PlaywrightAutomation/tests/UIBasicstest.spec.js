@@ -538,7 +538,7 @@ test("Use WebAPI With Wrapping Class", async ({ browser }) => {
 
 test.only("Get google place info", async ({ page }) => {
   // searchKeyword 구성 방법 => 시/군/구/동 + " " + 유형
-  let searchKeyword = "삼성동 맛집";
+  let searchKeyword = "서울 구청"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 이름이 계속 바뀜
 
   await page.goto("https://www.google.co.kr/maps/");
   await page.locator("#searchboxinput").fill(searchKeyword);
@@ -550,20 +550,25 @@ test.only("Get google place info", async ({ page }) => {
   let isEndOfPlace = false;
   do {
     await page.keyboard.press("PageDown");
-    // isEndOfPlace = await page.getByText("마지막 항목입니다.").isVisible();
+    isEndOfPlace = await page.getByText("마지막 항목입니다.").isVisible();
 
-    isEndOfPlace = await Promise.race([
-      () => {
-        return page.getByText("마지막 항목입니다.").isVisible();
-      },
-      () => {
-        setTimeout(() => {}, 3000);
-        return true;
-      },
-    ]);
+    // let timeFunc = async () => {
+    //   setTimeout(function () {
+    //     console.log("time out!");
+    //   }, 3000);
+    //   return true;
+    // };
+    //
+    // isEndOfPlace = await Promise.race([
+    //   timeFunc(),
+    //   page.getByText("마지막 항목입니다.").isVisible(),
+    // ]).then((value) => {
+    //   clearTimeout(timeFunc);
+    // });
   } while (!isEndOfPlace);
 
-  let placeElem = placeDivList.locator("div.Nv2PK.tH5CWc.THOPZb > a.hfpxzc");
+  // div.Nv2PK.tH5CWc.THOPZb > a.hfpxzc
+  let placeElem = placeDivList.locator("a.hfpxzc");
   let placeCnt = await placeElem.count();
 
   for (let i = 0; i < placeCnt; i++) {
@@ -585,7 +590,7 @@ test.only("Get google place info", async ({ page }) => {
       .locator("div.m6QErb")
       .nth(1)
       .locator("div.OqCZI.fontBodyMedium.WVXvdc > div.t39EBf.GUrTXd");
-    console.log(await time.textContent());
+    console.log(await time.textContent(3000));
 
     let webSite = page
       .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
@@ -596,7 +601,8 @@ test.only("Get google place info", async ({ page }) => {
       .nth(1)
       .locator("a.CsEnBe")
       .first();
-    console.log(await webSite.getAttribute("href"));
+    if (await webSite.isVisible())
+      console.log(await webSite.getAttribute("href"));
 
     let phoneNumber = page
       .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
