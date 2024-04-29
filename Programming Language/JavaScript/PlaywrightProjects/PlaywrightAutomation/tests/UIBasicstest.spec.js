@@ -538,7 +538,7 @@ test("Use WebAPI With Wrapping Class", async ({ browser }) => {
 
 test.only("Get google place info", async ({ page }) => {
   // searchKeyword 구성 방법 => 시/군/구/동 + " " + 유형
-  let searchKeyword = "서울 구청"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 이름이 계속 바뀜
+  let searchKeyword = "삼성동 맛집"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 이름이 계속 바뀜
 
   await page.goto("https://www.google.co.kr/maps/");
   await page.locator("#searchboxinput").fill(searchKeyword);
@@ -568,64 +568,78 @@ test.only("Get google place info", async ({ page }) => {
   } while (!isEndOfPlace);
 
   // div.Nv2PK.tH5CWc.THOPZb > a.hfpxzc
-  let placeElem = placeDivList.locator("a.hfpxzc");
+  let placeElem = placeDivList.locator("div > a.hfpxzc");
   let placeCnt = await placeElem.count();
 
   for (let i = 0; i < placeCnt; i++) {
     await placeElem.nth(i).click();
 
-    let location = page
-      .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
-      .last()
-      .locator("div.m6QErb")
-      .nth(1)
-      .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
-      .nth(0)
-      .locator("div.Io6YTe.fontBodyMedium.kR99db");
-    console.log(await location.textContent());
+    await page.waitForTimeout(700); // 개선이 필요함
 
-    let time = page
-      .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
-      .last()
-      .locator("div.m6QErb")
-      .nth(1)
-      .locator("div.OqCZI.fontBodyMedium.WVXvdc > div.t39EBf.GUrTXd");
-    console.log(await time.textContent(3000));
-
-    let webSite = page
-      .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
-      .last()
-      .locator("div.m6QErb")
-      .nth(1)
-      .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
-      .nth(1)
-      .locator("a.CsEnBe")
-      .first();
-    if (await webSite.isVisible())
-      console.log(await webSite.getAttribute("href"));
-
-    let phoneNumber = page
-      .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
-      .last()
-      .locator("div.m6QErb")
-      .nth(1)
-      .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
-      .nth(2)
-      .locator("button.CsEnBe")
-      .first();
-    console.log(await phoneNumber.getAttribute("aria-label"));
-
-    // let placeInfo = page
+    // let location = page
     //   .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
     //   .last()
     //   .locator("div.m6QErb")
-    //   .nth(1);
-    //
-    // console.log(
-    //   await placeInfo
-    //     .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
-    //     .count()
-    // );
+    //   .nth(1)
+    //   .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
+    //   .nth(0)
+    //   .locator("div.Io6YTe.fontBodyMedium.kR99db");
+    // console.log(await location.textContent());
+
+    let location = page.locator(
+      "div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L > button[data-item-id='address']"
+    );
+    if (await location.isVisible())
+      console.log(await location.getAttribute("aria-label"));
+
+    //let time = page
+    //  .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
+    //  .last()
+    //  .locator("div.m6QErb")
+    //  .nth(1)
+    //  .locator("div.OqCZI.fontBodyMedium.WVXvdc > div.t39EBf.GUrTXd");
+    //console.log(await time.textContent(3000));
+
+    let time = page.locator(
+      "div.OqCZI.fontBodyMedium.WVXvdc > div.t39EBf.GUrTXd"
+    );
+    if (await time.isVisible())
+      console.log(await time.getAttribute("aria-label"));
+
+    //let webSite = page
+    //  .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
+    //  .last()
+    //  .locator("div.m6QErb")
+    //  .nth(1)
+    //  .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
+    //  .nth(1)
+    //  .locator("a.CsEnBe")
+    //  .first();
+    //if (await webSite.isVisible())
+    //  console.log(await webSite.getAttribute("href"));
+
+    let webSite = page.locator(
+      "div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L > a[data-item-id*='authority']"
+    );
+    if (await webSite.isVisible())
+      console.log(await webSite.getAttribute("href"));
+
+    // let phoneNumber = page
+    //   .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
+    //   .last()
+    //   .locator("div.m6QErb")
+    //   .nth(1)
+    //   .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
+    //   .nth(2)
+    //   .locator("button.CsEnBe")
+    //   .first();
+    // console.log(await phoneNumber.getAttribute("aria-label"));
+
+    let phoneNumber = page.locator(
+      "div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L > button[data-item-id*='phone']"
+    );
+    if (await phoneNumber.isVisible())
+      console.log(await phoneNumber.getAttribute("aria-label"));
   }
 
   // await placeDivList.mouse.(0, 600);

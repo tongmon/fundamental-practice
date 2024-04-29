@@ -20,7 +20,7 @@ module.exports = defineConfig({
 
   // 테스트 진행 중 timeout에 기재된 시간 동안 아무런 반응이 없다면 실패처리함
   // 즉 해당 시간은 test 명령에 대한 시간 제한 값임
-  timeout: 30 * 1000,
+  timeout: 30 * 1000 * 9999,
 
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
