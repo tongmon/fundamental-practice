@@ -539,7 +539,7 @@ test("Use WebAPI With Wrapping Class", async ({ browser }) => {
 
 test("Get google place info", async ({ page }) => {
   // searchKeyword 구성 방법 => 시/군/구/동 + " " + 유형
-  // 호텔, 모텔, 게스트하우스(게하), 숙박, 잘곳, 리조트, 콘도 -> 이런거 들어가면 UI가 바뀜, 다른 모드를 만들어서 따로 처리해야 함
+  // 호텔, 모텔, 게스트하우스(게하), 숙박, 잘곳, 리조트, 콘도, {숫자}성급 -> 이런거 들어가면 UI가 바뀜, 다른 모드를 만들어서 따로 처리해야 함
   let searchKeyword = "서울 구청"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 tagname이 계속 바뀜
 
   await page.goto("https://www.google.co.kr/maps/");
