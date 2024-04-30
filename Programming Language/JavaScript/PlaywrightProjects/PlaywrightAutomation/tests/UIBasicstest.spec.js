@@ -26,6 +26,7 @@
 // request는 Web Api 테스트를 위해 필요하다.
 const { test, expect, request } = require("@playwright/test");
 
+import { resolve } from "path";
 import { APIUtil } from "./utilities/APIUtil";
 
 // browser를 넘기는 경우는 무조건 {}로 감싸야 playwright의 browser로 인식한다.
@@ -536,146 +537,81 @@ test("Use WebAPI With Wrapping Class", async ({ browser }) => {
   expect(orderResponse.message === "Order Placed Successfully").toBeTruthy();
 });
 
-test.only("Get google place info", async ({ page }) => {
+test("Get google place info", async ({ page }) => {
   // searchKeyword 구성 방법 => 시/군/구/동 + " " + 유형
-  let searchKeyword = "삼성동 맛집"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 이름이 계속 바뀜
+  let searchKeyword = "서울 구청"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 tagname이 계속 바뀜
 
   await page.goto("https://www.google.co.kr/maps/");
   await page.locator("#searchboxinput").fill(searchKeyword);
-  await page.getByLabel("검색", { exact: true }).click();
+  await page.locator("#searchbox-searchbutton").click();
 
   let placeDivList = page.locator(".m6QErb[role$='feed']");
   await placeDivList.focus();
 
-  let isEndOfPlace = false;
-  do {
-    await page.keyboard.press("PageDown");
-    isEndOfPlace = await page.getByText("마지막 항목입니다.").isVisible();
+  let pastDelimCnt = 0;
+  let curDelimCnt = 0;
+  while (true) {
+    curDelimCnt = await page.locator("div > a.hfpxzc").count();
 
-    // let timeFunc = async () => {
-    //   setTimeout(function () {
-    //     console.log("time out!");
-    //   }, 3000);
-    //   return true;
-    // };
-    //
-    // isEndOfPlace = await Promise.race([
-    //   timeFunc(),
-    //   page.getByText("마지막 항목입니다.").isVisible(),
-    // ]).then((value) => {
-    //   clearTimeout(timeFunc);
-    // });
-  } while (!isEndOfPlace);
+    if (curDelimCnt === pastDelimCnt) break;
 
-  // div.Nv2PK.tH5CWc.THOPZb > a.hfpxzc
+    pastDelimCnt = curDelimCnt;
+
+    await page.keyboard.press("End");
+    await page.waitForTimeout(2000); // 개선 필요
+  }
+
   let placeElem = placeDivList.locator("div > a.hfpxzc");
   let placeCnt = await placeElem.count();
 
   for (let i = 0; i < placeCnt; i++) {
     await placeElem.nth(i).click();
 
-    await page.waitForTimeout(700); // 개선이 필요함
+    await page.waitForTimeout(1100); // 개선이 필요함
 
-    // let location = page
-    //   .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
-    //   .last()
-    //   .locator("div.m6QErb")
-    //   .nth(1)
-    //   .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
-    //   .nth(0)
-    //   .locator("div.Io6YTe.fontBodyMedium.kR99db");
-    // console.log(await location.textContent());
-
+    // 장소
     let location = page.locator(
       "div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L > button[data-item-id='address']"
     );
     if (await location.isVisible())
       console.log(await location.getAttribute("aria-label"));
 
-    //let time = page
-    //  .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
-    //  .last()
-    //  .locator("div.m6QErb")
-    //  .nth(1)
-    //  .locator("div.OqCZI.fontBodyMedium.WVXvdc > div.t39EBf.GUrTXd");
-    //console.log(await time.textContent(3000));
-
+    // 영업 시간
     let time = page.locator(
       "div.OqCZI.fontBodyMedium.WVXvdc > div.t39EBf.GUrTXd"
     );
     if (await time.isVisible())
       console.log(await time.getAttribute("aria-label"));
 
-    //let webSite = page
-    //  .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
-    //  .last()
-    //  .locator("div.m6QErb")
-    //  .nth(1)
-    //  .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
-    //  .nth(1)
-    //  .locator("a.CsEnBe")
-    //  .first();
-    //if (await webSite.isVisible())
-    //  console.log(await webSite.getAttribute("href"));
-
+    // 웹 사이트
     let webSite = page.locator(
       "div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L > a[data-item-id*='authority']"
     );
     if (await webSite.isVisible())
       console.log(await webSite.getAttribute("href"));
 
-    // let phoneNumber = page
-    //   .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
-    //   .last()
-    //   .locator("div.m6QErb")
-    //   .nth(1)
-    //   .locator("div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L")
-    //   .nth(2)
-    //   .locator("button.CsEnBe")
-    //   .first();
-    // console.log(await phoneNumber.getAttribute("aria-label"));
-
+    // 전화번호
     let phoneNumber = page.locator(
       "div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L > button[data-item-id*='phone']"
     );
     if (await phoneNumber.isVisible())
       console.log(await phoneNumber.getAttribute("aria-label"));
   }
+});
 
-  // await placeDivList.mouse.(0, 600);
+test("Get local cache json from process", async ({ browser }) => {
+  const context = await browser.newContext();
+  const page = await context.newPage();
 
-  // await placeDivList.scrollIntoViewIfNeeded();
+  await page.goto("https://rahulshettyacademy.com/client");
+  await page.locator("#userEmail").fill("anshika@gmail.com");
+  await page.locator("#userPassword").type("Iamking@000");
+  await page.locator("[value='Login']").click();
+  await page.waitForLoadState("networkidle");
 
-  //let placeCnt = placeDivList.count();
-  //for (let i = 2; i < placeCnt; i += 2) {
-  //  let placeElem = placeDivList
-  //    .nth(ind)
-  //    .locator("div.Nv2PK.tH5CWc.THOPZb > a.hfpxzc");
-  //
-  //  await placeElem.click();
-  //
-  //  let placeInfo = page
-  //    .locator("div.m6QErb[role$='main'] > div.m6QErb.DxyBCb.kA9KIf.dS8AEf")
-  //    .last()
-  //    .nth(6);
-  //
-  //  let infoCnt = await placeInfo.count();
-  //  for (let j = 2; j < 6; j++) {
-  //    console.log(await placeInfo.nth(j).textContent());
-  //  }
-  //}
+  // state.json 파일에 현재까지 진행한 웹 로컬 데이터를 저장함
+  await context.storageState({ path: "state.json" });
 
-  // /html[1]/body[1]/div[1]/div[3]/div[8]/div[9]/div[1]/div[1]/div[1]/div[2]/div[1]/div[1]/div[1]/div[1]/div[1]/div[1]
-
-  // m6QErb DxyBCb kA9KIf dS8AEf ecceSd
-
-  //a[@aria-label='강남구보건소·방문한 링크']
-
-  // await page.getByLabel("검색", { exact: true }).fill(searchKeyword);
-  // await page.getByRole("link", { name: "장소 더보기" }).click();
-  // await page
-  //   .getByRole("button", { name: "전주집 (JeonJoo Jip) 별 5개 중 3.1" })
-  //   .click({
-  //     button: "right",
-  //   });
+  // state.json 파일을 이용해 브라우저 context를 생성하면 로그인 과정이 이미 되어있는 브라우저 상태를 획득할 수 있다.
+  context = await browser.newContext({ storageState: "state.json" });
 });
