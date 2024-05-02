@@ -537,14 +537,69 @@ test("Use WebAPI With Wrapping Class", async ({ browser }) => {
   expect(orderResponse.message === "Order Placed Successfully").toBeTruthy();
 });
 
-test("Get google place info", async ({ page }) => {
+test.only("Get google place info", async ({ page }) => {
   // searchKeyword 구성 방법 => 시/군/구/동 + " " + 유형
-  // 호텔, 모텔, 게스트하우스(게하), 숙박, 잘곳, 리조트, 콘도, {숫자}성급 -> 이런거 들어가면 UI가 바뀜, 다른 모드를 만들어서 따로 처리해야 함
-  let searchKeyword = "서울 구청"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 tagname이 계속 바뀜
+  let searchKeyword = "강남구청"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 tagname이 계속 바뀜
 
   await page.goto("https://www.google.co.kr/maps/");
   await page.locator("#searchboxinput").fill(searchKeyword);
   await page.locator("#searchbox-searchbutton").click();
+
+  // 숙박 장소를 검색하면 UI가 달라지는데... 일단 크롤링에 영향은 없는 듯 하여 여부만 따짐
+  let isPlaceMode = false;
+  let placeKeywords = [
+    "호텔",
+    "hotel",
+    "모텔",
+    "motel",
+    "게스트하우스",
+    "게하",
+    "guest house",
+    "숙박",
+    "accomodation",
+    "잘곳",
+    "리조트",
+    "resort",
+    "콘도",
+    "성급",
+    "five-star",
+    "펜션",
+    "pension",
+  ];
+
+  for (let i = 0; i < placeKeywords.length && !isPlaceMode; i++) {
+    if (searchKeyword.search(placeKeywords[i]) < 0) isPlaceMode = true;
+  }
+
+  await page.waitForTimeout(1500);
+
+  // 검색 결과가 하나인 경우
+  const isSingle = await page
+    .locator("div.k7jAl.miFGmb.lJ3Kh.PLbyfe")
+    .isVisible();
+  if (!isSingle) {
+    // 장소
+    let location = page.locator("button[data-item-id='address']");
+    if (await location.isVisible())
+      console.log(await location.getAttribute("aria-label"));
+
+    // 영업 시간
+    let time = page.locator("div.t39EBf.GUrTXd");
+    if (await time.isVisible())
+      console.log(await time.getAttribute("aria-label"));
+
+    // 웹 사이트
+    let webSite = page.locator("a[data-item-id*='authority']");
+    if (await webSite.isVisible())
+      console.log(await webSite.getAttribute("href"));
+
+    // 전화번호
+    let phoneNumber = page.locator("button[data-item-id*='phone']");
+    if (await phoneNumber.isVisible())
+      console.log(await phoneNumber.getAttribute("aria-label"));
+
+    return;
+  }
 
   let placeDivList = page.locator(".m6QErb[role$='feed']");
   await placeDivList.focus();
