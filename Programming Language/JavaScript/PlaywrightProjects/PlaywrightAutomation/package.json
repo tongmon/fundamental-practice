@@ -12,6 +12,8 @@
     "@types/node": "^20.12.7"
   },
   "dependencies": {
+    "exceljs": "^4.4.0",
+    "install": "^0.13.0",
     "playwright": "^1.43.1"
   }
 }

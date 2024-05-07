@@ -25,9 +25,11 @@
 // test와 expect 키워드를 이용하기 위해 선언함
 // request는 Web Api 테스트를 위해 필요하다.
 const { test, expect, request } = require("@playwright/test");
+const ExcelJs = require("exceljs");
 
 import { resolve } from "path";
 import { APIUtil } from "./utilities/APIUtil";
+//import { ExcelJs } from "exceljs";
 
 // browser를 넘기는 경우는 무조건 {}로 감싸야 playwright의 browser로 인식한다.
 // 그리고 함수를 전달할 때 async로 전달해야만 await가 의미있다.
@@ -539,7 +541,32 @@ test("Use WebAPI With Wrapping Class", async ({ browser }) => {
 
 test.only("Get google place info", async ({ page }) => {
   // searchKeyword 구성 방법 => 시/군/구/동 + " " + 유형
-  let searchKeyword = "강남구청"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 tagname이 계속 바뀜
+  const searchKeyword = "삼성동 맛집"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 tagname이 계속 바뀜
+  const excelSavePath = "D:/Downloads/ExcelTest/test.xlsx";
+  let placeCnt = 0;
+
+  // 엑셀 파일 저장을 위한 객체 구성
+  const workBook = new ExcelJs.Workbook();
+  const workSheet = workBook.addWorksheet("GoogleMap Sheet 01");
+
+  workSheet.getCell("B1").value = "장소";
+  workSheet.getCell("C1").value = "영업 시간";
+  workSheet.getCell("D1").value = "웹 사이트";
+  workSheet.getCell("E1").value = "전화번호";
+
+  let putDataOnSheetFunc = (dataIndex, datas) => {
+    let rowNum = dataIndex + 2;
+    if (datas.hasOwnProperty("name"))
+      workSheet.getCell("A" + rowNum).value = datas.name;
+    if (datas.hasOwnProperty("location"))
+      workSheet.getCell("B" + rowNum).value = datas.location;
+    if (datas.hasOwnProperty("businessHours"))
+      workSheet.getCell("C" + rowNum).value = datas.businessHours;
+    if (datas.hasOwnProperty("webSite"))
+      workSheet.getCell("D" + rowNum).value = datas.webSite;
+    if (datas.hasOwnProperty("phone"))
+      workSheet.getCell("E" + rowNum).value = datas.phone;
+  };
 
   await page.goto("https://www.google.co.kr/maps/");
   await page.locator("#searchboxinput").fill(searchKeyword);
@@ -571,33 +598,68 @@ test.only("Get google place info", async ({ page }) => {
     if (searchKeyword.search(placeKeywords[i]) < 0) isPlaceMode = true;
   }
 
-  await page.waitForTimeout(1500);
+  await page.waitForTimeout(2000);
+  // await page.waitForLoadState("domcontentloaded");
+
+  // 검색 결과가 없는 경우
+  if (await page.locator("button.kyuRq").isVisible()) return;
 
   // 검색 결과가 하나인 경우
-  const isSingle = await page
-    .locator("div.k7jAl.miFGmb.lJ3Kh.PLbyfe")
-    .isVisible();
-  if (!isSingle) {
+  if (!(await page.locator("div.k7jAl.miFGmb.lJ3Kh.PLbyfe").isVisible())) {
+    // 이름
+    let nameLoc = page.locator("h1.DUwDvf");
+    let name = "";
+    if (await nameLoc.isVisible()) {
+      name = await nameLoc.textContent();
+      console.log(name);
+    }
+
     // 장소
-    let location = page.locator("button[data-item-id='address']");
-    if (await location.isVisible())
-      console.log(await location.getAttribute("aria-label"));
+    let locationLoc = page.locator("button[data-item-id='address']");
+    let location = "";
+    if (await locationLoc.isVisible()) {
+      location = await locationLoc.getAttribute("aria-label");
+      console.log(location);
+    }
 
     // 영업 시간
-    let time = page.locator("div.t39EBf.GUrTXd");
-    if (await time.isVisible())
-      console.log(await time.getAttribute("aria-label"));
+    let businessHoursSpan = page.locator("span.ZDu9vd");
+    let businessHours = "";
+    if (await businessHoursSpan.isVisible()) {
+      await businessHoursSpan.click();
+
+      let businessHoursLoc = page.locator("div.t39EBf.GUrTXd");
+      if (await businessHoursLoc.isVisible()) {
+        businessHours = await businessHoursLoc.getAttribute("aria-label");
+        console.log(businessHours);
+      }
+    }
 
     // 웹 사이트
-    let webSite = page.locator("a[data-item-id*='authority']");
-    if (await webSite.isVisible())
-      console.log(await webSite.getAttribute("href"));
+    let webSiteLoc = page.locator("a[data-item-id*='authority']");
+    let webSite = "";
+    if (await webSiteLoc.isVisible()) {
+      webSite = await webSiteLoc.getAttribute("href");
+      console.log(webSite);
+    }
 
     // 전화번호
-    let phoneNumber = page.locator("button[data-item-id*='phone']");
-    if (await phoneNumber.isVisible())
-      console.log(await phoneNumber.getAttribute("aria-label"));
+    let phoneLoc = page.locator("button[data-item-id*='phone']");
+    let phone = "";
+    if (await phoneLoc.isVisible()) {
+      phone = await phoneLoc.getAttribute("aria-label");
+      console.log(phone);
+    }
 
+    putDataOnSheetFunc(0, {
+      name: name,
+      location: location,
+      businessHours: businessHours,
+      webSite: webSite,
+      phone: phone,
+    });
+
+    await workBook.xlsx.writeFile(excelSavePath);
     return;
   }
 
@@ -618,41 +680,76 @@ test.only("Get google place info", async ({ page }) => {
   }
 
   let placeElem = placeDivList.locator("div > a.hfpxzc");
-  let placeCnt = await placeElem.count();
+  placeCnt = await placeElem.count();
 
   for (let i = 0; i < placeCnt; i++) {
     await placeElem.nth(i).click();
 
-    await page.waitForTimeout(1100); // 개선이 필요함
+    await page.waitForTimeout(1500); // 개선이 필요함
+
+    // 이름
+    let nameLoc = page.locator("h1.DUwDvf");
+    let name = "";
+    if (await nameLoc.isVisible()) {
+      name = await nameLoc.textContent();
+      console.log(name);
+    }
 
     // 장소
-    let location = page.locator(
+    let locationLoc = page.locator(
       "div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L > button[data-item-id='address']"
     );
-    if (await location.isVisible())
-      console.log(await location.getAttribute("aria-label"));
+    let location = "";
+    if (await locationLoc.isVisible()) {
+      location = await locationLoc.getAttribute("aria-label");
+      console.log(location);
+    }
 
     // 영업 시간
-    let time = page.locator(
-      "div.OqCZI.fontBodyMedium.WVXvdc > div.t39EBf.GUrTXd"
-    );
-    if (await time.isVisible())
-      console.log(await time.getAttribute("aria-label"));
+    let businessHoursSpan = page.locator("span.ZDu9vd");
+    let businessHours = "";
+    if (await businessHoursSpan.isVisible()) {
+      await businessHoursSpan.click();
+
+      let businessHoursLoc = page.locator(
+        "div.OqCZI.fontBodyMedium.WVXvdc > div.t39EBf.GUrTXd"
+      );
+      if (await businessHoursLoc.isVisible()) {
+        businessHours = await businessHoursLoc.getAttribute("aria-label");
+        console.log(businessHours);
+      }
+    }
 
     // 웹 사이트
-    let webSite = page.locator(
+    let webSiteLoc = page.locator(
       "div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L > a[data-item-id*='authority']"
     );
-    if (await webSite.isVisible())
-      console.log(await webSite.getAttribute("href"));
+    let webSite = "";
+    if (await webSiteLoc.isVisible()) {
+      webSite = await webSiteLoc.getAttribute("href");
+      console.log(webSite);
+    }
 
     // 전화번호
-    let phoneNumber = page.locator(
+    let phoneLoc = page.locator(
       "div.RcCsl.fVHpi.w4vB1d.NOE9ve.M0S7ae.AG25L > button[data-item-id*='phone']"
     );
-    if (await phoneNumber.isVisible())
-      console.log(await phoneNumber.getAttribute("aria-label"));
+    let phone = "";
+    if (await phoneLoc.isVisible()) {
+      phone = await phoneLoc.getAttribute("aria-label");
+      console.log(phone);
+    }
+
+    putDataOnSheetFunc(i, {
+      name: name,
+      location: location,
+      businessHours: businessHours,
+      webSite: webSite,
+      phone: phone,
+    });
   }
+
+  await workBook.xlsx.writeFile(excelSavePath);
 });
 
 test("Get local cache json from process", async ({ browser }) => {
