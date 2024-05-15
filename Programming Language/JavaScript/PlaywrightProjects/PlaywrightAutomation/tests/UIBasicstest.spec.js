@@ -539,7 +539,7 @@ test("Use WebAPI With Wrapping Class", async ({ browser }) => {
   expect(orderResponse.message === "Order Placed Successfully").toBeTruthy();
 });
 
-test.only("Get google place info", async ({ page }) => {
+test("Get google place info", async ({ page }) => {
   // searchKeyword 구성 방법 => 시/군/구/동 + " " + 유형
   const searchKeyword = "삼성동 맛집"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 tagname이 계속 바뀜
   const excelSavePath = "D:/Downloads/ExcelTest/test.xlsx";
@@ -767,4 +767,56 @@ test("Get local cache json from process", async ({ browser }) => {
 
   // state.json 파일을 이용해 브라우저 context를 생성하면 로그인 과정이 이미 되어있는 브라우저 상태를 획득할 수 있다.
   context = await browser.newContext({ storageState: "state.json" });
+});
+
+test.only("Get instagram hashtag info", async ({ page }) => {
+  let id = "kyungjoon_1997",
+    pw = "pw",
+    searchKeyword = "#선릉역맛집";
+
+  await page.goto("https://www.instagram.com/");
+  await page.locator("input[name='username']").fill(id);
+  await page.locator("input[name='password']").fill(pw);
+  await page
+    .locator(
+      "body > div:nth-child(3) > div:nth-child(1) > div:nth-child(1) > div:nth-child(2) > div:nth-child(1) > div:nth-child(1) > div:nth-child(1) > section:nth-child(1) > main:nth-child(1) > article:nth-child(1) > div:nth-child(2) > div:nth-child(1) > div:nth-child(2) > form:nth-child(1) > div:nth-child(1) > div:nth-child(3)"
+    )
+    .click();
+
+  // 검색 버튼 누르기
+  await page
+    .locator(
+      "div[class='x1iyjqo2 xh8yej3'] div:nth-child(2) span:nth-child(1) div:nth-child(1) a:nth-child(1) div:nth-child(1) div:nth-child(2) div:nth-child(1) div:nth-child(1) span:nth-child(1) span:nth-child(1)"
+    )
+    .click();
+
+  await page
+    .locator(
+      "input.x1lugfcp.x19g9edo.x1lq5wgf.xgqcy7u.x30kzoy.x9jhf4c.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x5n08af.xl565be.x5yr21d.x1a2a7pz.xyqdw3p.x1pi30zi.xg8j3zb.x1swvt13.x1yc453h.xh8yej3.xhtitgo.xs3hnx8.x1dbmdqj.xoy4bel.x7xwk5j"
+    )
+    .pressSequentially(searchKeyword);
+
+  let hashtagList = page.locator(
+    "a.x1i10hfl.x1qjc9v5.xjbqb8w.xjqpnuy.xa49m3k.xqeqjp1.x2hbi6w.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x1ypdohk.xdl72j9.x2lah0s.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.x2lwn1j.xeuugli.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.x16tdsg8.x1hl2dhg.xggy1nq.x1ja2u2z.x1t137rt.x1q0g3np.x87ps6o.x1lku1pv.x1a2a7pz.x1dm5mii.x16mil14.xiojian.x1yutycm.x1lliihq.x193iq5w.xh8yej3"
+  );
+
+  await page.waitForTimeout(2000);
+
+  if (await hashtagList.count()) hashtagList.first().click();
+
+  await page.waitForTimeout(2000);
+
+  if (
+    await page
+      .locator(
+        ".x1lliihq.x1plvlek.xryxfnj.x1n2onr6.x193iq5w.xeuugli.x1fj9vlw.x13faqbe.x1vvkbs.x1s928wv.xhkezso.x1gmr53x.x1cpjm7i.x1fgarty.x1943h6x.x1i0vuye.x1ms8i2q.xo1l8bm.x5n08af.x4zkp8e.xw06pyt.x10wh9bi.x1wdrske.x8viiok.x18hxmgj"
+      )
+      .isVisible()
+  ) {
+    await page.locator("div[role='button']").click();
+  }
+
+  // 테이블로 3개씩 묶음
+  // _ac7v xzboxd6 x11ulueq x1f01sob xwq5r7b xcghwft -> 행, row
+  // x1lliihq x1n2onr6 xh8yej3 x4gyw5p x2pgyrj x56m6dy x1ntc13c xn45foy x9i3mqj -> 열, col
 });
