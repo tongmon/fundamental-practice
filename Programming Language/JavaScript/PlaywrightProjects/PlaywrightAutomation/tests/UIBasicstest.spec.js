@@ -541,8 +541,8 @@ test("Use WebAPI With Wrapping Class", async ({ browser }) => {
 
 test("Get google place info", async ({ page }) => {
   // searchKeyword 구성 방법 => 시/군/구/동 + " " + 유형
-  const searchKeyword = "삼성동 맛집"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 tagname이 계속 바뀜
-  const excelSavePath = "D:/Downloads/ExcelTest/test.xlsx";
+  const searchKeyword = "서울 구청"; // 서울 구청, 삼성동 맛집 ... 이런 검색 키워드마다 tagname이 계속 바뀜
+  const excelSavePath = "D:/GoogleMapCrawlData.xlsx";
   let placeCnt = 0;
 
   // 엑셀 파일 저장을 위한 객체 구성
