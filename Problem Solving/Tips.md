@@ -10,6 +10,19 @@ sort(K.begin(), K.end(), Cmp());
 ```
 &nbsp;  
 
+* priority queue 사용법
+```c++
+// 기본 int에서의 사용
+priority_queue<int, vector<int>, less<int>> pq; // 큰 것이 가장 위로
+priority_queue<int, vector<int>, greater<int>> pq; // 작은 것이 가장 위로
+
+struct Cmp {
+	bool operator() (const int& A, const int& B) { return A < B; }
+};
+priority_queue<int, vector<int>, Cmp> pq; // 구조체 Cmp에 따라 달라짐
+```
+&nbsp;  
+
 * 정사각 배열 회전  
 ```c++
 void Rotate(vector<vector<int>>& mat) {
@@ -62,7 +75,7 @@ void Erathos() {
 
 * 소수 판정  
 ```c++
-bool is_Prime(int Num) {
+bool IsPrime(int Num) {
     if (Num <= 1)
         return 0;
     if (!(Num % 2))
@@ -72,6 +85,25 @@ bool is_Prime(int Num) {
             return 0;
     }
     return 1;
+}
+```
+&nbsp;  
+
+* 이진탐색
+```c++
+bool BinarySearch(vector<int>& arr, int len, int target){
+	int low = 0, high = len - 1;
+    
+    while(low <= high){
+    	int mid = (low + high) / 2;
+        if(target == arr[mid])
+			return true;
+        if(target < arr[mid])
+        	high = mid - 1;
+        else if(target > arr[mid])
+        	low = mid + 1;
+    }
+    return false;
 }
 ```
 &nbsp;  
