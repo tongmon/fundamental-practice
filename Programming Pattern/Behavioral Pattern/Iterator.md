@@ -45,7 +45,7 @@ for (auto iter = vec.begin(); iter != vec.end(); iter++)
 
 stl 컨테이너를 사용하지 않아도 반복자 사용이 가능하다.  
 ```c++
-char ary[]{"hello world"};
+const char ary[]{"hello world"};
 for (auto iter = std::begin(ary); iter != std::end(ary); iter++)
 {
     // do something...

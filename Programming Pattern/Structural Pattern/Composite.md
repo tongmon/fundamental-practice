@@ -148,10 +148,13 @@ class Group : public GraphicObject
 public:
     Group(const std::string &name = "") : group_name{name} {}
 
-    for (auto &obj : objects)
+    void draw() 
     {
-        std::cout << group_name << ": ";
-        obj->draw();
+        for (auto &obj : objects)
+        {
+            std::cout << group_name << ": ";
+            obj->draw();
+        }
     }
 
     void add(GraphicObject &obj) { objects.push_back(&obj); }
