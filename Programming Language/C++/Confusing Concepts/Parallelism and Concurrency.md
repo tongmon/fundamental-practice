@@ -387,7 +387,7 @@ int main()
     가능하다.  
     ```*b = 1;``` -> ```*a = 1;``` -> ```int x = *a;``` -> ```int y = *b;``` 요런 순서로 진행되면 된다.  
 
-2. ```x : 0 y : 1``` 혹은 ```a : 1 b : 0```  
+2. ```x : 0 y : 1``` 혹은 ```x : 1 y : 0```  
     가능하다.  
     func_one() 후에 순차적으로 func_two()가 수행되거나 그 반대 순서로 수행되면 된다.   
 
@@ -2367,7 +2367,7 @@ int main()
     int multi_ret[2] = { 0, };
     int single_ret = 0;
 
-#pragma region Muti Thread Process
+#pragma region Single Thread Process
     start_time = clock();
     sum(&single_ret, 0, dest);
     end_time = clock();
@@ -2376,7 +2376,7 @@ int main()
     std::cout << "Single Thread Time : " << result << "s\n\n";
 #pragma endregion
 
-#pragma region Single Thread Process
+#pragma region Muti Thread Process
     start_time = clock();
     std::thread th1(sum, &multi_ret[0], 0, dest / 2);
     std::thread th2(sum, &multi_ret[1], dest / 2, dest);
