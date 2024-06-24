@@ -2925,8 +2925,11 @@ resume()을 호출하고 promise().value를 통해 값을 획득한다.
 ## co_return  
 
 co_return은 코루틴 함수의 완전한 종료를 알리는 역할을 한다.  
-즉 co_return이 수행되면 final_suspend() 함수가 호출된다.  
+완전한 종료라는 것은 코루틴 함수에 할당된 메모리 자체가 해제된다는 말이다.  
+즉 co_return이 수행되면 코루틴 할당 변수가 블록을 벗어날 때 해제되며 호출되는 final_suspend() 함수가 호출된다. 
+명시적으로 co_return을 꼭 해줘야 할 필요는 없고 개발자에 선택에 달렸다.  
 구현할 promise_type에는 return_void()나 return_value()가 선택적으로 구현되어 있어야 한다.  
+값을 반환하지 않고 코루틴 종료를 명시하고 싶다면 return_void()를 구현하고, 값을 반환하며 코루틴 종료를 명시하고 싶다면 return_value()를 구현하면 된다.  
 두 함수 모두 구현해 놓을 수는 없다.  
 &nbsp;  
 
@@ -3379,7 +3382,14 @@ class task
 value()와 operator*()는 템플릿 인자가 void인 경우에 std::enable_if_t를 통해 비활성화 된다.  
 &nbsp;  
 
-활용은 밑과 같다.  
+## 활용  
+
+코루틴을 어떻게 사용하는지 알았으니 이제 어디다가 활용할 수 있는지를 알아보자.  
+&nbsp;  
+
+### 반복문에서의 활용  
+
+코루틴을 이용하면 함수를 배열처럼 이용할 수 있다.  
 ```c++
 task<void> void_func()
 {
@@ -3411,7 +3421,7 @@ int main()
     std::cout << int_task.value();
 }
 ```
-한 가지 유의점이라면 void 자료형이 아닌 코루틴 함수는 return_void() 대신에 return_value()가 정의되어 있기에 co_return을 생략할 수 없어 반드시 아무 값이라도 co_return에 넘겨 명시해줘야 한다.  
+한 가지 유의점이라면 위에서 구현한 task 클래스에서 void 자료형이 아닌 코루틴 함수는 return_void() 대신에 return_value()가 정의되어 있기에 co_return을 생략할 수 없어 반드시 아무 값이라도 co_return에 넘겨 명시해줘야 한다.  
 &nbsp;  
 
 결과 출력 값은 밑과 같다.  
@@ -3421,4 +3431,34 @@ is
 good
 1 2 3 4
 ```
-이렇게 코루틴에 대한 사용법을 알아봤다.   
+&nbsp;  
+
+### Callback Hell 벗어나기  
+
+Boost.Asio와 같은 통신 API를 이용하다보면 Callback 인자를 넘기는 함수들을 매우 많이 쓰게 되는데 코드의 가독성이 굉장히 떨어진다.  
+&nbsp;  
+
+예를 들어 밑과 같은 사칙연산 Callback들이 존재한다고 해보자.  
+```c++
+void SomeFuncWithAddCallBack(int one, int two, std::function<int(int, int)> add_func)
+{
+    std::cout << one << " + " << two << " = " << add_func(one, two);
+}
+
+void SomeFuncWithSubCallBack(int one, int two, std::function<int(int, int)> sub_func)
+{
+    std::cout << one << " - " << two << " = " << sub_func(one, two);
+}
+
+void SomeFuncWithMultCallBack(int one, int two, std::function<int(int, int)> mult_func)
+{
+    std::cout << one << " * " << two << " = " << mult_func(one, two);
+}
+
+void SomeFuncWithDivCallBack(int one, int two, std::function<int(int, int)> div_func)
+{
+    std::cout << one << " / " << two << " = " << div_func(one, two);
+}
+```
+
+위 함수들을 이용해서 12와 4를 더해보고 빼보고 곱해보고 나눠본 결과를 전체적으로 출력하려면 밑과 구현할 수 있을 것이다.  
