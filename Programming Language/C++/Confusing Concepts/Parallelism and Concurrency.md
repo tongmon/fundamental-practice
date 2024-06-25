@@ -3440,25 +3440,169 @@ Boost.Asio와 같은 통신 API를 이용하다보면 Callback 인자를 넘기�
 
 예를 들어 밑과 같은 사칙연산 Callback들이 존재한다고 해보자.  
 ```c++
-void SomeFuncWithAddCallBack(int one, int two, std::function<int(int, int)> add_func)
+void SomeFuncWithAddCallBack(int one, int two, std::function<void(int)> print_func)
 {
-    std::cout << one << " + " << two << " = " << add_func(one, two);
+    print_func(one + two);
 }
 
-void SomeFuncWithSubCallBack(int one, int two, std::function<int(int, int)> sub_func)
+void SomeFuncWithSubCallBack(int one, int two, std::function<void(int)> print_func)
 {
-    std::cout << one << " - " << two << " = " << sub_func(one, two);
+    print_func(one - two);
 }
 
-void SomeFuncWithMultCallBack(int one, int two, std::function<int(int, int)> mult_func)
+void SomeFuncWithMultCallBack(int one, int two, std::function<void(int)> print_func)
 {
-    std::cout << one << " * " << two << " = " << mult_func(one, two);
+    print_func(one * two);
 }
 
-void SomeFuncWithDivCallBack(int one, int two, std::function<int(int, int)> div_func)
+void SomeFuncWithDivCallBack(int one, int two, std::function<void(int)> print_func)
 {
-    std::cout << one << " / " << two << " = " << div_func(one, two);
+    print_func(one / two);
 }
 ```
+각 함수의 내부 구현은 간단하지만 비동기로 동작해야 한다고 가정하자.  
+예를 들어 ```SomeFuncWithAddCallBack()``` 함수는 one과 two 더하기가 끝난 후 다른 쓰레드에서 ```print_func()``` 함수가 수행이 되는 상황이라고 생각해보자.  
+&nbsp;  
 
-위 함수들을 이용해서 12와 4를 더해보고 빼보고 곱해보고 나눠본 결과를 전체적으로 출력하려면 밑과 구현할 수 있을 것이다.  
+이러한 상황에서 더하기, 빼기, 곱하기, 나누기를 순차적으로 수행시키고 싶다면 밑과 같은 구현을 생각할 수 있다.  
+```c++
+int one = 12, two = 4;
+SomeFuncWithAddCallBack(one, two, [&](int result)
+                        {
+                            std::cout << one << " + " << two << " = " << result << "\n";
+
+                            SomeFuncWithSubCallBack(one, two, [&](int result)
+                                                    {
+                                                        std::cout << one << " - " << two << " = " << result << "\n";
+
+                                                        SomeFuncWithMultCallBack(one, two, [&](int result)
+                                                                                 {
+                                                                                     std::cout << one << " * " << two << " = " << result << "\n";
+
+                                                                                     SomeFuncWithDivCallBack(one, two, [&](int result)
+                                                                                                             {
+                                                                                                                 std::cout << one << " / " << two << " = " << result << "\n";
+                                                                                                             });
+                                                                                 });
+                                                    });
+                        });
+```
+위와 같이 Callback 내부의 Callback이 즐비하여 가독성이 떨어진다.  
+&nbsp;  
+
+```
+12 + 4 = 16
+12 - 4 = 8
+12 * 4 = 48
+12 / 4 = 3
+```
+출력 결과는 위와 같다.  
+Callback이 비동기이기에 순차적인 진행을 위해서 Callback 내부에 다음에 수행되어야 할 로직을 계속 적어나가야 하기에 구현이 늘어진다.  
+&nbsp;  
+
+코루틴을 사용하면 이런 Callback Hell 현상을 직관적으로 해결할 수 있다.  
+먼저 기존 함수를 Wrapping하는 awaitable 객체들을 정의해줘야 한다.  
+```c++
+struct AddTask
+{
+    int one, two;
+
+    bool await_ready() const noexcept
+    {
+        return false;
+    }
+    void await_suspend(std::coroutine_handle<> handle) const noexcept
+    {
+        SomeFuncWithAddCallBack(one, two, [&](int result)
+                                {
+                                    std::cout << one << " + " << two << " = " << result << "\n";
+                                    handle.resume();
+                                });
+    }
+    void await_resume() const noexcept
+    {
+    }
+};
+
+struct SubTask
+{
+    int one, two;
+
+    bool await_ready() const noexcept
+    {
+        return false;
+    }
+    void await_suspend(std::coroutine_handle<> handle) const noexcept
+    {
+        SomeFuncWithSubCallBack(one, two, [&](int result)
+                                {
+                                    std::cout << one << " - " << two << " = " << result << "\n";
+                                    handle.resume();
+                                });
+    }
+    void await_resume() const noexcept
+    {
+    }
+};
+
+struct MultTask
+{
+    int one, two;
+
+    bool await_ready() const noexcept
+    {
+        return false;
+    }
+    void await_suspend(std::coroutine_handle<> handle) const noexcept
+    {
+        SomeFuncWithMultCallBack(one, two, [&](int result)
+                                {
+                                    std::cout << one << " * " << two << " = " << result << "\n";
+                                    handle.resume();
+                                });
+    }
+    void await_resume() const noexcept
+    {
+    }
+};
+
+struct DivTask
+{
+    int one, two;
+
+    bool await_ready() const noexcept
+    {
+        return false;
+    }
+    void await_suspend(std::coroutine_handle<> handle) const noexcept
+    {
+        SomeFuncWithDivCallBack(one, two, [&](int result)
+                                {
+                                    std::cout << one << " / " << two << " = " << result << "\n";
+                                    handle.resume();
+                                });
+    }
+    void await_resume() const noexcept
+    {
+    }
+};
+```
+중요한 부분은 ```await_suspend()``` 함수에 넘겨지는 Callback 함수 내부에서 ```handle.resume()```를 수행하여 코루틴 함수가 자동으로 다음 Task를 수행하도록 만들어주고 있다는 것이다.  
+즉 현재 Task가 끝나는 시점에 맞춰 다음 Task에게 시작 신호를 주어 세부적인 구현을 다음 Task에게 넘겨줄 수 있어 코드 분업화가 더 잘된다.  
+&nbsp;  
+
+최종적으로 밑과 같이 위에서 정의한 awaitable 객체들을 이용해주면 된다.  
+```c++
+task<void> CoFunc()
+{
+    int one = 12, two = 4;
+    co_await AddTask{ one, two };
+    co_await SubTask{ one, two };
+    co_await MultTask{ one, two };
+    co_await DivTask{ one, two };
+}
+
+auto co_func = CoFunc();
+co_func.resume();
+```
+내부적으로는 Callback을 이용하고 있지만 코루틴을 이용하면 겉에서 티가 나지도 않고 출력 결과도 동일하며 코드 이해가 직관적으로 된다.  
