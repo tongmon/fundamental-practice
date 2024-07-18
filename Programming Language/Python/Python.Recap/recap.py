@@ -43,6 +43,9 @@ else:
 
 # list
 colors = ["yellow", "blue", "pink", "red", "BLUE".lower(), "white"]
+
+print("blue" in colors) # true
+print("red" not in colors) # false
 print(f"Color {colors[1]} is counted {colors.count(colors[1])} times")
 colors.reverse()
 colors.append("black")
@@ -134,3 +137,5 @@ tesla_car = ElectricCar("Model S", 200, "tesla")
 print(tesla_car)
 super(ElectricCar, tesla_car).blow_the_horn()  # super() can use like c++'s dynamic_cast
 tesla_car.blow_the_horn()
+
+
