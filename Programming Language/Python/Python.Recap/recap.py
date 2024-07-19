@@ -13,7 +13,7 @@ def some_func(a=1, b=2):
     return a + b
 
 
-# You can write nothing on function with pass keyword
+# You can write nothing on function (or for, while loop) with `pass` keyword
 def do_nothing_func():
     pass
 
@@ -29,6 +29,8 @@ print(f"One plus Two is {some_func()}")
 
 # casting
 my_age = int("27")
+
+str_to_list = list("tongstar") # str_to_list == ['t', 'o', 'n', 'g', 's', 't', 'a', 'r']
 
 while my_age:
     print(my_age)
@@ -50,6 +52,7 @@ print(f"Color {colors[1]} is counted {colors.count(colors[1])} times")
 colors.reverse()
 colors.append("black")
 colors.remove("blue")
+del colors[1]
 colors.clear()
 
 # nested list
@@ -74,6 +77,10 @@ print(some_obj["wife"]["id"])
 some_obj["emails"] = ["tongstar@nate.com", "tongmon@hanmail.net"]
 some_obj.pop("age")
 
+for k in some_obj:
+    print(k) # key
+    print(some_obj[k]) # value
+
 # slicing, [ start : end : step ]
 datas = ["a", "b", "c", "d", "e"]
 print(datas[0:])  # datas[0:] == datas[0], datas[1], datas[2], datas[3], datas[4]
@@ -83,6 +90,9 @@ print(
     datas[3:0:-1]
 )  # datas[3:0:-1] == datas[3], datas[2], datas[1], datas[0], decrease index by -1
 print(datas[::2])  # datas[::2] == datas[0], datas[2], datas[4], increase index by 2
+
+# You can use slicing when you put the value in list structure
+datas[1:4] = ["this", "love"] # datas == ["a", "this", "love", "e"] / replaced ["b", "c", "d"] part to ["this", "love"]
 
 # split
 split_text = "a b c d e".split()  # default separtor is space
