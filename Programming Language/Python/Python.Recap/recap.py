@@ -12,6 +12,13 @@ from builtins import print
 def some_func(a=1, b=2):
     return a + b
 
+# function that don't know how many argument will be needed, You should add the asterisk in front of the arg name.
+def many_arg_func(*many_arg):
+    for arg in many_arg:
+        print(arg)
+
+many_arg_func("My", " Age is", 27)
+
 
 # You can write nothing on function (or for, while loop) with `pass` keyword
 def do_nothing_func():
@@ -64,6 +71,14 @@ table.append(["text 1", "text 2"])
 days = ("Mon", "Tue", "Wed")
 for day in days:
     print(day)
+
+#set
+"""
+Not ordered, can contain various type.
+Similar with C++'s unordered_set structure.
+You can use issubset(), issuperset() for checking some element is in the set or not.
+"""
+some_set = {"some", "set", true, 1}
 
 # dictionary
 some_obj = {
