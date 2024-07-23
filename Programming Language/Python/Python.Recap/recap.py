@@ -12,10 +12,12 @@ from builtins import print
 def some_func(a=1, b=2):
     return a + b
 
+
 # function that don't know how many argument will be needed, You should add the asterisk in front of the arg name.
 def many_arg_func(*many_arg):
     for arg in many_arg:
         print(arg)
+
 
 many_arg_func("My", " Age is", 27)
 
@@ -37,7 +39,7 @@ print(f"One plus Two is {some_func()}")
 # casting
 my_age = int("27")
 
-str_to_list = list("tongstar") # str_to_list == ['t', 'o', 'n', 'g', 's', 't', 'a', 'r']
+str_to_list = list("tongstar")  # str_to_list == ['t', 'o', 'n', 'g', 's', 't', 'a', 'r']
 
 while my_age:
     print(my_age)
@@ -53,8 +55,8 @@ else:
 # list
 colors = ["yellow", "blue", "pink", "red", "BLUE".lower(), "white"]
 
-print("blue" in colors) # true
-print("red" not in colors) # false
+print("blue" in colors)  # true
+print("red" not in colors)  # false
 print(f"Color {colors[1]} is counted {colors.count(colors[1])} times")
 colors.reverse()
 colors.append("black")
@@ -72,13 +74,13 @@ days = ("Mon", "Tue", "Wed")
 for day in days:
     print(day)
 
-#set
+# set
 """
 Not ordered, can contain various type.
 Similar with C++'s unordered_set structure.
 You can use issubset(), issuperset() for checking some element is in the set or not.
 """
-some_set = {"some", "set", true, 1}
+some_set = {"some", "set", True, 1}
 
 # dictionary
 some_obj = {
@@ -93,8 +95,8 @@ some_obj["emails"] = ["tongstar@nate.com", "tongmon@hanmail.net"]
 some_obj.pop("age")
 
 for k in some_obj:
-    print(k) # key
-    print(some_obj[k]) # value
+    print(k)  # key
+    print(some_obj[k])  # value
 
 # slicing, [ start : end : step ]
 datas = ["a", "b", "c", "d", "e"]
@@ -107,7 +109,7 @@ print(
 print(datas[::2])  # datas[::2] == datas[0], datas[2], datas[4], increase index by 2
 
 # You can use slicing when you put the value in list structure
-datas[1:4] = ["this", "love"] # datas == ["a", "this", "love", "e"] / replaced ["b", "c", "d"] part to ["this", "love"]
+datas[1:4] = ["this", "love"]  # datas == ["a", "this", "love", "e"] / replaced ["b", "c", "d"] part to ["this", "love"]
 
 # split
 split_text = "a b c d e".split()  # default separtor is space
@@ -121,23 +123,28 @@ print(split_text)
 # parent class
 # Every member function should have self arg
 class Car:
-    id = ""
-    price = 0
-    type = ""
+    type = ""  # same as C++'s static member variable
 
     # initiator
     def __init__(self, id, price):
-        self.id = id
+        self.id = id  # You can add local member variable in initializer
         self.price = price
 
     # Same with c++'s [ std::ostream& operator << (std::ostream &out, ...) ]
-    def __str__(
-        self,
-    ):
+    # You can print Car object through print() function after declaring this function.
+    def __str__(self):
         return f"{self.id}'s type is {self.type}, price: {self.price}"
 
+    # Operator Overloading
+    # You can use '+' operator between Cars after declaring this function.
+    def __add__(self, other):
+        self.id = self.id + "_" + other.id
+        self.price = (self.price + other.price) * 0.7
+        self.type = self.type + "_" + other.type + "_hybrid"
+        return self
+
     # Same with c++'s virtual function
-    def drive():
+    def drive(self):
         pass
 
     def blow_the_horn(self):
@@ -157,6 +164,10 @@ class ElectricCar(Car):
     def blow_the_horn(self):
         print("electric horn sound!")
 
+    @classmethod
+    def some_static_func(cls):
+        print("manufacturer: " + cls.manufacturer)
+
 
 tesla_car = ElectricCar("Model S", 200, "tesla")
 print(tesla_car)
@@ -164,3 +175,46 @@ super(ElectricCar, tesla_car).blow_the_horn()  # super() can use like c++'s dyna
 tesla_car.blow_the_horn()
 
 
+# multiple inheritance
+class Cpu:
+    calculation_speed = 0
+
+    def __init__(self):
+        pass
+
+    def process(self):
+        print(f"Calculate something with {self.calculation_speed} speed!")
+
+
+class Ram:
+    storage_size = 0
+
+    def __init__(self):
+        pass
+
+    def process(self):
+        print(f"Store something volatility in ram that has {self.storage_size} size!")
+
+
+class Computer(Cpu, Ram):
+
+    def __init__(self):
+        pass
+
+
+computer = Computer()
+computer.process()  # because of the order of inheritance, Cpu's function will operates.
+
+
+# Overloading feature is not supported in python.
+# If you want to use overloading feature on python, you can use `multipledispatch` library
+class AddObj:
+    def add(self, a, b):
+        return a + b
+
+    def add(self, a, b, c=3):
+        return a + b + c
+
+
+add_obj = AddObj()
+print(add_obj.add(1, 2))  # Second add() function will be called, Because python not support overloading
