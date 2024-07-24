@@ -164,15 +164,31 @@ class ElectricCar(Car):
     def blow_the_horn(self):
         print("electric horn sound!")
 
+    # cls variable point that this is a static class method.
+    # This function apply to the class, not the object. (same with C++'s static class function)
     @classmethod
-    def some_static_func(cls):
-        print("manufacturer: " + cls.manufacturer)
+    def some_static_func(cls, val):
+        print("manufacturer: " + cls.manufacturer, " val: " + val)
+
+    """
+    staticmethod function can be used as class static function or local function.
+    If you call this function like `ElectricCar.some_static_or_local_func()` this, 
+    then It will be executed like static class function. 
+    `electric_car.some_static_or_local_func()`, then It will be executed like normal function.
+    """
+    @staticmethod
+    def some_static_or_local_func(val):
+        print("val: " + val)
 
 
 tesla_car = ElectricCar("Model S", 200, "tesla")
 print(tesla_car)
 super(ElectricCar, tesla_car).blow_the_horn()  # super() can use like c++'s dynamic_cast
 tesla_car.blow_the_horn()
+
+ElectricCar("Model S", 200, "tesla").some_static_func("some var")  # static function
+ElectricCar("Model S", 200, "tesla").some_static_or_local_func("some var")  # static function
+tesla_car.some_static_or_local_func("some var")  # normal function
 
 
 # multiple inheritance
@@ -199,7 +215,7 @@ class Ram:
 class Computer(Cpu, Ram):
 
     def __init__(self):
-        pass
+        super().__init__()
 
 
 computer = Computer()
