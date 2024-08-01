@@ -5,8 +5,8 @@ Comment
 
 # Single Line Comment
 
-from builtins import print
-
+from builtins import print  # to use print function, have to import this
+from abc import ABC, abstractmethod  # to use abstract concept, have to import ABC
 
 # function
 def some_func(a=1, b=2):
@@ -119,7 +119,6 @@ print(split_text)
 split_text = "a-b-c-d-e".split("-", 2)  # you can set the max split count
 print(split_text)
 
-
 # parent class
 # Every member function should have self arg
 class Car:
@@ -142,10 +141,6 @@ class Car:
         self.price = (self.price + other.price) * 0.7
         self.type = self.type + "_" + other.type + "_hybrid"
         return self
-
-    # Same with c++'s virtual function
-    def drive(self):
-        pass
 
     def blow_the_horn(self):
         print("default horn sound!")
@@ -234,3 +229,55 @@ class AddObj:
 
 add_obj = AddObj()
 print(add_obj.add(1, 2))  # Second add() function will be called, Because python not support overloading
+
+# abstract concept in python
+
+# abstract class should be derived from ABC
+class AbstractClass(ABC):
+
+    # abstract method, Same with pure virtual function in C++
+    @abstractmethod
+    def abstract_method(self):
+        pass
+
+# Some Derived class from AbrstractClass
+class DerivedClass(AbstractClass):
+
+    # abstract_method method must be defined in here.
+    # If not, python can't be compiled.
+    def abstract_method(self):
+        print("abstract method is defined!")
+
+declass = DerivedClass()
+declass.abstract_method()
+
+# with, as syntax
+# If you have to earn some resource and then use some of it and release that resource at the end, you could do this sequence with [with, as] syntax
+
+# Below, You can see old way to use the I/O function.
+f = open("SomeFile.txt", "w", encoding="utf8")
+f.write("Hello World")
+f.close()
+
+# With [with, as] syntax, This could be shorter and intuitive.
+with open("SomeFile.txt", "w", encoding="utf8") as f:
+  f.write("Hello World")
+
+# You can use [with, as] syntax with Custom Class
+# You have to implement __enter__, __exit__ function. (argument of function must be same as below)
+class HelloWorldWriter:
+
+    def __init__(self):
+        f = None
+        
+    def __enter__(self):
+        self.f = open("SomeFile.txt", "w", encoding="utf8")
+
+    def __exit__(self, exception_type, exception_value, exception_traceback)
+        self.f.close()
+
+    def execute(self)
+        self.f.write("Hello World")
+
+with HelloWorldWriter() as hello_world_writer:
+  hello_world_writer.execute()
