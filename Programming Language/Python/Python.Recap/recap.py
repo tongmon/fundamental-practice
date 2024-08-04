@@ -320,3 +320,29 @@ except (ZeroDivisionError, ValueError):  # If you want to catch multiple type of
     print("You can't divide number with zero! (If you didn't divide number with zero, It must be value error.)")
 finally:  # 'finally' will always be excuted whether 'try' block has exception or not.
     print("All of the try, exception task is ended.")
+
+# Call by assignment
+# This is different from call by ref or call by val.
+# When you handle the Immutable type value, value will be called by value.
+# When you handle the mutable type value, value will be called by reference.
+
+# Immutable types are listed below.
+# Int, Float, Tuple, Complex, String, Stringfrozen set [note: immutable version of the set], Bytes
+
+# Arg of below function is treated as call by value because arg type is Int.
+def test_func_for_immutable(num):
+    num = num + 1
+    print(num)
+
+some_number = 7
+test_func_for_immutable(some_number)  # 8 will be printed.
+print(some_number)  # some_number is still 7.
+
+# Arg of below function is treated as call by reference because arg type is list.
+def test_func_for_mutable(some_list):
+    some_list[0] = 777
+    print(some_list)
+
+mutable_value = [1, 2, ,3, 4, 5]
+test_func_for_mutable(mutable_value)  # [777, 2, ,3, 4, 5] will be printed. 
+print(mutable_value)  # mutable_value is changed by test_func_for_mutable function so [777, 2, ,3, 4, 5] will be printed. 
