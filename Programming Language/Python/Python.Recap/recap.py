@@ -281,3 +281,42 @@ class HelloWorldWriter:
 
 with HelloWorldWriter() as hello_world_writer:
   hello_world_writer.execute()
+
+# Class member variable access level depends on variable naming.
+
+class SomeSampleObj:
+
+    def __init__(self, name, age, association):
+        self.name = name  # Member variable is on public state by default.
+        self._age = age  # State of member variable is changed to protected if variable name has started with '_'.
+        self.__association = association  # State of member variable is changed to private if variable name has started with double '_'.
+
+# You can still access to private member by name mangling like below.
+some_sample_obj = SomeSampleObj()
+some_sample_obj._SomeSampleObj__association  # '_class__varname' makes programmer can access to private member variable, but this is not good usage.
+
+
+# Exception syntax
+
+try:  # Same as try in C++ 
+    print(10 / 0)
+except:  # Same as except in C++ 
+    print("You can divide number with zero!")
+else:  # If there is no exection in 'try' block, then 'else' block will be executed.
+    print("Right expression.")
+
+
+# Exception type
+# If you want to handle only specific exception, then write exception type in except syntax.
+
+try:
+    print(10 / 0)
+except ZeroDivisionError:  # If you do this, Only ZeroDivisionError will be caught.
+    print("You can't divide number with zero!")
+
+try:
+    print(10 / 0)
+except (ZeroDivisionError, ValueError):  # If you want to catch multiple type of excetion, just write multiple exception type.
+    print("You can't divide number with zero! (If you didn't divide number with zero, It must be value error.)")
+finally:  # 'finally' will always be excuted whether 'try' block has exception or not.
+    print("All of the try, exception task is ended.")
