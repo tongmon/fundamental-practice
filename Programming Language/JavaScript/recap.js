@@ -5,6 +5,28 @@ Comment
 
 // Single Line Comment
 
+// import, export는 기본적으로 html에 <script> 태그에 type="module"이 적혀있어야 작동함
+// export 변수는 다른 파일에서 `import { some_exported_string } from './recap.js'`으로 포함하고 some_exported_string로 사용 가능
+// 이름을 바꿔서 부를 수도 있는데 `import { some_exported_string as exported_str } from './recap.js'` 이렇게 as로 exported_str 이름으로 부를 수도 있음
+export let some_exported_string = "hello js";
+
+// 디폴트 export 변수는 파일마다 단 하나만 존재 가능
+// 다른 파일에서 `import whatever_you_want from './recap.js'`으로 포함하고 whatever_you_want로 사용 가능
+// 디폴트 변수라 whatever_you_want에는 원하는 변수 이름 아무거나 넣어도 상관없음
+export default "hello this is default value";
+
+// 여러 개의 export 변수들을 한 번에 가져오고 싶을 때가 있음
+// 그런 경우는 `import { str_01, int_01 } from './recap.js'`으로 여러 개를 해줘도 됨
+export let str_01 = "hello str";
+export let int_01 = 777;
+
+// 완전히 모든 것을 import 하고자 한다면 `import * as whatever_you_want from './recap.js'`로 포함할 수 있음
+// whatever_you_want에는 원하는 이름 아무거나 넣어도 상관없음
+// whatever_you_want.float_01 이렇게 객체마냥 사용이 가능함
+// 디폴트 변수는 whatever_you_want.default가 됨
+export let float_01 = 1.34;
+export let ary_01 = [777, "hello"];
+
 // Variables
 var a = 4;
 var my_name = true;
@@ -25,6 +47,10 @@ let inf = 1 / 0; // Infinity 값으로 바뀜
 console.log(inf);
 
 let some_ary = [1, 2, 3];
+some_ary.push(4); // 뒤에 추가
+some_ary.unshift(0); // 앞에 추가
+let poped = some_ary.pop(); // 뒤에 하나 제거
+let shifted = some_ary.shift(); // 앞에 하나 제거
 
 // C++ unordered_map이랑 비스무리하지만 많이 다른 Js의 Object
 let some_key = "final_key";
