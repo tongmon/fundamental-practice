@@ -1,35 +1,75 @@
-git init
+# Summary of Git commands
 
-git status
 
-git add [FILE_NAMES]
+## Basic commands  
 
-files that in Working Directory -> before add
-files that in Staging Area -> added
-files that in Local Repository -> commited
-files that in Remote Server Repository -> pushed
+- git init  
+- git status  
+- git add ``FILE_NAMES``  
 
-git reset [commit_id] -> remove all the commit infront of given commit_id and make HEAD point to given commit_id. (working files are not changed, only commits are changed)
-git reset --hard [commit_id] -> git reset [commit_id] + Working Directory also reset to given commit_id.
-git reset [FILE_NAMES] -> undo added files
+## File Status  
 
-git commit [FILE_NAMES]
-git commit -m "WITH UR COMMENTS..." [FILE_NAMES]
-git commit -a -m "WITH UR COMMENTS..." [FILE_NAMES] -> git add [FILE_NAMES] + git commit -m "WITH UR COMMENTS..." [FILE_NAMES]
-git commit --amend => You can redo ur previous commit, modifying commit msg or adding commit files. (but you can't redo before the second or more commit.)
+1. Before add  
+    Files in the working directory 
+2. Added  
+    Files in the staging area  
+3. Commited   
+    Files in the local repository  
+4. Pushed   
+    Files in the remote server repository  
 
-git log
-git log --oneline => summerize git log to line by line.
+## Reset  
 
-git branch -> see all the exsist branches
-git branch harry -> make branch named "harry"
-git branch -M main -> change currrent branch name to "main"
-git branch -d harry -> delete harry branch (If you do this with -D instead of -d, then it means force delete.)
-git branch -r -> it shows remote tracking branch with "[REMOTE_NAME]/[BRANCH]" text template.
-remote tracking branch -> you can commit some changes to main branch without push to your server repo. then the main branch at the server is not the same with your local main branch. "git branch -r" only shows you the server base branch, not the local branch.
+- git reset ``commit_id``  
+    Remove all commits after the given commit_id and make HEAD point to the given commit_id.  
+    Working files are not changed, only commits.  
+- git reset --hard ``commit_id``  
+    git reset ``commit_id`` + working directory also reset to the given commit_id.  
+- git reset ``FILE_NAMES``   
+    Undo added files  
 
-git switch harry (or git checkout harry) -> change current branch to "harry"
-git switch -c lily -> git branch lily & git switch lily
+## Commit  
+
+- git commit [FILE_NAMES]  
+- git commit -m "WITH UR COMMENTS..." [FILE_NAMES]  
+- git commit -a -m "WITH UR COMMENTS..." [FILE_NAMES]  
+    git add [FILE_NAMES] + git commit -m "WITH UR COMMENTS..." [FILE_NAMES]  
+- git commit --amend  
+    You can redo ur previous commit, modifying commit msg or adding commit files.  
+    But you can't redo before the second or more commit.  
+
+## Log    
+
+- git log  
+- git log --oneline   
+    summerize git log to line by line.  
+
+## Branch  
+
+- git branch  
+    See all the exsist local branches.  
+- git branch -a  
+    See all the exsist branches.  
+- git branch harry  
+    Make branch named "harry"  
+- git branch -M main  
+    Change currrent branch name to "main"
+- git branch -d harry  
+    Delete harry branch  
+    If you do this with -D instead of -d, then it means force delete.  
+- git branch -r  
+    It shows **remote tracking branch** with "[REMOTE_NAME]/[BRANCH]" text template.  
+    - remote tracking branch  
+          you can commit some changes to main branch without push to your server repo.  
+          Then the main branch at the server is not the same with your local main branch.  
+          "git branch -r" only shows you the server base branch, not the local branch.  
+
+## Switch  
+
+- git switch harry (or git checkout harry)   
+    Change current branch to "harry"  
+- git switch -c lily   
+    git branch lily & git switch lily  
 
 git merge harry -> merge harry branch to current branch, for example, if you stay on main branch and execute "git merge harry" command then code that in harry branch will merge into the main branch
 git merge --abort -> abort merge when conflict happened in merge state.
