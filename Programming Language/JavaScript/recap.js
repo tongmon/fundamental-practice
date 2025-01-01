@@ -63,7 +63,13 @@ let specific_user = {
   obj: {
     name: "child object",
   },
+  // 함수도 Object에 포함 가능
+  some_function() {
+    console.log("hello");
+  },
 };
+
+specific_user.some_function();
 delete specific_user.id; // property 삭제
 console.log(specific_user["favorite foods"]); // property 참조
 
@@ -186,3 +192,58 @@ let lambda = (arg1, arg2) => {
   return arg1 + arg2 + capture1 + capture2;
 };
 console.log(lambda(1, 2));
+
+// 배열에는 map(), filter(), reduce() 등의 함수가 있음
+// 제일 자주쓰이는 map()은 순회하면서 각 배열의 인자 값을 변화시켜주는데 밑과 같이 사용함
+let some_array = [1, 2, 3];
+let mapped_array = some_array.map((x) => {
+  x * 2;
+}); // [2, 4, 6]
+let mapped_array2 = some_array.map((x, index) => ({ index: x })); // [{0: 1}, {1: 2}, {2: 3}]
+
+// 자바스크립트의 클래스
+// 클래스 이름의 첫 글자는 무조건 대문자로 시작해야 함
+class User {
+  constructor(name) {
+    this.name = name;
+  }
+  sayHi() {
+    console.log(this.name);
+  }
+}
+
+const user1 = new User("tongstar");
+user1.sayHi();
+
+// 배열의 원소를 각각 변수에 할당할 수 있음
+// C++의 tie와 비슷한 기능
+// first = 1, second = 2가 됨
+const [first, second] = [1, 2];
+
+// Object도 밑과 같이 동일하게 분할이 가능함
+// 대신 프로퍼티 이름이 같아야 함
+let { name, age } = { name: "tongstar", age: 27 };
+
+// 스프레드 연산자
+// 중첩된 배열, 객체 등을 풀어줄 때 사용함
+const spread_arr1 = [1, 2, 3];
+const spread_arr2 = [4, 5, 6];
+const not_spread = [spread_arr1, spread_arr2]; // [[1, 2, 3], [4, 5, 6]]
+const spread = [...spread_arr1, ...spread_arr2]; // [1, 2, 3, 4, 5, 6]
+
+const spread_obj1 = { a: 1, b: 2 };
+const original_obj = { ...spread_obj1, c: 3 }; // { a: 1, b: 2, c: 3 }
+
+// JavaScript에서의 참조와 복사
+// 밑과 같은 기본 자료형(string, number, boolean, null, undefined, symbol)은 복사임
+const some_basic_value = 1;
+let some_basic_value_2 = some_basic_value; // 복사
+
+// 반면 객체는 참조임
+// 참조가 발생하는 객체에는 해당 변수에 주소가 할당 되어있음
+const some_copy_obj_1 = { a: 1 };
+let some_copy_obj_2 = some_copy_obj_1; // 참조
+const some_copy_ary_1 = [1, 2, 3];
+some_copy_ary_1[0] = 100; // 객체이기에 some_copy_ary_1의 주소만 고정이 되어 있다면 그 외 다른 것들은 변경 가능
+// 주소를 바꾸는 것이기에 const로 선언된 상태에서 밑과 같이는 안됨
+// some_copy_ary_1 = [4, 5, 6];
