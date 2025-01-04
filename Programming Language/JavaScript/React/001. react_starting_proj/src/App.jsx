@@ -5,14 +5,29 @@
 // 1. 컴포넌트의 이름은 반드시 대문자로 시작해야 한다.
 // 2. 컴포넌트는 반드시 렌더링이 가능한 것(HTML 등)을 반환해야 한다.
 
+// 리액트에서 이미지를 사용할 때는 이미지를 import하여 사용하는 것이 좋다.
+import reactImg from "./assets/react-core-concepts.png";
+
+const reactDescriptions = ["Fundamental", "Crucial", "Core"];
+
+function getRandomInt(max) {
+  return Math.floor(Math.random() * (max + 1));
+}
+
 function Header() {
   return (
     <header>
-      <img src="src/assets/react-core-concepts.png" alt="Stylized atom" />
+      {/* 이미지를 밑과 같이 임포트할 수도 있지만 비효율적이다. */
+      /*<img src="src/assets/react-core-concepts.png" alt="Stylized atom" />*/
+      /* 이미지를 밑과 같이 임포트하여 사용하면 리액트에서 이미지 최적화를 사용할 수 있다. */}
+      <img src={reactImg} alt="Stylized atom" />
       <h1>React Essentials</h1>
       <p>
-        Fundamental React concepts you will need for almost any app you are
-        going to build!
+        {/* 밑과 같이 jsx에서 '{}'로 감싼 부분을 사용하여 자바스크립트 코드를 동적으로 html에 넣을 수 있다. */
+        /* 함수 정의나 if문, for문과 같은 복잡한 로직은 넣지 못하나 호출이나 산술 연산 정도는 가능하다. */
+        /* 밑의 코드는 reactDescriptions 배열의 요소 중 하나를 랜덤으로 선택하여 반환하여 페이지 새로 고침을 할 때마다 글자가 달라진다. */}
+        {reactDescriptions[getRandomInt(2)]} Fundamental React concepts you will
+        need for almost any app you are going to build!
       </p>
     </header>
   );
