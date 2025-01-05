@@ -7,6 +7,11 @@ import { TabButton } from "./components/TabButton";
 import { CORE_CONCEPTS } from "./data";
 
 function App() {
+  // TabButton 컴포넌트에 전달할 함수 포인터
+  function handleSelect(selectedButton) {
+    console.log(`Selected: ${selectedButton}`);
+  }
+
   return (
     <div>
       <Header />
@@ -23,12 +28,20 @@ function App() {
         <section id="examples">
           <h2>Examples</h2>
           <menu>
-            {/* 밑과 같이 리액트의 builtin property인 children을 이용한 방식을 사용하여 TabButton 컴포넌트를 사용할 수 있다. */
-            /* 밑 방식과 CoreConcepts 컴포넌트에 쓰인 방식 모두 알아야 유연하게 리액트를 사용할 수 있다. */}
-            <TabButton>Components</TabButton>
-            <TabButton>JSX</TabButton>
-            <TabButton>Props</TabButton>
-            <TabButton>State</TabButton>
+            {
+              // 밑과 같이 리액트의 builtin property인 children을 이용한 방식을 사용하여 TabButton 컴포넌트를 사용할 수 있다.
+              // 밑 방식과 CoreConcepts 컴포넌트에 쓰인 방식 모두 알아야 유연하게 리액트를 사용할 수 있다.
+            }
+            <TabButton onSelect={() => handleSelect("components")}>
+              Components
+            </TabButton>
+            {
+              // 밑과 같이 인자가 있는 이벤트 함수에 각기 다른 인자를 넘겨주는 방식도 가능하다.
+              // 해당 방식을 통해 어떤 버튼이 클릭되었는지 구분할 수 있다.
+            }
+            <TabButton onSelect={() => handleSelect("jsx")}>JSX</TabButton>
+            <TabButton onSelect={() => handleSelect("props")}>Props</TabButton>
+            <TabButton onSelect={() => handleSelect("state")}>State</TabButton>
           </menu>
         </section>
       </main>
