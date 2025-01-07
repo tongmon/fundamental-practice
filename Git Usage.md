@@ -71,14 +71,22 @@
 - git switch -c lily   
     git branch lily & git switch lily  
 
-git merge harry -> merge harry branch to current branch, for example, if you stay on main branch and execute "git merge harry" command then code that in harry branch will merge into the main branch
-git merge --abort -> abort merge when conflict happened in merge state.
+## Merge  
 
-- when conflict happened in merge
-git add [CONFLICTED_FILES]
-git commit -m "Conflict is resolved..."
+- git merge harry  
+    Merge the harry branch into the current branch, for example, if you stay on the main branch and run "git merge harry", the code in the harry branch will be merged into the main branch.
+- git merge --abort  
+    Abort the merge if a conflict occurs in the merge state.
 
-git diff [FILE_NAMES] -> Working Directory <--> edited Working Directory
+## Conflict resolution    
+
+1. git add [CONFLICTED_FILES]  
+2. git commit -m "Conflict is resolved..."  
+
+## Diff  
+
+- git diff [FILE_NAMES]
+    Working Directory <--> edited Working Directory  
 git diff branch_1 branch_2 -> shows the result of comparison between Repository of branches.
 git diff commit_id_1 commit_id_2 -> shows the result of comparison between commits.
 git diff --staged [FILE_NAMES] (or git diff --cached [FILE_NAMES]) -> Working Directory <--> Staging Area
