@@ -85,21 +85,35 @@
 
 ## Diff  
 
-- git diff [FILE_NAMES]
+- git diff [FILE_NAMES]  
     Working Directory <--> edited Working Directory  
-git diff branch_1 branch_2 -> shows the result of comparison between Repository of branches.
-git diff commit_id_1 commit_id_2 -> shows the result of comparison between commits.
-git diff --staged [FILE_NAMES] (or git diff --cached [FILE_NAMES]) -> Working Directory <--> Staging Area
-git diff HEAD [FILE_NAMES] -> Working Directory and Staging Area <--> Repository
-git diff [TAG_1] [TAG_2] -> compare two different tags
+- git diff branch_1 branch_2  
+    shows the result of comparison between Repository of branches.
+- git diff commit_id_1 commit_id_2  
+    shows the result of comparison between commits.
+- git diff --staged [FILE_NAMES] (or git diff --cached [FILE_NAMES])  
+    Working Directory <--> Staging Area
+- git diff HEAD [FILE_NAMES]  
+    Working Directory and Staging Area <--> Repository
+- git diff [TAG_1] [TAG_2]  
+    compare two different tags
 
-git stash -> save all the state of files (added or not, it doesn't matter) about staging or not when you switch branch
-git stash list -> show stash stack
-git stash pop -> If you return from the other branches, you can load and apply stash to current branch from this command, and that stash literally poped
-git stash apply -> you can apply latest stash without poping it. you can reuse stash to other branch.
-git stash apply stash@{2} -> apply specific stash (you can get the stash id from "git stash list" command)
-git stash drop stash@{2} -> remove specific stash
-git stash clear -> remove all the stash list
+# Stash  
+
+- git stash  
+    save all the state of files (added or not, it doesn't matter) about staging or not when you switch branch
+- git stash list  
+    show stash stack
+- git stash pop  
+    If you return from the other branches, you can load and apply stash to current branch from this command, and that stash literally poped
+- git stash apply  
+    you can apply latest stash without poping it. you can reuse stash to other branch.
+- git stash apply stash@{2}  
+    apply specific stash (you can get the stash id from "git stash list" command)
+- git stash drop stash@{2}  
+    remove specific stash
+- git stash clear  
+    remove all the stash list
 
 cat .git/HEAD -> show git head info in linux
 
