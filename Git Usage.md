@@ -70,6 +70,8 @@
     Change current branch to "harry"  
 - git switch -c lily   
     git branch lily & git switch lily  
+- git switch -  
+    Back to HEAD so that restore current state  
 
 ## Merge  
 
@@ -98,7 +100,7 @@
 - git diff [TAG_1] [TAG_2]  
     compare two different tags
 
-# Stash  
+## Stash  
 
 - git stash  
     save all the state of files (added or not, it doesn't matter) about staging or not when you switch branch
@@ -117,18 +119,28 @@
 
 cat .git/HEAD -> show git head info in linux
 
-git checkout commit_id -> make all the state of files back to specific commit state (detached HEAD state).
-In detached HEAD state by checkout, 
-Back to HEAD -> use "git switch -" to restore current state.
-Make new branch that has current checkout state -> simply use "git branch branch_name"
-git checkout HEAD~1 -> go back right before HEAD commit. (if "HEAD~2", It means second before.)
-git checkout HEAD dog.txt (or git checkout -- dog.txt) -> revert dog.txt file to HEAD commit state. (HEAD is not detached by this command)
-git checkout [REMOTE_NAME]/[BRANCH] -> go back to server branch state of code, which means you can use this command to go most recently pushed state.
-git checkout [TAG] -> go back to specific tag
+## Checkout  
 
-git restore dog.txt -> revert dog.txt file to HEAD commit state.
-git restore --source HEAD~2 dog.txt -> revert dog.txt file to HEAD~2 commit state.
-git restore --staged [FILE_NAMES] -> undo added files 
+- git checkout commit_id  
+    Make all the state of files back to specific commit state (detached HEAD state).
+    In detached HEAD state by checkout, Back to HEAD (use "git switch -" to restore current state.)  
+- git checkout HEAD~1  
+    Go back right before HEAD commit. (if "HEAD~2", It means second before.)  
+- git checkout HEAD dog.txt (or git checkout -- dog.txt)  
+    revert dog.txt file to HEAD commit state. (HEAD is not detached by this command)  
+- git checkout [REMOTE_NAME]/[BRANCH]  
+    Go back to server branch state of code, which means you can use this command to go most recently pushed state.  
+- git checkout [TAG]  
+    Go back to specific tag  
+
+## Restore  
+
+- git restore dog.txt  
+    Revert dog.txt file to HEAD commit state.
+- git restore --source HEAD~2 dog.txt  
+    Revert dog.txt file to HEAD~2 commit state.  
+- git restore --staged [FILE_NAMES]  
+    Undo added files 
 
 git revert commit_id -> almost same as "git reset commit_id", but revert donsn't delete commits, instead of that, it create new reverted commit with commit msg (or without msg). so commit info of given commit_id is still there.
 
