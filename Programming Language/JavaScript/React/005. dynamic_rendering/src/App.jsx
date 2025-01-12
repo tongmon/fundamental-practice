@@ -49,21 +49,47 @@ function App() {
         <section id="core-concepts">
           <h2>Core Concepts</h2>
           <ul>
-            <CoreConcepts {...CORE_CONCEPTS[0]} />
-            <CoreConcepts {...CORE_CONCEPTS[1]} />
-            <CoreConcepts {...CORE_CONCEPTS[2]} />
-            <CoreConcepts {...CORE_CONCEPTS[3]} />
+            {
+              // <CoreConcepts {...CORE_CONCEPTS[0]} />
+              // <CoreConcepts {...CORE_CONCEPTS[1]} />
+              // <CoreConcepts {...CORE_CONCEPTS[2]} />
+              // <CoreConcepts {...CORE_CONCEPTS[3]} />
+              // 위 코드를 배열 순회로 개선하면 밑과 같다.
+              // key는 각각의 컴포넌트를 식별하기 위해 사용하게 되는 고유 값이다.
+              // 해당 고유 값을 통해 리액트는 내부 상태를 최적화하기에 key를 적지 않으면 경고가 발생한다.
+              CORE_CONCEPTS.map((concept) => (
+                <CoreConcepts key={concept.title} {...concept} />
+              ))
+            }
           </ul>
         </section>
         <section id="examples">
           <h2>Examples</h2>
           <menu>
-            <TabButton onSelect={() => handleSelect("components")}>
+            <TabButton
+              isSelected={selectedTopic === "components"}
+              onSelect={() => handleSelect("components")}
+            >
               Components
             </TabButton>
-            <TabButton onSelect={() => handleSelect("jsx")}>JSX</TabButton>
-            <TabButton onSelect={() => handleSelect("props")}>Props</TabButton>
-            <TabButton onSelect={() => handleSelect("state")}>State</TabButton>
+            <TabButton
+              isSelected={selectedTopic === "jsx"}
+              onSelect={() => handleSelect("jsx")}
+            >
+              JSX
+            </TabButton>
+            <TabButton
+              isSelected={selectedTopic === "props"}
+              onSelect={() => handleSelect("props")}
+            >
+              Props
+            </TabButton>
+            <TabButton
+              isSelected={selectedTopic === "state"}
+              onSelect={() => handleSelect("state")}
+            >
+              State
+            </TabButton>
           </menu>
           {
             // 밑 구문을 통해 selectedTopic의 초기값이 undefined인 경우 <p>Select a topic to a topic</p>을 출력하여 에러를 방지한다.
