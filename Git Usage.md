@@ -146,18 +146,33 @@ git revert commit_id -> almost same as "git reset commit_id", but revert donsn't
 
 git clone [URL] -> get the code and git history from given url (this make a directory named in repo to current location and all the content are in that directory), you should know only the master or main branch is downloaded from server. if you want to download branch1 too, then you can simply do that with "git switch branch1" command (or "git checkout -b branch1 origin/branch1"), in this case git make local branch "branch1" and connect it with "origin/branch1" which is in the server repo.
 
-git remote add [REMOTE_NAME] [URL] -> connect specific git project with specific url (git or bitbucket or gitlab whatever you want), 'origin' is recommanded value to put as remote name arg.
-ex) git remote add origin https://github.com/tongmon/qt-frameless-windows
-git remote -v -> see remote list
-git remote remove -> remove url connection from specific repo
-git remote rename [OLDNAME] [NEWNAME] -> change remote name
+## Remote  
 
-git push [REMOTE_NAME] [BRANCH] -> ex) git push origin master, upload the code to remote server, you should push always after commits if you want to apply some changes to your own server repo.
-git push origin branch1:master -> upload code in local branch1 to server repo branch master, intuitively it means branch1 -> master
-git push -u origin branch1 -> if your current local branch is branch1, you can use "git push" without [REMOTE_NAME] and [BRANCH]. git automatically connect local branch1 with server repo branch1
-git push -u origin branch1:branch2 -> this is not recommanded. link the local branch1 with server repo branch2, so if you use "git push" changes in branch1 are automatically uploaded to server repo branch2
-git push [REMOTE_NAME] [TAG] -> push created tag
-git push [REMOTE_NAME] --tags -> push all created tags
+- git remote add [REMOTE_NAME] [URL]  
+    connect specific git project with specific url (git or bitbucket or gitlab whatever you want), 'origin' is recommanded value to put as remote name arg.
+    ex) git remote add origin https://github.com/tongmon/qt-frameless-windows
+- git remote -v  
+    see remote list
+- git remote remove  
+    remove url connection from specific repo
+- git remote rename [OLDNAME] [NEWNAME]
+    change remote name
+
+## Push  
+
+- git push [REMOTE_NAME] [BRANCH]  
+    ex) git push origin master, upload the code to remote server, you should push always after commits if you want to apply some changes to your own server repo.
+- git push origin branch1:master
+    upload code in local branch1 to server repo branch master, intuitively it means branch1 -> master
+- git push -u origin branch1  
+    if your current local branch is branch1, you can use "git push" without [REMOTE_NAME] and [BRANCH]. git automatically connect local branch1 with server repo branch1
+- git push -u origin branch1:branch2  
+    this is not recommanded. link the local branch1 with server repo branch2, so if you use "git push" changes in branch1 are automatically uploaded to server repo branch2
+- git push [REMOTE_NAME] [TAG]  
+    push created tag
+- git push [REMOTE_NAME] --tags  
+    push all created tags
+
 
 git fetch [REMOTE_NAME] -> fetch all branches. fetch apply changes from server repo to your local repo but not integrate with your local code changes. your local code changes remain as local branch but fetched local branches is sync with newest origin/[BRANCH_NAME]. so in this case, if you want to see the newest fetched changes, you can do that with "git checkout origin/[BRANCH_NAME]" command cause your local branch is still stay at your work. this command also can be use in feching new branches.
 git fetch [REMOTE_NAME] [BRANCH] -> fetch specific branch
