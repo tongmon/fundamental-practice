@@ -1,5 +1,8 @@
+import { Section } from "./Section";
+
 // Tabs 컴포넌트를 만들어 코드 관리를 더 쉽게 만들 수 있다.
-export function Tabs({ children, buttons, buttonsContainer }) {
+// buttonsContainer에 default를 지정할 수도 있다.
+export function Tabs({ children, buttons, buttonsContainer = Section }) {
   // buttonsContainer에 넘겨진 값을 태그로 사용하기 위해서는 상수를 한 번 거치게 하는 방법이 있다.
   // 밑 상수는 첫 글자가 대문자인 것이 중요하다.
   // 그렇게 해야 리액트가 props를 태그로 인식한다.

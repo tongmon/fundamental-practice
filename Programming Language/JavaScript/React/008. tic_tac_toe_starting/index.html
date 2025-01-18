@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/game-logo.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>React Tic-Tac-Toe</title>
+  </head>
+  <body>
+    <!-- 굳이 모든 컴포넌트를 jsx에 넣을 필요는 없다.
+    정적인 녀석들은 밑과 같이 index.html에 넣어놓아도 상관없다. -->
+    <header>
+      <!-- React에서 public 폴더는 특정 기능을 수행하는데 앱이 컴파일 될 때 사용하지 않고 외부 사용자들이 접근할 수 있는 파일들을 저장하는 곳이다. 
+      public 폴더에 있는 파일들은 절대 경로로 참조할 수 있어서 `../../` 이런 식으로 경로가 바뀔 때마다 영향이 가지 않는다. 
+      밑에서도 알 수 있듯이 굳이 `public/game-logo.png` 이렇게 참조하지 않는다. 
+      반면 src 폴더 내부에 있는 녀석들은 컴파일될 때 사용이 되고 웹사이트 사용자가 src 파일 내부 파일들은 추출할 수 없다. 
+      그리고 상대 경로로 참조해야 한다.
+      컴포넌트 내부에서 사용이 되는 이미지나 파일들은 src에 위치해야 한다. -->
+      <img src="game-logo.png" alt="Hand-drawn tic tac toe game board" />
+      <h1>Tic-Tac-Toe</h1>
+    </header>
+    <div id="root"></div>
+    <script type="module" src="/src/index.jsx"></script>
+  </body>
+</html>
