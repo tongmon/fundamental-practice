@@ -6,6 +6,7 @@ export function TabButton({ children, onSelect, isSelected }) {
       {
         // isSelected가 true일 때 버튼이 선택되었다는 효과를 주기위해 active 클래스를 추가한다.
         // active 클래스는 index.css의 button.active에 의해 색상이 변경된다.
+        // 즉 className은 css 파일의 클래스 이름을 참조하는 것이다.
       }
       <button className={isSelected ? "active" : undefined} onClick={onSelect}>
         {children}
