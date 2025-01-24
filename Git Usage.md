@@ -173,12 +173,19 @@ git clone [URL] -> get the code and git history from given url (this make a dire
 - git push [REMOTE_NAME] --tags  
     push all created tags
 
+## Fetch  
 
-git fetch [REMOTE_NAME] -> fetch all branches. fetch apply changes from server repo to your local repo but not integrate with your local code changes. your local code changes remain as local branch but fetched local branches is sync with newest origin/[BRANCH_NAME]. so in this case, if you want to see the newest fetched changes, you can do that with "git checkout origin/[BRANCH_NAME]" command cause your local branch is still stay at your work. this command also can be use in feching new branches.
-git fetch [REMOTE_NAME] [BRANCH] -> fetch specific branch
+- git fetch [REMOTE_NAME]  
+    fetch all branches. fetch apply changes from server repo to your local repo but not integrate with your local code changes. your local code changes remain as local branch but fetched local branches is sync with newest origin/[BRANCH_NAME]. so in this case, if you want to see the newest fetched changes, you can do that with "git checkout origin/[BRANCH_NAME]" command cause your local branch is still stay at your work. this command also can be use in feching new branches.  
+- git fetch [REMOTE_NAME] [BRANCH]  
+    fetch specific branch  
 
-git pull [REMOTE_NAME] [BRANCH] -> git fetch + git merge, so this can generate conflict some files, you can solve that with the solution that used in merge, like resolve conflict code files and add that files and commit again but also in this case you should do push too.
-git pull -> pull the code from origin/current_branch
+## Pull  
+
+- git pull [REMOTE_NAME] [BRANCH]  
+    git fetch + git merge, so this can generate conflict some files, you can solve that with the solution that used in merge, like resolve conflict code files and add that files and commit again but also in this case you should do push too.
+- git pull  
+    pull the code from origin/current_branch  
 
 Add collaborator in github project
 enter the github page -> choose specific repository -> settings -> manage access -> invite a collaborator -> enter username or email
