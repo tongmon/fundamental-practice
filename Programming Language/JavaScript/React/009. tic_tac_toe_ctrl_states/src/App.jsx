@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { Player } from "./components/Player";
 import { GameBoard } from "./components/GameBoard";
+import { Log } from "./components/Log";
 
 function App() {
+  const [gameTurns, setGameTurns] = useState([]);
+
   // Player와 GameBoard를 연결하는 상태를 만들기위해 상위 컴포넌트인 App 컴포넌트에서 상태를 만들어서 하위 컴포넌트에 전달한다.
   // 이를 상태 끌어올리기(lifting state up)라고 한다.
   const [activePlayer, setActivePlayer] = useState("X");
@@ -12,6 +15,8 @@ function App() {
     setActivePlayer((prevActivePlayer) => {
       return prevActivePlayer === "X" ? "O" : "X";
     });
+
+    setGameTurns((prevGameTurns) => {});
   }
 
   return (
@@ -38,6 +43,7 @@ function App() {
           activePlayerSymbol={activePlayer}
         />
       </div>
+      <Log />
     </main>
   );
 }
