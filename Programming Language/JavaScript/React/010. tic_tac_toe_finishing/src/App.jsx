@@ -2,6 +2,13 @@ import { useState } from "react";
 import { Player } from "./components/Player";
 import { GameBoard } from "./components/GameBoard";
 import { Log } from "./components/Log";
+import { WINNING_COMBINATIONS } from "./winning-combination";
+
+const initialGameBoard = [
+  [null, null, null],
+  [null, null, null],
+  [null, null, null],
+];
 
 // gameTurns을 받아 현재 플레이어를 반환하는 함수
 function deriveActivePlayer(gameTurns) {
@@ -19,6 +26,31 @@ function App() {
   // React 개발에서 상태를 최소화해야 최적화가 이루어진다.
   // 따라서 기존 상태에서 어떻게 다른 상태 변수를 파생시킬 수 있을지를 고민하면서 개발하는 것이 좋다.
   const activePlayer = deriveActivePlayer(gameTurns);
+
+  let gameBoard = initialGameBoard;
+
+  for (const turn of gameTurns) {
+    const { square, player } = turn;
+    const { row, col } = square;
+
+    gameBoard[row][col] = player;
+  }
+
+  let winner;
+
+  for (const combination of WINNING_COMBINATIONS) {
+    winner = gameBoard[combination[0].row][combination[0].col];
+    for (const square of combination) {
+      const { row, col } = square;
+      if (!winner || winner !== gameBoard[row][col]) {
+        winner = null;
+        break;
+      }
+    }
+    if (winner) {
+      break;
+    }
+  }
 
   // 게임 보드를 클릭할 때마다 플레이어를 교체하는 함수
   function handleSelectSquare(rowIndex, colIndex) {
@@ -53,7 +85,8 @@ function App() {
             isActive={activePlayer === "O"}
           />
         </ol>
-        <GameBoard onSelectSquare={handleSelectSquare} turns={gameTurns} />
+        {winner && <p>{winner} is the winner!</p>}
+        <GameBoard onSelectSquare={handleSelectSquare} board={gameBoard} />
       </div>
       <Log turns={gameTurns} />
     </main>
