@@ -203,8 +203,11 @@ you can force protected branch name to be in specific template with this.
 you can set options for protected branch, something like there must be at least 2 approved reviewers in the pull request to be merged.
 also there is an option for making collaborators can't commit directly to protected branch rather they should open pull request to merge other branches.
 
-Forking
-Fork -> copy other project and make it to your own repo
+## Forking  
+
+- Fork  
+    copy other project and make it to your own repo  
+
 forked repo 1 ==> upstream repo (base repo) <== forked repo 2
 forked repo can pull from upstream repo. (this can be done after executing the "git remote add upstream [BASE_REPO_URL]" command and "git pull upstream [BRANCH]")
 owner of forked repo can make pull request for merging upstream repo cause owner of forked repo is usually not in upstream repo collaborator list so can't push directly to upstream repo.
