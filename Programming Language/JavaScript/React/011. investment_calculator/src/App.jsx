@@ -1,7 +1,13 @@
 import { Header } from "./components/header/Header";
+import { Inputs } from "./components/inputs/Inputs";
 
 function App() {
-  return <Header />;
+  return (
+    <>
+      <Header />
+      <Inputs />
+    </>
+  );
 }
 
 export default App;
