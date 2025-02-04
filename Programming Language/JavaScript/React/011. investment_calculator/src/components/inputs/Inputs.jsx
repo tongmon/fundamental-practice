@@ -1,3 +1,5 @@
+import { useState } from "react";
+
 export function Inputs() {
   return (
     <div id="user-input" className="input-group">
