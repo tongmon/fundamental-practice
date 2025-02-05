@@ -1,4 +1,6 @@
-export function Table() {
+import { calculateInvestmentResults, formatter } from "../../util/investment";
+
+export function Table({ II, AI, ER, D }) {
   return (
     <table id="result">
       <thead>
@@ -10,13 +12,17 @@ export function Table() {
           <th>Invested Capital</th>
         </tr>
       </thead>
-      <tbody></tbody>
+      <tbody>
+        {calculateInvestmentResults(II, AI, ER, D).map((data, i) => (
+          <tr key={i}>
+            <td>{i + 1}</td>
+            <td>{data.year}</td>
+            <td>{data.interest}</td>
+            <td>{data.valueEndOfYear}</td>
+            <td>{data.annualInvestment}</td>
+          </tr>
+        ))}
+      </tbody>
     </table>
   );
 }
-
-//<tr>
-//  <td>11/15</td>
-//  <td>김우직</td>
-//  <td>남</td>
-//</tr>

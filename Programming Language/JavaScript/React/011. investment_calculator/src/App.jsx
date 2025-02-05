@@ -34,8 +34,18 @@ function App() {
   return (
     <>
       <Header />
-      <Inputs />
-      <Table />
+      <Inputs
+        IIInfo={[initialInvestment, handleInitialInvestmentChange]}
+        AIInfo={[annualInvestment, handleAnnualInvestmentChange]}
+        ERInfo={[expectedReturn, handleExpectedReturnChange]}
+        DInfo={[duration, handleDurationChange]}
+      />
+      <Table
+        II={initialInvestment}
+        AI={annualInvestment}
+        ER={expectedReturn}
+        D={duration}
+      />
     </>
   );
 }
