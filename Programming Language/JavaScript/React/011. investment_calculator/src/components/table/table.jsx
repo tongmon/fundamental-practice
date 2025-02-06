@@ -25,7 +25,7 @@ export function Table({ II, AI, ER, D }) {
             <td>{data.year}</td>
             <td>{formatter.format(data.valueEndOfYear)}</td>
             <td>{formatter.format(data.interest)}</td>
-            <td>{II}</td>
+            <td>{formatter.format(data.totalInterest)}</td>
             <td>{formatter.format(data.investedCapital)}</td>
           </tr>
         ))}
