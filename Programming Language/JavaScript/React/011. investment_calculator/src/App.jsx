@@ -4,7 +4,7 @@ import { Table } from "./components/table/table";
 import { useState } from "react";
 
 const INITIAL_INVESTMENT = 10000;
-const ANNUAL_INVESTMENT = 1000;
+const ANNUAL_INVESTMENT = 1200;
 const EXPECTED_RETURN = 6;
 const DURATION = 10;
 

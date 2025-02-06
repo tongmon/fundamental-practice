@@ -1,6 +1,13 @@
 import { calculateInvestmentResults, formatter } from "../../util/investment";
 
 export function Table({ II, AI, ER, D }) {
+  const annualData = calculateInvestmentResults({
+    initialInvestment: II,
+    annualInvestment: AI,
+    expectedReturn: ER,
+    duration: D,
+  });
+
   return (
     <table id="result">
       <thead>
@@ -13,13 +20,13 @@ export function Table({ II, AI, ER, D }) {
         </tr>
       </thead>
       <tbody>
-        {calculateInvestmentResults(II, AI, ER, D).map((data, i) => (
+        {annualData.map((data, i) => (
           <tr key={i}>
-            <td>{i + 1}</td>
             <td>{data.year}</td>
-            <td>{data.interest}</td>
-            <td>{data.valueEndOfYear}</td>
-            <td>{data.annualInvestment}</td>
+            <td>{formatter.format(data.valueEndOfYear)}</td>
+            <td>{formatter.format(data.interest)}</td>
+            <td>{II}</td>
+            <td>{formatter.format(data.investedCapital)}</td>
           </tr>
         ))}
       </tbody>
