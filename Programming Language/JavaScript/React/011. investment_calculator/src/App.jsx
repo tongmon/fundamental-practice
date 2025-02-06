@@ -16,19 +16,19 @@ function App() {
   const [duration, setDuration] = useState(DURATION);
 
   function handleInitialInvestmentChange(event) {
-    setInitialInvestment(event.target.value);
+    setInitialInvestment(Number(event.target.value));
   }
 
   function handleAnnualInvestmentChange(event) {
-    setAnnualInvestment(event.target.value);
+    setAnnualInvestment(Number(event.target.value));
   }
 
   function handleExpectedReturnChange(event) {
-    setExpectedReturn(event.target.value);
+    setExpectedReturn(Number(event.target.value));
   }
 
   function handleDurationChange(event) {
-    setDuration(event.target.value);
+    setDuration(Number(event.target.value));
   }
 
   return (
