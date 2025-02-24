@@ -17,20 +17,18 @@ fun main() {
     println(someUnicodeChar)
 
     val bval: Boolean = true // or false
-    if (bval){
+    if (bval) {
         println("bval is true!")
-    }
-    else {
+    } else {
         println("bval is false!")
     }
 
     val userInput = readln()
     var numInput = userInput.toInt()
     // 12 <= numInput && numInput <= 41 조건을 in 으로 줄일 수 있음
-    if (numInput in 12 .. 41) {
+    if (numInput in 12..41) {
         println("Number: $numInput, Number belongs to the range of 12~41")
-    }
-    else {
+    } else {
         println("Number: $numInput")
     }
 
@@ -40,21 +38,43 @@ fun main() {
         1 -> {
             println("This is one.")
         }
+
         2 -> {
             println("This is two.")
         }
+
         in 3..99 -> {
             println("Number is under 100")
         }
+
         else -> {
             println("This is two.")
         }
     }
-    
+
     // 기존 switch랑 다른 점은 밑과 람다처럼 사용할 수 있음
     var someConditionResult = when {
         1 == 2 -> "Not a true"
         1 == 1 -> "This is true"
         else -> "This is not reachable"
+    }
+
+    var cnt = 3
+    while (cnt >= 0) {
+        cnt--
+        println("Count: $cnt")
+    }
+
+    for (i in 1..3) {
+        println("Count: $i")
+    }
+
+    val someAry: IntArray = intArrayOf(1, 2, 3, 4, 5)
+    someAry.forEachIndexed { index, value ->
+        println("the element at $index is $value")
+    }
+
+    for ((index, value) in someAry.withIndex()) {
+        println("the element at $index is $value")
     }
 }
