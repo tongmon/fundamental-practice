@@ -26,6 +26,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButtonDefaults.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableDoubleStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
@@ -51,6 +56,29 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun UnitConverter(modifier: Modifier = Modifier) {
+
+    var inputValue by remember {
+        mutableStateOf("")
+    }
+    var outputValue by remember {
+        mutableStateOf("")
+    }
+    var inputUnit by remember {
+        mutableStateOf("")
+    }
+    var outputUnity by remember {
+        mutableStateOf("")
+    }
+    var iExpanded by remember {
+        mutableStateOf(false)
+    }
+    var oExpanded by remember {
+        mutableStateOf(false)
+    }
+    val conversionFactor = remember {
+        mutableDoubleStateOf(0.01)
+    }
+
     // Column에 여러 인자들을 넣어 내부 정렬, 크기 등을 조절할 수 있다.
     // Modifier는 Modifier.fillMaxSize().padding()과 같이 빌더 패턴으로 확장이 유연하다.
     Column(
@@ -63,8 +91,13 @@ fun UnitConverter(modifier: Modifier = Modifier) {
         // Spacer를 통해 UI간 간격을 조절할 수 있음
         // dp는 화면 상대적인 단위라 화면 크기 제약이 없어서 좋다.
         Spacer(modifier = Modifier.height(16.dp))
-        OutlinedTextField(value = "", onValueChange = {
-        })
+        // Text Field에 문자가 입력될 때마다 상태 변수 값을 변경하고
+        // 해당 값을 다시 Text Field에 할당하여 Text Field 값이 inputValue에 실시간으로 반영되도록 해준다.
+        OutlinedTextField(value = inputValue,
+            onValueChange = {
+                inputValue = it
+            },
+            label = { Text("Enter Value") })
         Spacer(modifier = Modifier.height(16.dp))
         Row {
             // 복잡한 레이아웃을 설계할 때 Box가 사용된다.
