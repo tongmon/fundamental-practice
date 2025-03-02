@@ -38,6 +38,7 @@ import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import kr.tutorials.unitconverter.ui.theme.UnitConverterTheme
+import kotlin.math.roundToInt
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -79,6 +80,18 @@ fun UnitConverter(modifier: Modifier = Modifier) {
         mutableDoubleStateOf(0.01)
     }
 
+    fun convertUnits() {
+        // 밑 라인은 많은 기능을 함축하고 있다.
+        // toDoubleOrNull() 함수는 inputValue 문자열 변수가 double 형으로 변환이 가능한 녀석이면 double 값을 반환하고
+        // 그것이 불하는 하면 null을 반환하는데 '?:' syntex로 인해 null인 경우 0.0이 선택되어
+        // 결과적으로 inputValue 값이 double형으로 변환가능하면 해당 값을, 아니라면 0.0을 반환하는 로직이라고 볼 수 있다.
+        val inputValueDouble = inputValue.toDoubleOrNull() ?: 0.0
+
+        val result =
+            (inputValueDouble * (1 / conversionFactor.doubleValue) * 100.0).roundToInt() / 100.0
+        outputValue = result.toString()
+    }
+
     // Column에 여러 인자들을 넣어 내부 정렬, 크기 등을 조절할 수 있다.
     // Modifier는 Modifier.fillMaxSize().padding()과 같이 빌더 패턴으로 확장이 유연하다.
     Column(
@@ -103,42 +116,63 @@ fun UnitConverter(modifier: Modifier = Modifier) {
             // 복잡한 레이아웃을 설계할 때 Box가 사용된다.
             // Box안에 같이 Button과 DropdownMenu를 위치시킴으로 두 UI가 같은 context를 공유하게 되고 상호작용이 가능하다.
             Box {
-                Button(onClick = { /*TODO*/ }) {
+                Button(onClick = { iExpanded = true }) {
                     Text(text = "Select")
                     Icon(
                         Icons.Default.ArrowDropDown,
                         contentDescription = "Arrow Down"
                     )
                 }
-                DropdownMenu(expanded = false, onDismissRequest = { /*TODO*/ }) {
+                // onDismissRequest는 드롭박스 메뉴를 닫으려는 메시지가 전달되는 경우 트리거 된다.
+                DropdownMenu(expanded = iExpanded, onDismissRequest = { iExpanded = false }) {
                     DropdownMenuItem(
                         text = { Text(text = "Millimeters") },
-                        onClick = { }
+                        onClick = {
+                            iExpanded = false
+                            inputUnit = "Millimeters"
+                            conversionFactor.doubleValue = 0.001
+                            convertUnits()
+                        }
                     )
                     DropdownMenuItem(
                         text = { Text(text = "Centimeters") },
-                        onClick = { }
+                        onClick = {
+                            iExpanded = false
+                            inputUnit = "Centimeters"
+                            conversionFactor.doubleValue = 0.01
+                            convertUnits()
+                        }
                     )
                     DropdownMenuItem(
                         text = { Text(text = "Meters") },
-                        onClick = { }
+                        onClick = {
+                            iExpanded = false
+                            inputUnit = "Centimeters"
+                            conversionFactor.doubleValue = 1.0
+                            convertUnits()
+                        }
                     )
                     DropdownMenuItem(
                         text = { Text(text = "Feet") },
-                        onClick = { }
+                        onClick = {
+                            iExpanded = false
+                            inputUnit = "Feet"
+                            conversionFactor.doubleValue = 0.3048
+                            convertUnits()
+                        }
                     )
                 }
             }
             Spacer(modifier = Modifier.width(16.dp))
             Box {
-                Button(onClick = { /*TODO*/ }) {
+                Button(onClick = { oExpanded = true }) {
                     Text(text = "Select")
                     Icon(
                         Icons.Default.ArrowDropDown,
                         contentDescription = "Arrow Down"
                     )
                 }
-                DropdownMenu(expanded = false, onDismissRequest = { /*TODO*/ }) {
+                DropdownMenu(expanded = oExpanded, onDismissRequest = { oExpanded = false }) {
                     DropdownMenuItem(
                         text = { Text(text = "Millimeters") },
                         onClick = { }
@@ -159,7 +193,7 @@ fun UnitConverter(modifier: Modifier = Modifier) {
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Result:")
+        Text("Result: $outputValue")
     }
 
     // Column(modifier = modifier) {
