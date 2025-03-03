@@ -21,6 +21,7 @@ import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material3.Button
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButtonDefaults.Icon
@@ -34,9 +35,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.modifier.modifierLocalConsumer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.sp
 import kr.tutorials.unitconverter.ui.theme.UnitConverterTheme
 import kotlin.math.roundToInt
 
@@ -65,10 +70,10 @@ fun UnitConverter(modifier: Modifier = Modifier) {
         mutableStateOf("")
     }
     var inputUnit by remember {
-        mutableStateOf("")
+        mutableStateOf("Meters")
     }
-    var outputUnity by remember {
-        mutableStateOf("")
+    var outputUnit by remember {
+        mutableStateOf("Meters")
     }
     var iExpanded by remember {
         mutableStateOf(false)
@@ -77,8 +82,18 @@ fun UnitConverter(modifier: Modifier = Modifier) {
         mutableStateOf(false)
     }
     val conversionFactor = remember {
-        mutableDoubleStateOf(0.01)
+        mutableDoubleStateOf(1.0)
     }
+    val oConversionFactor = remember {
+        mutableDoubleStateOf(1.0)
+    }
+
+    // 밑과 같이 커스텀 텍스트 스타일을 생성하여 적용할 수도 있다.
+    val customTextStyle = TextStyle(
+        fontFamily = FontFamily.Monospace,
+        fontSize = 32.sp,
+        color = Color.Blue
+    )
 
     fun convertUnits() {
         // 밑 라인은 많은 기능을 함축하고 있다.
@@ -88,7 +103,7 @@ fun UnitConverter(modifier: Modifier = Modifier) {
         val inputValueDouble = inputValue.toDoubleOrNull() ?: 0.0
 
         val result =
-            (inputValueDouble * (1 / conversionFactor.doubleValue) * 100.0).roundToInt() / 100.0
+            (inputValueDouble * conversionFactor.doubleValue * 100.0 / oConversionFactor.doubleValue).roundToInt() / 100.0
         outputValue = result.toString()
     }
 
@@ -100,7 +115,11 @@ fun UnitConverter(modifier: Modifier = Modifier) {
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         // modifier = Modifier.padding(100.dp) 코드를 사용해도 UI 간격 조절이 가능하다.
-        Text(text = "Unit Converter" /*, modifier = Modifier.padding(100.dp)*/)
+        // style에는 위에서 작성한 스타일을 넣어줄 수 있다.
+        Text(
+            text = "Unit Converter" /*, modifier = Modifier.padding(100.dp)*/,
+            style = customTextStyle
+        )
         // Spacer를 통해 UI간 간격을 조절할 수 있음
         // dp는 화면 상대적인 단위라 화면 크기 제약이 없어서 좋다.
         Spacer(modifier = Modifier.height(16.dp))
@@ -109,6 +128,7 @@ fun UnitConverter(modifier: Modifier = Modifier) {
         OutlinedTextField(value = inputValue,
             onValueChange = {
                 inputValue = it
+                convertUnits()
             },
             label = { Text("Enter Value") })
         Spacer(modifier = Modifier.height(16.dp))
@@ -117,7 +137,7 @@ fun UnitConverter(modifier: Modifier = Modifier) {
             // Box안에 같이 Button과 DropdownMenu를 위치시킴으로 두 UI가 같은 context를 공유하게 되고 상호작용이 가능하다.
             Box {
                 Button(onClick = { iExpanded = true }) {
-                    Text(text = "Select")
+                    Text(text = inputUnit)
                     Icon(
                         Icons.Default.ArrowDropDown,
                         contentDescription = "Arrow Down"
@@ -147,7 +167,7 @@ fun UnitConverter(modifier: Modifier = Modifier) {
                         text = { Text(text = "Meters") },
                         onClick = {
                             iExpanded = false
-                            inputUnit = "Centimeters"
+                            inputUnit = "Meters"
                             conversionFactor.doubleValue = 1.0
                             convertUnits()
                         }
@@ -166,7 +186,7 @@ fun UnitConverter(modifier: Modifier = Modifier) {
             Spacer(modifier = Modifier.width(16.dp))
             Box {
                 Button(onClick = { oExpanded = true }) {
-                    Text(text = "Select")
+                    Text(text = outputUnit)
                     Icon(
                         Icons.Default.ArrowDropDown,
                         contentDescription = "Arrow Down"
@@ -175,25 +195,49 @@ fun UnitConverter(modifier: Modifier = Modifier) {
                 DropdownMenu(expanded = oExpanded, onDismissRequest = { oExpanded = false }) {
                     DropdownMenuItem(
                         text = { Text(text = "Millimeters") },
-                        onClick = { }
+                        onClick = {
+                            oExpanded = false
+                            outputUnit = "Millimeters"
+                            oConversionFactor.doubleValue = 0.001
+                            convertUnits()
+                        }
                     )
                     DropdownMenuItem(
                         text = { Text(text = "Centimeters") },
-                        onClick = { }
+                        onClick = {
+                            oExpanded = false
+                            outputUnit = "Centimeters"
+                            oConversionFactor.doubleValue = 0.01
+                            convertUnits()
+                        }
                     )
                     DropdownMenuItem(
                         text = { Text(text = "Meters") },
-                        onClick = { }
+                        onClick = {
+                            oExpanded = false
+                            outputUnit = "Meters"
+                            oConversionFactor.doubleValue = 1.0
+                            convertUnits()
+                        }
                     )
                     DropdownMenuItem(
                         text = { Text(text = "Feet") },
-                        onClick = { }
+                        onClick = {
+                            oExpanded = false
+                            outputUnit = "Feet"
+                            oConversionFactor.doubleValue = 0.3048
+                            convertUnits()
+                        }
                     )
                 }
             }
         }
         Spacer(modifier = Modifier.height(16.dp))
-        Text("Result: $outputValue")
+        // typography 내부의 변수를 이용하면 html의 h1, p 이런 태그에 속한 글자마냥 굵기랑 크기를 지정해 줄 수 있다.
+        Text(
+            "Result: $outputValue $outputUnit",
+            style = MaterialTheme.typography.headlineSmall
+        )
     }
 
     // Column(modifier = modifier) {
