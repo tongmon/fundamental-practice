@@ -3,12 +3,15 @@ package kr.tutorials.shoppinglistapp
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -34,6 +37,13 @@ fun ShoppingListApp(innerPadding: PaddingValues) {
     // 상태 변수이기에 해당 변수가 변경될 때마다 ShoppingListApp() 컴포넌트는 재렌더링된다.
     var showDialog by remember {
         mutableStateOf(false)
+    }
+
+    var itemName by remember {
+        mutableStateOf("")
+    }
+    var itemQuantity by remember {
+        mutableStateOf("")
     }
 
     Column(
@@ -64,7 +74,57 @@ fun ShoppingListApp(innerPadding: PaddingValues) {
 
     if (showDialog) {
         AlertDialog(onDismissRequest = { showDialog = false },
-            confirmButton = { /*TODO*/ },
-            text = { Text("I am an alert dialog!") })
+            confirmButton = {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Button(onClick = {
+                        if (itemName.isNotBlank()) {
+                            val newItem = ShoppingItem(
+                                id = sItems.size + 1,
+                                name = itemName,
+                                quantity = itemQuantity.toInt()
+                            )
+                            // 상태 변수인 sItems를 변경함으로 해당 컴포넌트는 재렌더링 될 것이다.
+                            sItems += newItem
+                            showDialog = false
+                            itemName = ""
+                            itemQuantity = ""
+                        }
+                    }) {
+                        Text(text = "Add")
+                    }
+                    Button(onClick = { showDialog = false }) {
+                        Text(text = "Cancel")
+                    }
+                }
+            },
+            title = { Text(text = "Add Shopping Item") },
+            // 인자는 text지만 내부적으로 모든 @Composable을 받을 수 있으니 밑과 같이 확장해서 사용할 수도 있다.
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = itemName,
+                        // 여기서 it은 onValueChange의 String 인자를 의미하는데 이를 알 수 있는 방법은
+                        // 'onValueChange = {'에서 '{' 부분에 마우스 커서를 올려보면 된다.
+                        onValueChange = { itemName = it },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    )
+                    OutlinedTextField(
+                        value = itemQuantity,
+                        onValueChange = { itemQuantity = it },
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(8.dp)
+                    )
+                }
+            })
     }
 }
