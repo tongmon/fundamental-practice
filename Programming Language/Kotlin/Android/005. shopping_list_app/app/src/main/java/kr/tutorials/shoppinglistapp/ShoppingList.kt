@@ -1,5 +1,7 @@
 package kr.tutorials.shoppinglistapp
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -9,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
@@ -20,6 +23,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
@@ -67,7 +71,8 @@ fun ShoppingListApp(innerPadding: PaddingValues) {
         ) {
             // 해당 LazyColumn과 연동되는 상태 변수 아이템 묶음은 밑과 같이 연결할 수 있다.
             items(sItems) {
-
+                // 밑과 같이 추가된 아이템에 대한 컴포넌트를 적어주면 LazyColumn의 items가 내부적으로 반복문을 돌면서 추가된 컴포넌트를 화면에 뿌려준다.
+                ShoppingListItem(it, {}, {})
             }
         }
     }
@@ -126,5 +131,27 @@ fun ShoppingListApp(innerPadding: PaddingValues) {
                     )
                 }
             })
+    }
+}
+
+// LazyColumn에 추가할 컴포넌트를 정의한다.
+// 컴포넌트에는 보통 이벤트 콜백이 들어가므로 인자에 함수 포인트를 넘겨주는 경우가 많은데
+// 이 경우 `() -> Unit` 요런 식의 자료형을 이용하면 된다.
+@Composable
+fun ShoppingListItem(
+    item: ShoppingItem,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .padding(8.dp)
+            .fillMaxWidth()
+            .border(
+                border = BorderStroke(2.dp, Color(0xff018786)),
+                shape = RoundedCornerShape(20)
+            )
+    ) {
+        Text(text = item.name, modifier = Modifier.padding(8.dp))
     }
 }
