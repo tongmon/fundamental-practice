@@ -16,7 +16,7 @@ fun main() {
     var someData = DataStructure("Data 01", 100)
     
     // 고정 크기 배열은 밑과 같이 만듦
-    val someList = listOf<Int>(1, 2, 3, 4, 5)
+    val someList = listOf<Int>(1, 2, 3)
 
     // 동적 배열은 밑과 같음
     val someMutableList = mutableListOf<String>("hi", "hello", "bye", "farewell")
@@ -39,6 +39,10 @@ fun main() {
             println("${someMutableList[index]}\n")
         }
     }
+
+    // 밑과 같이 js에서 배열을 순회하는 map 함수가 코틀린에도 존재한다.
+    // doubled는 2, 4, 6이 될 것이다.
+    val doubled = someList.map { it * 2 }
 }
 
 fun SomeFunc(someArg: Int)
