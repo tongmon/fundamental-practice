@@ -1,23 +1,59 @@
+import { styled } from "styled-components";
 import logo from "../assets/logo.png";
-// import "../components/Header.css";
 
-// 밑과 같이 module.css를 사용하면 css 파일을 import할 때 클래스 이름을 지정해줘야 한다.
-// 이렇게 css 클래스 이름 변수를 사용하게 되어 특정 jsx 파일에서만 사용되도록 css를 컴포넌트 단위로 지정할 수 있다.
-import classes from "../components/Header.module.css";
+// styled-components에서 &를 사용하여 현재 선택된 nested 요소를 선택할 수 있다.
+// 예를 들어 & img는 현재 선택된 요소의 img 태그를 선택하게 되고 이는 header img와 동일하다.
+// @media 쿼리는 css의 if문이라고 보면 된다.
+// 예를 들어 @media (min-width: 768px)는 화면의 가로 길이가 768px 이상일 때 적용되는 css를 작성할 수 있다.
+const StyledHeader = styled.header`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+
+  & img {
+    object-fit: contain;
+    margin-bottom: 2rem;
+    width: 11rem;
+    height: 11rem;
+  }
+
+  & h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: 0.4em;
+    text-align: center;
+    text-transform: uppercase;
+    color: #9a3412;
+    font-family: 'Pacifico', cursive;
+    margin: 0;
+  }
+
+  & p {
+    text-align: center;
+    color: #a39191;
+    margin: 0;
+  }
+
+  @media (min-width: 768px) {
+    margin-bottom: 4rem;
+
+    & h1 {
+        font-size: 2.25rem;
+    }
+  }
+`;
 
 export default function Header() {
   return (
-    <header>
+    <StyledHeader>
       <img src={logo} alt="A canvas" />
       <h1>ReactArt</h1>
-      {
-        // module.css를 사용하면 className="paragraph" 대신에 className={classes.paragraph}로 사용할 수 있다.
-        // 이것의 장점은 클래스 이름이 겹치지 않는다는 것이다.
-        // react는 내부적으로 paragraph 클래스 이름을 paragraph_vstq_1 이런 식으로 바꿔서 사용하기에 className="paragraph"을 사용한 다른 곳과 겹칠 일이 없다.
-      }
-      <p className={classes.paragraph}>
+      <p>
         A community of artists and art-lovers.
       </p>
-    </header>
+    </StyledHeader>
   );
 }
